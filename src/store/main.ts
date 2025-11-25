@@ -1,3 +1,4 @@
+import React from 'react';
 import { action, autorun, makeAutoObservable, observable, toJS } from "mobx"
 import uuid from 'utils/get-uuid'
 import Book from 'store/book'
@@ -410,4 +411,5 @@ autorun(() => {
   localStorage.setItem('EPUB_CREATOR_SAVED_SETS_CONTENTS', JSON.stringify(toJS(store.contents.savedSets)))
 })
 
-export default store
+export const StoreContext = React.createContext(store);
+export default store;

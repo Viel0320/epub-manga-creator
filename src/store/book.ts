@@ -50,14 +50,11 @@ class Store {
       sticky: 'auto',
       blank: false
     }))
-
-    const pages = toJS(this.pages)
-    this.pages = [...pages, ...newPages]
+    this.pages.push(...newPages);
   }
 
+  @action
   splitPage(index: number, blobUUIDs: string[]) {
-    const pages = toJS(this.pages)
-
     const newPageItem1: StoreBook.PageItem = {
       index,
       blobID: blobUUIDs[0],
@@ -71,9 +68,7 @@ class Store {
       blank: false
     }
 
-    pages.splice(index, 1, newPageItem1, newPageItem2)
-
-    this.pages = pages
+    this.pages.splice(index, 1, newPageItem1, newPageItem2)
   }
 
   @action
@@ -85,40 +80,27 @@ class Store {
 
   @action
   removePage(index: number) {
-    const pages = toJS(this.pages)
-    pages.splice(index, 1)
-    this.pages = pages
+    this.pages.splice(index, 1)
   }
 
   @action
   switchIndex(index: number, targetIndex: number) {
-    let pages: (StoreBook.PageItem | null)[] = toJS(this.pages)
-    const pageItem = pages[index]
-    const maxIndex = pages.length - 1
-
-    pages[index] = null
-    const part1 = pages.slice(0, targetIndex)
-    const part2 = pages.slice(targetIndex, maxIndex + 1)
-    pages = [...part1, pageItem, ...part2].filter(item => item)
-
-    this.pages = pages as StoreBook.PageItem[]
+    const pageItem = this.pages[index];
+    if (pageItem) {
+      this.pages.splice(index, 1);
+      this.pages.splice(targetIndex, 0, pageItem);
+    }
   }
 
   @action
   updatePageItemIndex() {
-    const pages = toJS(this.pages)
-
-    this.pages = pages.map((pageItem: StoreBook.PageItem, i: number) => {
-      pageItem.index = i
-      return pageItem
-    })
+    this.pages.forEach((pageItem, i) => {
+      pageItem.index = i;
+    });
   }
 
   @action
   insertBlankPage(index: number) {
-    const pages = toJS(this.pages)
-    const maxIndex = pages.length - 1
-
     const newPageItem: StoreBook.PageItem = {
       index: -1,
       blobID: '',
@@ -126,22 +108,19 @@ class Store {
       blank: true
     }
 
-    if (index >= maxIndex) {
-      pages.push(newPageItem)
+    if (index >= this.pages.length) {
+      this.pages.push(newPageItem)
     } else {
       const currentIndex = index < 0 ? 0 : index
-      const pageItem = pages[currentIndex]
-      pages.splice(currentIndex, 1, newPageItem, pageItem)
+      this.pages.splice(currentIndex, 0, newPageItem)
     }
-
-    this.pages = pages
   }
 
   @action
   saveBookInfoToSet() {
     const newSet = {
       bookTitle: this.bookTitle,
-      bookAuthors: this.bookAuthors,
+      bookAuthors: toJS(this.bookAuthors), // Keep toJS here for deep copy
       bookSubject: this.bookSubject,
       bookPublisher: this.bookPublisher,
     }
@@ -151,17 +130,18 @@ class Store {
 
   @action
   removeBookInfoSet(index: number) {
-    const savedSets = toJS(this.savedSets)
-    savedSets.splice(index, 1)
-    this.savedSets = savedSets
+    this.savedSets.splice(index, 1)
   }
 
   @action
   applySet(index: number) {
-    this.bookTitle = this.savedSets[index].bookTitle
-    this.bookAuthors = this.savedSets[index].bookAuthors
-    this.bookSubject = this.savedSets[index].bookSubject
-    this.bookPublisher = this.savedSets[index].bookPublisher
+    const selectedSet = this.savedSets[index];
+    if (selectedSet) {
+      this.bookTitle = selectedSet.bookTitle
+      this.bookAuthors = toJS(selectedSet.bookAuthors) // Keep toJS here to avoid assigning observable to observable
+      this.bookSubject = selectedSet.bookSubject
+      this.bookPublisher = selectedSet.bookPublisher
+    }
   }
 }
 
