@@ -567,6 +567,8 @@ class Store {
 
     const Zip = new JSZip()
 
+    Zip.file('mimetype', 'application/epub+zip', { compression: 'STORE' })
+
     Zip.folder('META-INF')
     Zip.folder('OEBPS/image')
     Zip.folder('OEBPS/text')
@@ -599,12 +601,13 @@ class Store {
     this.book.pages.forEach((pageItem, i) => {
       const numStr = i === 0 ? 'cover' : getNumberStr(i - 1, 4)
       const imageFileName = (i === 0 ? '' : 'i_') + numStr
+      const svgProperty = this.book.imgTag === 'svg' ? ' properties="svg"' : ''
 
       if (pageItem.blank) {
-        pageItemStr.push(`<item id="p_${numStr}" href="text/p_${numStr}.xhtml" media-type="application/xhtml+xml" properties="svg"></item>`)
+        pageItemStr.push(`<item id="p_${numStr}" href="text/p_${numStr}.xhtml" media-type="application/xhtml+xml"${svgProperty}></item>`)
       } else {
         const mimeType = this.blobs.blobs[pageItem.blobID].blob.type // image/xxxxx
-        pageItemStr.push(`<item id="p_${numStr}" href="text/p_${numStr}.xhtml" media-type="application/xhtml+xml" properties="svg" fallback="${imageFileName}"></item>`)
+        pageItemStr.push(`<item id="p_${numStr}" href="text/p_${numStr}.xhtml" media-type="application/xhtml+xml"${svgProperty}></item>`)
         imageItemStr.push(`<item id="${imageFileName}" href="image/${imageFileName}.${mimeType.slice(6)}" media-type="${mimeType}"${i === 0 ? ' properties="cover-image"' : ''}></item>`)
       }
 
@@ -730,7 +733,6 @@ class Store {
       return [
         `<dc:creator id="creator${i + 1}">${htmlToEscape(name)}</dc:creator>`,
         `<meta refines="#creator${i + 1}" property="role" scheme="marc:relators">aut</meta>`,
-        `<meta refines="#creator${i + 1}" property="file-as"></meta>`,
         `<meta refines="#creator${i + 1}" property="display-seq">${i + 1}</meta>`
       ].join('\n')
     }).join('\n')
@@ -742,7 +744,7 @@ class Store {
       .replace('{{subject}}', htmlToEscape(this.book.bookSubject))
       .replace('{{publisher}}', htmlToEscape(this.book.bookPublisher))
       .replace('{{spread}}', this.book.pageShow === 'one' ? 'none' : 'landscape')
-      .replace('{{createTime}}', new Date().toISOString())
+      .replace('{{createTime}}', new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'))
       .replace(new RegExp('{{width}}', 'gm'), viewPortWidth)
       .replace(new RegExp('{{height}}', 'gm'), viewPortHeight)
       .replace('<!-- item-image -->', imageItemStr.join('\n'))
@@ -750,7 +752,6 @@ class Store {
       .replace('<!-- itemref-xhtml -->', itemRefStr.join('\n'))
       .replace('{{direction}}', this.book.pageDirection === 'right' ? ' page-progression-direction="rtl"' : '')
 
-    Zip.file('mimetype', 'application/epub+zip', { compression: 'STORE' })
     Zip.file('META-INF/container.xml', templateContainerXml, { compression: 'DEFLATE' })
     Zip.file('OEBPS/style/fixed-layout-jp.css', templateFixedLayoutJpCss, { compression: 'DEFLATE' })
     Zip.file('OEBPS/navigation-documents.xhtml', templateNavigationDocumentsXhtml, { compression: 'DEFLATE' })
