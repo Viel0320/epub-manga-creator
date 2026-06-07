@@ -77,10 +77,8 @@ class Store {
   }
 
   @action
-  updateBookPageProperty(key: BookPageProperty, value: any) {
-    Object.assign(this, {
-      [key]: value
-    })
+  updateBookPageProperty<K extends BookPageProperty>(key: K, value: Store[K]) {
+    (this as any)[key] = value
   }
 
   @action

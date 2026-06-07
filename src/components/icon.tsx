@@ -31,7 +31,9 @@ const iconString = `<svg aria-hidden="true" style="position: absolute; width: 0;
 </defs>
 </svg>`
 
-document.body.insertAdjacentHTML('afterbegin', iconString)
+if (typeof document !== 'undefined') {
+  document.body.insertAdjacentHTML('afterbegin', iconString)
+}
 
 type IconProps = ({ name: string; className?: string })
 

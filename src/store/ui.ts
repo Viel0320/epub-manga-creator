@@ -20,6 +20,7 @@ class Store {
   @observable selectedPageIndex: number | null = null
   @observable fileName = ``
   @observable lang: LangKey = 'en'
+  @observable isGenerating = false
 
   firstImport = true
 
@@ -76,6 +77,11 @@ class Store {
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_LANG_KEY, lang)
     }
+  }
+
+  @action
+  setGenerating(val: boolean) {
+    this.isGenerating = val
   }
 }
 

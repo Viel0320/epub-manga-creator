@@ -2,7 +2,7 @@ import JSZip from 'jszip'
 import { observer } from 'mobx-react'
 import React, { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import Icon from 'components/icon'
-import storeMain from 'store/main'
+import storeMain, { useStore } from 'store/main'
 import { useI18n } from 'i18n'
 import type { LangKey } from 'i18n'
 
@@ -12,10 +12,10 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
   const t = useI18n()
   const onUseImageSizeToPage = useCallback(() => {
     const pageItem = storeMain.book.pages[props.pageIndex as number]
-    const image = storeMain.blobs.blobs[pageItem.blobID].originImage
+    const blobItem = storeMain.blobs.blobs[pageItem.blobID]
     storeMain.book.updateBookPageProperty('pageSize', [
-      image.width,
-      image.height
+      blobItem.width,
+      blobItem.height
     ])
   }, [props.pageIndex])
 
@@ -140,20 +140,20 @@ const blobToFile = (theBlob: Blob, fileName:string): File => {
 }
 
 const Header = function() {
-  const store = React.useContext(React.createContext(storeMain.ui))
+  const { ui } = useStore()
   const inputRef = useRef<HTMLInputElement>(null)
   const [inputType, setInputType] = useState<SupportType>('zip')
   const t = useI18n()
 
   const onClickToggleBookVisible = useCallback(() => {
-    store.toggleBookVisible()
-  }, [store])
+    ui.toggleBookVisible()
+  }, [ui])
   const onClickToggleContentVisible = useCallback(() => {
-    store.toggleContentVisible()
-  }, [store])
+    ui.toggleContentVisible()
+  }, [ui])
   const onClickTogglePageVisible = useCallback(() => {
-    store.togglePageVisible()
-  }, [store])
+    ui.togglePageVisible()
+  }, [ui])
 
   const onClickImport = useCallback((e: React.MouseEvent<HTMLInputElement>) => {
     const newType = e.currentTarget.dataset.type as SupportType
@@ -168,16 +168,11 @@ const Header = function() {
   const handleGetFile = useCallback(async () => {
     const input: HTMLInputElement = inputRef.current as HTMLInputElement
 
-    // TODO
-    // if (inputType === 'epub') {
-    //   console.log(input.files?.[0])
-    //   return
-    // }
-
     if (inputType === 'zip' && (input?.files?.[0])) {
       const fileName = input.files[0].name 
       JSZip.loadAsync(input.files[0]).then(zipContent => {
-        const zipFiles = Object.keys(zipContent.files).sort().map((filename) => zipContent.files[filename])
+        const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' })
+        const zipFiles = Object.keys(zipContent.files).sort(collator.compare).map((filename) => zipContent.files[filename])
         const promises: Promise<File | null>[] = zipFiles.map(zipItem => {
           if (zipItem.dir) {
             return Promise.resolve(null)
@@ -185,30 +180,17 @@ const Header = function() {
 
           return new Promise(resolve => {
             zipItem.async('uint8array').then(uint8Array => {
-              // 检查 MIME type 的方法参考自：
-              // https://stackoverflow.com/questions/18299806/how-to-check-file-mime-type-with-javascript-before-upload
-              const header = Array.from(new Uint8Array(uint8Array).subarray(0, 4)).map(item => item.toString(16)).join('')
+              const header = Array.from(new Uint8Array(uint8Array).subarray(0, 12)).map(item => item.toString(16).padStart(2, '0')).join('')
               let mimeType = null
   
-              switch (header) {
-                case '89504e47':
-                  mimeType = 'image/png'
-                  break
-                case '52494646':
-                  mimeType = 'image/webp'
-                  break
-                case 'ffd8ffe0':
-                case 'ffd8ffe1':
-                case 'ffd8ffe2':
-                case 'ffd8ffe3':
-                case 'ffd8ffe8':
-                  mimeType = 'image/jpeg'
-                  break
-                case '00020': // todo: 不确定是不是这个
-                  mimeType = 'image/avif'
-                  break
-                default:
-                  break
+              if (header.startsWith('89504e47')) {
+                mimeType = 'image/png'
+              } else if (header.startsWith('52494646')) {
+                mimeType = 'image/webp'
+              } else if (header.startsWith('ffd8ff')) {
+                mimeType = 'image/jpeg'
+              } else if (header.slice(8, 24) === '6674797061766966') {
+                mimeType = 'image/avif'
               }
 
               if (mimeType) {
@@ -232,6 +214,12 @@ const Header = function() {
         if (storeMain.ui.firstImport) {
           storeMain.ui.toggleBookVisible(fileName)
         }
+      }).catch(err => {
+        console.error(err)
+        const errorMsg = storeMain.ui.lang === 'zh'
+          ? '加载 ZIP 文件失败，请检查文件是否损坏。'
+          : 'Failed to load ZIP file, please check if it is corrupted.'
+        alert(errorMsg)
       })
       return
     }
@@ -255,14 +243,22 @@ const Header = function() {
   }, [])
 
   const onClickGenerate = useCallback(() => {
-    storeMain.generateBook().then((blob) => {
-      const anchor = document.createElement('a')
-      const objectURL = window.URL.createObjectURL(blob)
-      anchor.download = storeMain.book.bookTitle.trim() + '.epub'
-      anchor.href = objectURL
-      anchor.click()
-      window.URL.revokeObjectURL(objectURL)
-    })
+    storeMain.ui.setGenerating(true)
+    setTimeout(() => {
+      storeMain.generateBook().then((blob) => {
+        const anchor = document.createElement('a')
+        const objectURL = window.URL.createObjectURL(blob)
+        anchor.download = storeMain.book.bookTitle.trim() + '.epub'
+        anchor.href = objectURL
+        anchor.click()
+        window.URL.revokeObjectURL(objectURL)
+      }).catch(err => {
+        console.error(err)
+        alert('Failed to generate EPUB.')
+      }).finally(() => {
+        storeMain.ui.setGenerating(false)
+      })
+    }, 100)
   }, [])
 
   useLayoutEffect(() => {
@@ -311,7 +307,7 @@ const Header = function() {
           <Icon name="install"/>
         </button>
       </div>
-      <PageControl pageIndex={store.selectedPageIndex}/>
+      <PageControl pageIndex={ui.selectedPageIndex}/>
       <div className="nav-item" style={{marginTop:'auto'}}>
         <button
           type="button"

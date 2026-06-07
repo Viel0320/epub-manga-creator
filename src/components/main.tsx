@@ -1,7 +1,7 @@
 import { observer } from 'mobx-react'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useMount } from 'react-use'
-import storeMain from 'store/main'
+import storeMain, { useStore } from 'store/main'
 import storeBlobs, { StoreBlobs } from 'store/blobs'
 import Icon from './icon'
 import { useI18n } from 'i18n'
@@ -14,9 +14,7 @@ const PageCard = observer(function(props: {
   pagePosition: 'center' | 'left' | 'right'
   blank: boolean
 }) {
-  const storeUI = React.useContext(React.createContext(storeMain.ui))
-  const storeBook = React.useContext(React.createContext(storeMain.book))
-  const storeContent = React.useContext(React.createContext(storeMain.contents))
+  const { ui: storeUI, book: storeBook, contents: storeContent } = useStore()
 
   const onClickImage = useCallback(() => {
     storeMain.ui.selectPageIndex(props.pageItemIndex)
@@ -93,7 +91,7 @@ const PageCard = observer(function(props: {
 const DoublePageCard = observer(function(props: {
   pages: [number | null, number | null]
 }) {
-  const storeBook = React.useContext(React.createContext(storeMain.book))
+  const { book: storeBook } = useStore()
 
   const leftSidePageIndex = storeBook.pageDirection === 'right' ? props.pages[1] : props.pages[0]
   const rightSidePageIndex = storeBook.pageDirection === 'right' ? props.pages[0] : props.pages[1]
@@ -134,7 +132,7 @@ if (typeof window !== 'undefined') {
 
 const Main = function() {
   const mainRef = useRef<HTMLElement>(null)
-  const storeBook = React.useContext(React.createContext(storeMain.book))
+  const { book: storeBook } = useStore()
   const [showPages, setShowPages] = useState<[any, any][][]>([])
   const t = useI18n()
 

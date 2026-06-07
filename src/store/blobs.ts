@@ -7,11 +7,12 @@ export declare namespace StoreBlobs {
     blob: Blob
     blobURL: string
     thumbnailURL: string
-    originImage: HTMLImageElement
+    width: number
+    height: number
   }
 }
 
-const getImageWithBlobURL = (blobURL: string): Promise<HTMLImageElement> => new Promise<HTMLImageElement>((resolve, reject) => {
+export const getImageWithBlobURL = (blobURL: string): Promise<HTMLImageElement> => new Promise<HTMLImageElement>((resolve, reject) => {
   const image = new Image()
   image.onerror = (e) => reject(e)
   image.onload = (e) => {
@@ -51,8 +52,11 @@ const formatBlobItem = async (blob: Blob) => {
     blob,
     blobURL,
     thumbnailURL: URL.createObjectURL(thumbnailBlob),
-    originImage
+    width: originImage.width,
+    height: originImage.height
   }
+
+  originImage.src = ''
 
   return item
 }
@@ -62,6 +66,16 @@ class Store {
 
   constructor() {
     makeAutoObservable(this)
+  }
+
+  @action
+  delete(uuid: string) {
+    const item = this.blobs[uuid]
+    if (item) {
+      URL.revokeObjectURL(item.blobURL)
+      URL.revokeObjectURL(item.thumbnailURL)
+      delete this.blobs[uuid]
+    }
   }
 
   @action

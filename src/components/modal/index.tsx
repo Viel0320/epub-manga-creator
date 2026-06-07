@@ -1,5 +1,5 @@
 import React, { FormEvent, useCallback, useEffect, useState } from 'react'
-import storeMain from 'store/main'
+import storeMain, { useStore } from 'store/main'
 import { observer } from 'mobx-react'
 import { toJS } from 'mobx'
 import deepClone from 'utils/deep-clone'
@@ -43,8 +43,7 @@ const KeywordPicker = function(props: { keywords: string[], onClick: (str: strin
 
 const ModalBook = observer(function() {
   const t = useI18n()
-  const storeUI = React.useContext(React.createContext(storeMain.ui))
-  const storeBook = React.useContext(React.createContext(storeMain.book))
+  const { ui: storeUI, book: storeBook } = useStore()
   const setsSeletRef = React.useRef<HTMLSelectElement>(null)
 
   const [fileName, setFileName] = useState('')
@@ -364,7 +363,7 @@ const ModalBook = observer(function() {
 
 const ModalContents = observer(function() {
   const t = useI18n()
-  const store = React.useContext(React.createContext(storeMain.ui))
+  const { ui: store } = useStore()
   const setsSeletRef = React.useRef<HTMLSelectElement>(null)
   const [plainMode, setPlainMode] = useState(false)
   const [tempList, setTempList] = useState<typeof storeMain.contents.list>([])
@@ -639,8 +638,7 @@ const ButtonRadio = function(props: { value: any; current: any; label: string; o
 
 const ModalPage = observer(function() {
   const t = useI18n()
-  const store = React.useContext(React.createContext(storeMain.ui))
-  const storeBook = React.useContext(React.createContext(storeMain.book))
+  const { ui: store, book: storeBook } = useStore()
 
   const onClickModal = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
@@ -811,7 +809,7 @@ const ModalPage = observer(function() {
 })
 
 const Modal = function() {
-  const store = React.useContext(React.createContext(storeMain.ui))
+  const { ui: store } = useStore()
 
   const modalVisible = store.modalBookVisible || store.modalContentVisible || store.modalPageVisible
 
@@ -835,7 +833,7 @@ const Modal = function() {
 }
 
 const ModalBackDrop = observer(function() {
-  const store = React.useContext(React.createContext(storeMain.ui))
+  const { ui: store } = useStore()
   const modalVisible = store.modalBookVisible || store.modalContentVisible || store.modalPageVisible
 
   return modalVisible

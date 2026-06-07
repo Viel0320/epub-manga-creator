@@ -1,9 +1,10 @@
-import { action, autorun, makeAutoObservable, observable, toJS } from "mobx"
+import { action, autorun, makeAutoObservable, observable, toJS, runInAction } from "mobx"
+import { createContext, useContext } from 'react'
 import uuid from 'utils/get-uuid'
 import Book from 'store/book'
 import Ui from 'store/ui'
 import Contents from 'store/contents'
-import storeBlobs, { Store as Blobs } from 'store/blobs'
+import storeBlobs, { Store as Blobs, getImageWithBlobURL } from 'store/blobs'
 import JSZip from "jszip"
 
 import getTemplateContainerXml from 'template/container.xml'
@@ -95,27 +96,30 @@ class Store {
   @action
   async splitPage(index: number) {
     const pageItem = this.book.pages[index]
-    const blobItem = this.blobs.blobs[pageItem.blobID]
+    const originalBlobID = pageItem.blobID
+    const blobItem = this.blobs.blobs[originalBlobID]
     const uuids = [uuid(), uuid()]
     const mime = blobItem.blob.type
 
-    const w1 = blobItem.originImage.width >> 1
-    const w2 = blobItem.originImage.width - w1
+    const originImage = await getImageWithBlobURL(blobItem.blobURL)
+
+    const w1 = blobItem.width >> 1
+    const w2 = blobItem.width - w1
 
     const canvas1 = document.createElement('canvas')
     const canvas2 = document.createElement('canvas')
 
     canvas1.width = w1
-    canvas1.height = blobItem.originImage.height
+    canvas1.height = blobItem.height
 
     canvas2.width = w2
-    canvas2.height = blobItem.originImage.height
+    canvas2.height = blobItem.height
 
     const ctx1 = canvas1.getContext('2d')
     const ctx2 = canvas2.getContext('2d')
 
-    ctx1?.drawImage(blobItem.originImage, 0, 0)
-    ctx2?.drawImage(blobItem.originImage, 0 - w1, 0)
+    ctx1?.drawImage(originImage, 0, 0)
+    ctx2?.drawImage(originImage, 0 - w1, 0)
 
     const blobs = await Promise.all([
       new Promise<Blob>((resolve, reject) =>
@@ -132,21 +136,31 @@ class Store {
       ),
     ])
 
-    this.book.splitPage(index, uuids)
-    this.book.updatePageItemIndex()
-    this.blobs.push(blobs, this.book.pageDirection === 'left' ? uuids : uuids.reverse(), this.ui.lang)
+    originImage.src = ''
 
-    const list = toJS(this.contents.list)
-    list.forEach(contentItem => {
-      if (contentItem.pageIndex === null) {
-        return
+    runInAction(() => {
+      this.book.splitPage(index, uuids)
+      this.book.updatePageItemIndex()
+      this.blobs.push(blobs, this.book.pageDirection === 'left' ? uuids : uuids.reverse(), this.ui.lang)
+
+      // Clean up original blob since it is replaced by split pages
+      const isStillUsed = this.book.pages.some(p => p.blobID === originalBlobID)
+      if (!isStillUsed) {
+        this.blobs.delete(originalBlobID)
       }
-      if (contentItem.pageIndex > index) {
-        contentItem.pageIndex++
-      }
+
+      const list = toJS(this.contents.list)
+      list.forEach(contentItem => {
+        if (contentItem.pageIndex === null) {
+          return
+        }
+        if (contentItem.pageIndex > index) {
+          contentItem.pageIndex++
+        }
+      })
+
+      this.contents.updateList(list)
     })
-
-    this.contents.updateList(list)
   }
 
   @action
@@ -174,8 +188,18 @@ class Store {
 
   @action
   removePage(index: number) {
+    const pageItem = this.book.pages[index]
+    const deletedBlobID = pageItem ? pageItem.blobID : null
+
     this.book.removePage(index)
     this.ui.selectPageIndex(null)
+
+    if (deletedBlobID) {
+      const isStillUsed = this.book.pages.some(p => p.blobID === deletedBlobID)
+      if (!isStillUsed) {
+        this.blobs.delete(deletedBlobID)
+      }
+    }
 
     const list = toJS(this.contents.list)
     list.forEach((contentItem) => {
@@ -253,7 +277,7 @@ class Store {
     })
 
     if (this.book.coverPosition === 'alone') {
-      pageItemStr.splice(0, 1)
+      itemRefStr.unshift(`<itemref linear="no" idref="p_cover" properties="rendition:page-spread-center"></itemref>`)
     } else { // this.book.coverPosition === 'first-page'
       itemRefStr.unshift(`<itemref linear="yes" idref="p_cover" properties="rendition:page-spread-center"></itemref>`)
     }
@@ -406,4 +430,6 @@ autorun(() => {
   }
 })
 
+export const StoreContext = createContext(store)
+export const useStore = () => useContext(StoreContext)
 export default store

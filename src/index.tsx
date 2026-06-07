@@ -8,16 +8,30 @@ import Header from 'components/header'
 import Main from 'components/main'
 import Modal, { ModalBackDrop } from 'components/modal'
 
-import { I18nProvider } from 'i18n'
-import storeMain from 'store/main'
+import { I18nProvider, useI18n } from 'i18n'
+import storeMain, { StoreContext } from 'store/main'
+
+const LoadingOverlay = observer(() => {
+  const t = useI18n()
+  if (!storeMain.ui.isGenerating) return null
+  return (
+    <div className="loading-overlay">
+      <div className="spinner-border text-primary mb-3" style={{ width: '3rem', height: '3rem' }} role="status"></div>
+      <h5>{storeMain.ui.lang === 'zh' ? '正在生成 EPUB...' : 'Generating EPUB...'}</h5>
+    </div>
+  )
+})
 
 const App = observer(() => (
-  <I18nProvider lang={storeMain.ui.lang}>
-    <Header />
-    <Main />
-    <Modal />
-    <ModalBackDrop />
-  </I18nProvider>
+  <StoreContext.Provider value={storeMain}>
+    <I18nProvider lang={storeMain.ui.lang}>
+      <Header />
+      <Main />
+      <Modal />
+      <ModalBackDrop />
+      <LoadingOverlay />
+    </I18nProvider>
+  </StoreContext.Provider>
 ))
 
 const container =
