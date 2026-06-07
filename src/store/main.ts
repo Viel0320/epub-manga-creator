@@ -69,7 +69,7 @@ class Store {
     const uuids = fileList.map(() => uuid())
 
     this.book.pushNewPage(uuids)
-    this.blobs.push(fileList, uuids)
+    this.blobs.push(fileList, uuids, this.ui.lang)
   }
 
   @action
@@ -134,7 +134,7 @@ class Store {
 
     this.book.splitPage(index, uuids)
     this.book.updatePageItemIndex()
-    this.blobs.push(blobs, this.book.pageDirection === 'left' ? uuids : uuids.reverse())
+    this.blobs.push(blobs, this.book.pageDirection === 'left' ? uuids : uuids.reverse(), this.ui.lang)
 
     const list = toJS(this.contents.list)
     list.forEach(contentItem => {

@@ -4,6 +4,7 @@ import { useMount } from 'react-use'
 import storeMain from 'store/main'
 import storeBlobs, { StoreBlobs } from 'store/blobs'
 import Icon from './icon'
+import { useI18n } from 'i18n'
 
 const THIS_YEAR = (new Date()).getFullYear()
 
@@ -134,9 +135,8 @@ if (typeof window !== 'undefined') {
 const Main = function() {
   const mainRef = useRef<HTMLElement>(null)
   const storeBook = React.useContext(React.createContext(storeMain.book))
-  // const storeUI = React.useContext(React.createContext(storeMain.ui))
   const [showPages, setShowPages] = useState<[any, any][][]>([])
-  // const [maxCardBoxCountInOneRow, setMaxCardBoxCountInOneRow] = useState(0)
+  const t = useI18n()
 
   const pageResizeCallback = useCallback(() => {
     const pageWidth = mainRef.current?.clientWidth
@@ -200,9 +200,9 @@ const Main = function() {
     <main id="main" className="pt-4 pb-4" ref={mainRef}>
       {
         showPages.length === 0 ? (
-          process.env.NODE_ENV === 'development'
-            ? <div className="btn btn-secondary main-input-upload" onClick={onClickImport}>Import</div>
-            : <div className="alert alert-secondary text-center" role="alert">ready 🚀</div>
+          import.meta.env.DEV
+            ? <div className="btn btn-secondary main-input-upload" onClick={onClickImport}>{t.main.import}</div>
+            : <div className="alert alert-secondary text-center" role="alert">{t.main.ready}</div>
         ) : (
           showPages.map((row, i) => (
             <div key={i} className="row page-row justify-content-evenly">
