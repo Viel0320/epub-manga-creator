@@ -7,6 +7,7 @@ import './index.css'
 import Header from 'components/header'
 import Main from 'components/main'
 import Modal, { ModalBackDrop } from 'components/modal'
+import Lightbox from 'components/lightbox'
 
 import { I18nProvider, useI18n } from 'i18n'
 import storeMain, { StoreContext } from 'store/main'
@@ -30,6 +31,7 @@ const App = observer(() => (
       <Modal />
       <ModalBackDrop />
       <LoadingOverlay />
+      <Lightbox />
     </I18nProvider>
   </StoreContext.Provider>
 ))

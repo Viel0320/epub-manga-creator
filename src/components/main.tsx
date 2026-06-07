@@ -53,6 +53,21 @@ const PageCard = observer(function(props: {
           : null
       }
       {
+        props.pageItemIndex !== null && (props.blobItem || props.blank) && (
+          <button
+            type="button"
+            className="zoom-btn"
+            title={storeMain.ui.lang === 'zh' ? '放大预览' : 'Zoom Preview'}
+            onClick={(e) => {
+              e.stopPropagation()
+              storeMain.ui.openPreview(props.pageItemIndex as number)
+            }}
+          >
+            <Icon name="zoom" />
+          </button>
+        )
+      }
+      {
         (props.blobItem || (!props.blobItem && props.blank)) ? (
           <svg
             className="card-image"
@@ -251,6 +266,36 @@ const Main = function() {
     // TODO: 需要throttle优化
     window.addEventListener('resize', pageResizeCallback)
   })
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (storeMain.ui.isPreviewOpen) {
+        if (e.code === 'ArrowLeft') {
+          e.preventDefault()
+          storeMain.ui.prevPreviewPage()
+        } else if (e.code === 'ArrowRight') {
+          e.preventDefault()
+          storeMain.ui.nextPreviewPage(storeBook.pages.length)
+        } else if (e.code === 'Escape' || e.code === 'Space') {
+          e.preventDefault()
+          storeMain.ui.closePreview()
+        }
+        return
+      }
+
+      if (storeMain.ui.selectedPageIndex !== null) {
+        if (e.code === 'Space' || e.code === 'Enter') {
+          e.preventDefault()
+          storeMain.ui.openPreview(storeMain.ui.selectedPageIndex)
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [storeBook.pages.length])
 
   return (
     <main id="main" className="pt-4 pb-4" ref={mainRef}>

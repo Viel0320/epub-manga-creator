@@ -34,6 +34,8 @@ class Store {
   @observable theme: 'dark' | 'light' = 'dark'
   @observable isLoading = false
   @observable loadingText = ''
+  @observable isPreviewOpen = false
+  @observable previewPageIndex: number | null = null
 
   firstImport = true
 
@@ -128,6 +130,32 @@ class Store {
   @action
   toggleTheme() {
     this.setTheme(this.theme === 'dark' ? 'light' : 'dark')
+  }
+
+  @action
+  openPreview(index: number) {
+    this.isPreviewOpen = true
+    this.previewPageIndex = index
+  }
+
+  @action
+  closePreview() {
+    this.isPreviewOpen = false
+    this.previewPageIndex = null
+  }
+
+  @action
+  nextPreviewPage(maxLen: number) {
+    if (this.previewPageIndex !== null && this.previewPageIndex < maxLen - 1) {
+      this.previewPageIndex++
+    }
+  }
+
+  @action
+  prevPreviewPage() {
+    if (this.previewPageIndex !== null && this.previewPageIndex > 0) {
+      this.previewPageIndex--
+    }
   }
 }
 
