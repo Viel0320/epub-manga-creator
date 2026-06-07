@@ -118,9 +118,18 @@ const DoublePageCard = observer(function(props: {
   )
 })
 
-const computedStyle = getComputedStyle(document.documentElement)
-const CARD_BOX_WIDTH = +computedStyle.getPropertyValue('--card-box-width').slice(0, -2)
-const CARD_BOX_MARGIN = +computedStyle.getPropertyValue('--card-box-margin').slice(0, -2)
+let CARD_BOX_WIDTH = 120;
+let CARD_BOX_MARGIN = 8;
+
+if (typeof window !== 'undefined') {
+  try {
+    const computedStyle = getComputedStyle(document.documentElement);
+    CARD_BOX_WIDTH = +computedStyle.getPropertyValue('--card-box-width').slice(0, -2) || 120;
+    CARD_BOX_MARGIN = +computedStyle.getPropertyValue('--card-box-margin').slice(0, -2) || 8;
+  } catch (e) {
+    // SSR Fallback
+  }
+}
 
 const Main = function() {
   const mainRef = useRef<HTMLElement>(null)

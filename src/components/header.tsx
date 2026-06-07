@@ -209,7 +209,7 @@ const Header = function() {
               }
 
               if (mimeType) {
-                const b = new Blob([uint8Array], { type: mimeType })
+                const b = new Blob([uint8Array as any], { type: mimeType })
                 resolve(
                   blobToFile(
                     b,
@@ -252,7 +252,14 @@ const Header = function() {
   }, [])
 
   const onClickGenerate = useCallback(() => {
-    storeMain.generateBook()
+    storeMain.generateBook().then((blob) => {
+      const anchor = document.createElement('a')
+      const objectURL = window.URL.createObjectURL(blob)
+      anchor.download = storeMain.book.bookTitle.trim() + '.epub'
+      anchor.href = objectURL
+      anchor.click()
+      window.URL.revokeObjectURL(objectURL)
+    })
   }, [])
 
   useLayoutEffect(() => {
