@@ -13,11 +13,11 @@ import storeMain, { StoreContext } from 'store/main'
 
 const LoadingOverlay = observer(() => {
   const t = useI18n()
-  if (!storeMain.ui.isGenerating) return null
+  if (!storeMain.ui.isLoading) return null
   return (
     <div className="loading-overlay">
       <div className="spinner-border text-primary mb-3" style={{ width: '3rem', height: '3rem' }} role="status"></div>
-      <h5>{storeMain.ui.lang === 'zh' ? '正在生成 EPUB...' : 'Generating EPUB...'}</h5>
+      <h5>{storeMain.ui.loadingText || (storeMain.ui.lang === 'zh' ? '正在加载...' : 'Loading...')}</h5>
     </div>
   )
 })

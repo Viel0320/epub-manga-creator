@@ -53,19 +53,19 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
     return (
       <>
         <div className="nav-item">
-          <button type="button" className="btn btn-outline-secondary disabled" disabled><Icon name="ruler"/></button>
+          <button type="button" className="btn" disabled><Icon name="ruler"/></button>
         </div>
         <div className="nav-item">
-          <button type="button" className="btn btn-outline-secondary disabled" disabled><Icon name="menu"/></button>
+          <button type="button" className="btn" disabled><Icon name="menu"/></button>
         </div>
         <div className="nav-item">
-          <button type="button" className="btn btn-outline-secondary disabled" disabled><Icon name="bookmark"/></button>
+          <button type="button" className="btn" disabled><Icon name="bookmark"/></button>
         </div>
         <div className="nav-item">
-          <button type="button" className="btn btn-outline-secondary disabled" disabled><Icon name="scissors"/></button>
+          <button type="button" className="btn" disabled><Icon name="scissors"/></button>
         </div>
         <div className="nav-item">
-          <button type="button" className="btn btn-outline-secondary disabled" disabled><Icon name="cross"/></button>
+          <button type="button" className="btn" disabled><Icon name="cross"/></button>
         </div>
       </>
     )
@@ -76,17 +76,17 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
   return (
     <>
       <div className="nav-item">
-        <button type="button" className="btn btn-secondary" disabled={blankPage} onClick={onUseImageSizeToPage}>
+        <button type="button" className="btn" disabled={blankPage} onClick={onUseImageSizeToPage}>
             <Icon name="ruler"/>
           </button>
       </div>
       <div className="nav-item">
-        <button type="button" className="btn btn-secondary" onClick={onChangePageIndex}>
+        <button type="button" className="btn" onClick={onChangePageIndex}>
             <Icon name="menu"/>
           </button>
       </div>
       <div className="nav-item dropdown">
-        <button type="button" className="btn btn-secondary"><Icon name="bookmark"/></button>
+        <button type="button" className="btn"><Icon name="bookmark"/></button>
         <ul className="dropdown-menu" style={{top: 0,left:'100%'}}>
           {
             storeMain.contents.list.map((contentItem, index) =>
@@ -104,12 +104,12 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
         </ul>
       </div>
       <div className="nav-item">
-        <button type="button" className="btn btn-secondary" disabled={blankPage} onClick={onSplitPage}>
+        <button type="button" className="btn" disabled={blankPage} onClick={onSplitPage}>
           <Icon name="scissors"/>
         </button>
       </div>
       <div className="nav-item">
-        <button type="button" className="btn btn-secondary" onClick={onRemovePage}>
+        <button type="button" className="btn" onClick={onRemovePage}>
           <Icon name="cross"/>
         </button>
       </div>
@@ -142,6 +142,7 @@ const blobToFile = (theBlob: Blob, fileName:string): File => {
 const Header = function() {
   const { ui } = useStore()
   const inputRef = useRef<HTMLInputElement>(null)
+  const shouldClickRef = useRef(false)
   const [inputType, setInputType] = useState<SupportType>('zip')
   const t = useI18n()
 
@@ -161,12 +162,18 @@ const Header = function() {
     if (newType === inputType) {
       inputRef.current?.click()
     } else {
+      shouldClickRef.current = true
       setInputType(newType)
     }
   }, [inputType])
 
   const handleGetFile = useCallback(async () => {
     const input: HTMLInputElement = inputRef.current as HTMLInputElement
+
+    if (inputType === 'epub' && (input?.files?.[0])) {
+      storeMain.importPageFromEpub(input.files[0])
+      return
+    }
 
     if (inputType === 'zip' && (input?.files?.[0])) {
       const fileName = input.files[0].name 
@@ -243,7 +250,7 @@ const Header = function() {
   }, [])
 
   const onClickGenerate = useCallback(() => {
-    storeMain.ui.setGenerating(true)
+    storeMain.ui.setLoading(true, storeMain.ui.lang === 'zh' ? '正在生成 EPUB...' : 'Generating EPUB...')
     setTimeout(() => {
       storeMain.generateBook().then((blob) => {
         const anchor = document.createElement('a')
@@ -256,41 +263,45 @@ const Header = function() {
         console.error(err)
         alert('Failed to generate EPUB.')
       }).finally(() => {
-        storeMain.ui.setGenerating(false)
+        storeMain.ui.setLoading(false)
       })
     }, 100)
   }, [])
 
   useLayoutEffect(() => {
-    setTimeout(() => {
-      inputRef.current?.click()
-    }, 0)
+    if (shouldClickRef.current) {
+      shouldClickRef.current = false
+      setTimeout(() => {
+        inputRef.current?.click()
+      }, 0)
+    }
   }, [inputType])
 
   return (
-    <nav id="nav" className="navbar bg-dark">
+    <nav id="nav" className="navbar">
       <div className="nav-item dropdown">
-        <button type="button" className="btn btn-primary">
+        <button type="button" className="btn">
           <Icon name="upload"/>
         </button>
         <ul className="dropdown-menu" style={{top: 0,left:'100%'}}>
           <li><span className="dropdown-item" data-type="image" onClick={onClickImport}>{t.nav.importImage}</span></li>
           <li><span className="dropdown-item" data-type="zip" onClick={onClickImport}>{t.nav.importZip}</span></li>
+          <li><span className="dropdown-item" data-type="epub" onClick={onClickImport}>{ui.lang === 'zh' ? '导入 EPUB' : 'Import EPUB'}</span></li>
         </ul>
       </div>
       <div className="nav-item">
-        <button type="button" className="btn btn-primary" onClick={onClickToggleBookVisible}><Icon name="book"/></button>
+        <button type="button" className="btn" onClick={onClickToggleBookVisible}><Icon name="book"/></button>
       </div>
       <div className="nav-item">
-        <button type="button" className="btn btn-primary" onClick={onClickToggleContentVisible}><Icon name="list"/></button>
+        <button type="button" className="btn" onClick={onClickToggleContentVisible}><Icon name="list"/></button>
       </div>
       <div className="nav-item">
-        <button type="button" className="btn btn-primary" onClick={onClickTogglePageVisible}><Icon name="tools"/></button>
+        <button type="button" className="btn" onClick={onClickTogglePageVisible}><Icon name="tools"/></button>
       </div>
       <div className="nav-item">
         <button
           type="button"
-          className="btn btn-primary"
+          className="btn"
           disabled={storeMain.book.pages.length === 0}
           onClick={onClickInsertBlankPage}
         >
@@ -300,7 +311,7 @@ const Header = function() {
       <div className="nav-item">
         <button
           type="button"
-          className="btn btn-primary"
+          className="btn"
           disabled={storeMain.book.pages.length === 0}
           onClick={onClickGenerate}
         >
@@ -309,6 +320,19 @@ const Header = function() {
       </div>
       <PageControl pageIndex={ui.selectedPageIndex}/>
       <div className="nav-item" style={{marginTop:'auto'}}>
+        <button
+          type="button"
+          className="btn"
+          onClick={() => ui.toggleTheme()}
+          title={ui.lang === 'zh'
+            ? (ui.theme === 'dark' ? '切换至浅色模式' : '切换至深色模式')
+            : (ui.theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode')
+          }
+        >
+          <Icon name={ui.theme === 'dark' ? 'sun' : 'moon'}/>
+        </button>
+      </div>
+      <div className="nav-item">
         <button
           type="button"
           className="btn btn-outline-light btn-sm"

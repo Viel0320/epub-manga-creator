@@ -2,6 +2,7 @@ import { makeAutoObservable, observable, action } from 'mobx'
 import type { LangKey } from 'i18n'
 
 const STORAGE_LANG_KEY = 'EPUB_CREATOR_LANG'
+const STORAGE_THEME_KEY = 'EPUB_CREATOR_THEME'
 
 function detectDefaultLang(): LangKey {
   if (typeof window === 'undefined') return 'en'
@@ -12,6 +13,16 @@ function detectDefaultLang(): LangKey {
   return nav.startsWith('zh') ? 'zh' : 'en'
 }
 
+function detectDefaultTheme(): 'dark' | 'light' {
+  if (typeof window === 'undefined') return 'dark'
+  const saved = localStorage.getItem(STORAGE_THEME_KEY)
+  if (saved === 'dark' || saved === 'light') return saved
+  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+    return 'light'
+  }
+  return 'dark'
+}
+
 class Store {
   @observable modalBookVisible = false
   @observable modalContentVisible = false
@@ -20,13 +31,17 @@ class Store {
   @observable selectedPageIndex: number | null = null
   @observable fileName = ``
   @observable lang: LangKey = 'en'
-  @observable isGenerating = false
+  @observable theme: 'dark' | 'light' = 'dark'
+  @observable isLoading = false
+  @observable loadingText = ''
 
   firstImport = true
 
   constructor() {
     makeAutoObservable(this)
     this.lang = detectDefaultLang()
+    this.theme = detectDefaultTheme()
+    this.applyTheme(this.theme)
   }
 
   @action
@@ -80,8 +95,39 @@ class Store {
   }
 
   @action
-  setGenerating(val: boolean) {
-    this.isGenerating = val
+  setLoading(val: boolean, text: string = '') {
+    this.isLoading = val
+    this.loadingText = text
+  }
+
+  @action
+  applyTheme(theme: 'dark' | 'light') {
+    if (typeof document !== 'undefined') {
+      const root = document.documentElement
+      if (theme === 'light') {
+        root.classList.add('light-theme')
+        root.classList.remove('dark-theme')
+        root.setAttribute('data-bs-theme', 'light')
+      } else {
+        root.classList.add('dark-theme')
+        root.classList.remove('light-theme')
+        root.setAttribute('data-bs-theme', 'dark')
+      }
+    }
+  }
+
+  @action
+  setTheme(theme: 'dark' | 'light') {
+    this.theme = theme
+    this.applyTheme(theme)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_THEME_KEY, theme)
+    }
+  }
+
+  @action
+  toggleTheme() {
+    this.setTheme(this.theme === 'dark' ? 'light' : 'dark')
   }
 }
 

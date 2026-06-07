@@ -5,6 +5,7 @@ import storeMain, { useStore } from 'store/main'
 import storeBlobs, { StoreBlobs } from 'store/blobs'
 import Icon from './icon'
 import { useI18n } from 'i18n'
+import { db } from 'utils/db'
 
 const THIS_YEAR = (new Date()).getFullYear()
 
@@ -48,7 +49,7 @@ const PageCard = observer(function(props: {
     <div className="card">
       {
         props.pageItemIndex in storeContent.indexMap
-          ? <Icon name="bookmark"></Icon>
+          ? <div className="bookmark-ribbon" title={storeContent.list[storeContent.indexMap[props.pageItemIndex]].title} />
           : null
       }
       {
@@ -107,6 +108,7 @@ const DoublePageCard = observer(function(props: {
         pagePosition={storeBook.pagePosition === 'between' ? 'left' : 'center'}
         blank={leftSidePage?.blank || false}
       />
+      <div className="book-spine" />
       <PageCard
         pageItemIndex={rightSidePageIndex === null ? null : (rightSidePageIndex - coverPosition)}
         blobItem={rightSidePage ? storeBlobs.blobs[rightSidePage.blobID] : null}
@@ -129,6 +131,62 @@ if (typeof window !== 'undefined') {
     // SSR Fallback
   }
 }
+
+const RestoreBanner = observer(function() {
+  const { ui } = useStore()
+  const [hasBackup, setHasBackup] = useState(false)
+
+  useEffect(() => {
+    db.getMetadata('active_book').then((backup) => {
+      if (backup && backup.pages && backup.pages.length > 0) {
+        setHasBackup(true)
+      } else {
+        storeMain.setAutoSaveActive(true)
+      }
+    }).catch(err => {
+      console.error('Failed to read backup from DB:', err)
+      storeMain.setAutoSaveActive(true)
+    })
+  }, [])
+
+  const onRestore = useCallback(() => {
+    storeMain.restoreWorkspace().then(() => {
+      setHasBackup(false)
+      storeMain.setAutoSaveActive(true)
+    })
+  }, [])
+
+  const onDismiss = useCallback(() => {
+    db.clearAll().then(() => {
+      setHasBackup(false)
+      storeMain.setAutoSaveActive(true)
+    }).catch(err => {
+      console.error('Failed to clear backup:', err)
+      setHasBackup(false)
+      storeMain.setAutoSaveActive(true)
+    })
+  }, [])
+
+  if (!hasBackup || storeMain.isAutoSaveActive) return null
+
+  return (
+    <div className="alert alert-info d-flex justify-content-between align-items-center" role="alert">
+      <span>
+        {ui.lang === 'zh'
+          ? '检测到您上次未完成的项目，是否恢复进度？'
+          : 'Detected a backup from your last session. Would you like to restore it?'}
+      </span>
+      <div>
+        <button className="btn btn-sm btn-primary me-2" onClick={onRestore}>
+          {ui.lang === 'zh' ? '恢复' : 'Restore'}
+        </button>
+        <button className="btn btn-sm btn-outline-secondary" onClick={onDismiss}>
+          {ui.lang === 'zh' ? '忽略' : 'Dismiss'}
+        </button>
+      </div>
+    </div>
+  )
+})
 
 const Main = function() {
   const mainRef = useRef<HTMLElement>(null)
@@ -196,6 +254,7 @@ const Main = function() {
 
   return (
     <main id="main" className="pt-4 pb-4" ref={mainRef}>
+      <RestoreBanner />
       {
         showPages.length === 0 ? (
           import.meta.env.DEV
@@ -211,12 +270,12 @@ const Main = function() {
           ))
         )
       }
-      <div className="row d-flex justify-content-end align-items-center mt-auto author-info">
-        <div>{THIS_YEAR} wing-kai@Github</div>
+      <div className="author-info">
+        <div>{THIS_YEAR} Joycai@Github</div>
         <iframe
           title="ghbtns"
           className="ghbtns"
-          src="https://ghbtns.com/github-btn.html?user=wing-kai&amp;repo=epub-manga-creator&amp;type=star&amp;count=true"
+          src="https://ghbtns.com/github-btn.html?user=Joycai&amp;repo=epub-manga-creator&amp;type=star&amp;count=true"
           frameBorder="0"
           scrolling="0"
           width="80px"

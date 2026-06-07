@@ -1,5 +1,6 @@
 import { action, makeAutoObservable, observable, runInAction } from "mobx"
 import { getLocale, LangKey } from 'i18n'
+import { db } from 'utils/db'
 
 
 export declare namespace StoreBlobs {
@@ -75,6 +76,19 @@ class Store {
       URL.revokeObjectURL(item.blobURL)
       URL.revokeObjectURL(item.thumbnailURL)
       delete this.blobs[uuid]
+      db.deleteBlob(uuid).catch(err => console.error('Failed to delete blob from DB:', err))
+    }
+  }
+
+  @action
+  async restoreBlobItem(uuid: string, blob: Blob) {
+    try {
+      const formatted = await formatBlobItem(blob)
+      runInAction(() => {
+        this.blobs[uuid] = formatted
+      })
+    } catch (err) {
+      console.error('Failed to restore blob item:', err)
     }
   }
 
@@ -89,6 +103,14 @@ class Store {
       const errorMsg = lang ? getLocale(lang).alert.error : '错误\nError'
       alert(errorMsg)
       return
+    }
+
+    try {
+      await Promise.all(
+        blobs.map((blob, index) => db.saveBlob(uuids[index], blob))
+      )
+    } catch (err) {
+      console.error('Failed to save blobs to IndexedDB:', err)
     }
 
     runInAction(() => {
