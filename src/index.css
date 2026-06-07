@@ -168,6 +168,16 @@ html, body, #root {
   animation: slideIn 0.2s ease;
 }
 
+#nav .dropdown-menu::before {
+  content: "";
+  position: absolute;
+  top: -10px;
+  bottom: -10px;
+  left: -12px;
+  width: 12px;
+  background: transparent;
+}
+
 #nav .dropdown-item {
   color: var(--text-secondary);
   border-radius: 6px;
