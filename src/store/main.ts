@@ -4,7 +4,7 @@ import uuid from 'utils/get-uuid'
 import Book from 'store/book'
 import Ui from 'store/ui'
 import Contents from 'store/contents'
-import storeBlobs, { Store as Blobs, getImageWithBlobURL } from 'store/blobs'
+import storeBlobs, { Store as Blobs, getImageWithBlobURL, ensureImageMimeType } from 'store/blobs'
 import JSZip from "jszip"
 import { db } from 'utils/db'
 
@@ -37,6 +37,17 @@ const getNumberStr = (num: number, zeroCount: number): string => {
     str = '0' + str
   }
   return str
+}
+
+const getExtensionFromMimeType = (mimeType: string): string => {
+  if (mimeType === 'image/jpeg') return 'jpeg'
+  if (mimeType === 'image/png') return 'png'
+  if (mimeType === 'image/webp') return 'webp'
+  if (mimeType === 'image/avif') return 'avif'
+  if (mimeType === 'image/gif') return 'gif'
+  
+  const sub = mimeType.split('/')[1] || 'jpeg'
+  return sub.split('+')[0] || 'jpeg'
 }
 
 class Store {
@@ -323,10 +334,12 @@ class Store {
           const imgFile = zip.file(imgZipPath)
           
           if (imgFile) {
-            const imgBlob = await imgFile.async('blob')
+            const imgBlobRaw = await imgFile.async('blob')
             formatAndStorePromises.push(
-              this.blobs.restoreBlobItem(pageID, imgBlob).then(() => {
-                return db.saveBlob(pageID, imgBlob)
+              ensureImageMimeType(imgBlobRaw, imgZipPath).then((imgBlob) => {
+                return this.blobs.restoreBlobItem(pageID, imgBlob).then(() => {
+                  return db.saveBlob(pageID, imgBlob)
+                })
               })
             )
           }
@@ -607,8 +620,9 @@ class Store {
         pageItemStr.push(`<item id="p_${numStr}" href="text/p_${numStr}.xhtml" media-type="application/xhtml+xml"${svgProperty}></item>`)
       } else {
         const mimeType = this.blobs.blobs[pageItem.blobID].blob.type // image/xxxxx
+        const ext = getExtensionFromMimeType(mimeType)
         pageItemStr.push(`<item id="p_${numStr}" href="text/p_${numStr}.xhtml" media-type="application/xhtml+xml"${svgProperty}></item>`)
-        imageItemStr.push(`<item id="${imageFileName}" href="image/${imageFileName}.${mimeType.slice(6)}" media-type="${mimeType}"${i === 0 ? ' properties="cover-image"' : ''}></item>`)
+        imageItemStr.push(`<item id="${imageFileName}" href="image/${imageFileName}.${ext}" media-type="${mimeType}"${i === 0 ? ' properties="cover-image"' : ''}></item>`)
       }
 
       if (i !== 0) {
@@ -632,8 +646,9 @@ class Store {
       this.book.pages.forEach((pageItem, i) => {
         const numStr = i === 0 ? 'cover' : getNumberStr(i - 1, 4)
         const blob = this.blobs.blobs[pageItem.blobID].blob
-        const mimeType = blob.type.slice(6)
-        const imageFileName = (i === 0 ? '' : 'i_') + numStr + '.' + mimeType
+        const mimeType = blob.type
+        const ext = getExtensionFromMimeType(mimeType)
+        const imageFileName = (i === 0 ? '' : 'i_') + numStr + '.' + ext
   
         if (pageItem.blank) {
           Zip.file(
@@ -679,8 +694,9 @@ class Store {
       this.book.pages.forEach((pageItem, i) => {
         const numStr = i === 0 ? 'cover' : getNumberStr(i - 1, 4)
         const blob = this.blobs.blobs[pageItem.blobID].blob
-        const mimeType = blob.type.slice(6)
-        const imageFileName = (i === 0 ? '' : 'i_') + numStr + '.' + mimeType
+        const mimeType = blob.type
+        const ext = getExtensionFromMimeType(mimeType)
+        const imageFileName = (i === 0 ? '' : 'i_') + numStr + '.' + ext
 
         if (pageItem.blank) {
           Zip.file(

@@ -118,7 +118,7 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
 })
 
 const AcceptMap = {
-  image: 'image/jpeg,image/png,image/webp,image/avif',
+  image: 'image/jpeg,image/png,image/webp,image/avif,image/gif',
   zip: 'application/zip',
   epub: 'application/epub+zip',
 }
@@ -198,6 +198,23 @@ const Header = function() {
                 mimeType = 'image/jpeg'
               } else if (header.slice(8, 24) === '6674797061766966') {
                 mimeType = 'image/avif'
+              } else if (header.startsWith('47494638')) {
+                mimeType = 'image/gif'
+              }
+
+              if (!mimeType) {
+                const ext = zipItem.name.substring(zipItem.name.lastIndexOf('.') + 1).toLowerCase()
+                if (ext === 'png') {
+                  mimeType = 'image/png'
+                } else if (ext === 'webp') {
+                  mimeType = 'image/webp'
+                } else if (ext === 'avif') {
+                  mimeType = 'image/avif'
+                } else if (ext === 'gif') {
+                  mimeType = 'image/gif'
+                } else if (ext === 'jpg' || ext === 'jpeg') {
+                  mimeType = 'image/jpeg'
+                }
               }
 
               if (mimeType) {

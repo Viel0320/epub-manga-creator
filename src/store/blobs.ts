@@ -22,8 +22,65 @@ export const getImageWithBlobURL = (blobURL: string): Promise<HTMLImageElement> 
   image.src = blobURL
 })
 
+export const ensureImageMimeType = async (blob: Blob, filename?: string): Promise<Blob> => {
+  // If blob already has a valid image type, just return it
+  if (blob.type && blob.type.startsWith('image/') && blob.type.length > 6) {
+    return blob
+  }
+
+  // 1. Try to detect by file extension if filename is provided
+  if (filename) {
+    const ext = filename.substring(filename.lastIndexOf('.') + 1).toLowerCase()
+    let mimeType: string | null = null
+    if (ext === 'png') {
+      mimeType = 'image/png'
+    } else if (ext === 'webp') {
+      mimeType = 'image/webp'
+    } else if (ext === 'avif') {
+      mimeType = 'image/avif'
+    } else if (ext === 'gif') {
+      mimeType = 'image/gif'
+    } else if (ext === 'jpg' || ext === 'jpeg') {
+      mimeType = 'image/jpeg'
+    }
+    if (mimeType) {
+      return new Blob([blob], { type: mimeType })
+    }
+  }
+
+  // 2. Try to detect by magic numbers
+  try {
+    const buffer = await blob.arrayBuffer()
+    const header = Array.from(new Uint8Array(buffer).subarray(0, 12))
+      .map(item => item.toString(16).padStart(2, '0'))
+      .join('')
+    
+    let mimeType = 'image/jpeg' // Default fallback
+    if (header.startsWith('89504e47')) {
+      mimeType = 'image/png'
+    } else if (header.startsWith('52494646')) {
+      mimeType = 'image/webp'
+    } else if (header.startsWith('ffd8ff')) {
+      mimeType = 'image/jpeg'
+    } else if (header.slice(8, 24) === '6674797061766966') {
+      mimeType = 'image/avif'
+    } else if (header.startsWith('47494638')) {
+      mimeType = 'image/gif'
+    }
+    
+    return new Blob([buffer], { type: mimeType })
+  } catch (e) {
+    console.error('Failed to read blob bytes for type detection:', e)
+  }
+
+  // Fallback to jpeg if everything else fails
+  return blob.type ? blob : new Blob([blob], { type: 'image/jpeg' })
+}
+
 const formatBlobItem = async (blob: Blob) => {
-  const blobURL = URL.createObjectURL(blob)
+  const name = (blob as File).name || ''
+  const normalizedBlob = await ensureImageMimeType(blob, name)
+  const blobURL = URL.createObjectURL(normalizedBlob)
 
   const originImage = await getImageWithBlobURL(blobURL)
 
@@ -45,12 +102,13 @@ const formatBlobItem = async (blob: Blob) => {
 
   const thumbnailBlob = await new Promise<Blob>(
     (resolve, reject) => canvas.toBlob(
-      blob => blob ? resolve(blob) : reject()
+      blob => blob ? resolve(blob) : reject(),
+      normalizedBlob.type
     )
   )
 
   const item: StoreBlobs.ImageBlob = {
-    blob,
+    blob: normalizedBlob,
     blobURL,
     thumbnailURL: URL.createObjectURL(thumbnailBlob),
     width: originImage.width,
