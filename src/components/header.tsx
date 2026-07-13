@@ -1,27 +1,25 @@
 import JSZip from 'jszip'
 import { observer } from 'mobx-react'
-import React, { useCallback, useLayoutEffect, useRef, useState } from 'react'
+import React, { useCallback, useContext, useLayoutEffect, useRef, useState } from 'react'
 import Icon from 'components/icon'
-import storeMain, { useStore } from 'store/main'
-import { useI18n } from 'i18n'
-import type { LangKey } from 'i18n'
+import { StoreContext } from 'store/main'
 
 type SupportType = 'image' | 'zip' | 'epub'
 
 const PageControl = observer(function(props: { pageIndex: number | null }) {
-  const t = useI18n()
+  const storeMain = useContext(StoreContext);
   const onUseImageSizeToPage = useCallback(() => {
     const pageItem = storeMain.book.pages[props.pageIndex as number]
-    const blobItem = storeMain.blobs.blobs[pageItem.blobID]
+    const image = storeMain.blobs.blobs[pageItem.blobID].originImage
     storeMain.book.updateBookPageProperty('pageSize', [
-      blobItem.width,
-      blobItem.height
+      image.width,
+      image.height
     ])
-  }, [props.pageIndex])
+  }, [props.pageIndex, storeMain])
 
   const onChangePageIndex = useCallback(() => {
     const max = storeMain.book.pages.length
-    const inputValue = window.prompt(t.prompt.newPageIndex(max))
+    const inputValue = window.prompt(`new page index (1 - ${max}):`)
     let num = parseInt(inputValue || '')
     
     if (isNaN(num) || num < 1) {
@@ -31,41 +29,41 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
     }
 
     storeMain.replacePageIndex(props.pageIndex as number, num - 1)
-  }, [props.pageIndex])
+  }, [props.pageIndex, storeMain])
 
   const onSetContentq = useCallback((e: React.MouseEvent<HTMLSpanElement>) => {
     storeMain.contents.setPageIndexToTitle(
       +(e.currentTarget.dataset.index as string),
       props.pageIndex as number
     )
-  }, [props.pageIndex])
+  }, [props.pageIndex, storeMain])
 
   const onSplitPage = useCallback(() => {
     storeMain.splitPage(props.pageIndex as number)
-  }, [props.pageIndex])
+  }, [props.pageIndex, storeMain])
 
   const onRemovePage = useCallback(() => {
-    const res = window.confirm(t.prompt.removePage(props.pageIndex as number))
+    const res = window.confirm(`remove page index ${props.pageIndex as number + 1}?`)
     res && storeMain.removePage(props.pageIndex as number)
-  }, [props.pageIndex])
+  }, [props.pageIndex, storeMain])
 
   if (props.pageIndex === null) {
     return (
       <>
         <div className="nav-item">
-          <button type="button" className="btn" disabled><Icon name="ruler"/></button>
+          <button type="button" className="btn btn-outline-secondary disabled" disabled><Icon name="ruler"/></button>
         </div>
         <div className="nav-item">
-          <button type="button" className="btn" disabled><Icon name="menu"/></button>
+          <button type="button" className="btn btn-outline-secondary disabled" disabled><Icon name="menu"/></button>
         </div>
         <div className="nav-item">
-          <button type="button" className="btn" disabled><Icon name="bookmark"/></button>
+          <button type="button" className="btn btn-outline-secondary disabled" disabled><Icon name="bookmark"/></button>
         </div>
         <div className="nav-item">
-          <button type="button" className="btn" disabled><Icon name="scissors"/></button>
+          <button type="button" className="btn btn-outline-secondary disabled" disabled><Icon name="scissors"/></button>
         </div>
         <div className="nav-item">
-          <button type="button" className="btn" disabled><Icon name="cross"/></button>
+          <button type="button" className="btn btn-outline-secondary disabled" disabled><Icon name="cross"/></button>
         </div>
       </>
     )
@@ -76,17 +74,17 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
   return (
     <>
       <div className="nav-item">
-        <button type="button" className="btn" disabled={blankPage} onClick={onUseImageSizeToPage}>
+        <button type="button" className="btn btn-secondary" disabled={blankPage} onClick={onUseImageSizeToPage}>
             <Icon name="ruler"/>
           </button>
       </div>
       <div className="nav-item">
-        <button type="button" className="btn" onClick={onChangePageIndex}>
+        <button type="button" className="btn btn-secondary" onClick={onChangePageIndex}>
             <Icon name="menu"/>
           </button>
       </div>
       <div className="nav-item dropdown">
-        <button type="button" className="btn"><Icon name="bookmark"/></button>
+        <button type="button" className="btn btn-secondary"><Icon name="bookmark"/></button>
         <ul className="dropdown-menu" style={{top: 0,left:'100%'}}>
           {
             storeMain.contents.list.map((contentItem, index) =>
@@ -104,12 +102,12 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
         </ul>
       </div>
       <div className="nav-item">
-        <button type="button" className="btn" disabled={blankPage} onClick={onSplitPage}>
+        <button type="button" className="btn btn-secondary" disabled={blankPage} onClick={onSplitPage}>
           <Icon name="scissors"/>
         </button>
       </div>
       <div className="nav-item">
-        <button type="button" className="btn" onClick={onRemovePage}>
+        <button type="button" className="btn btn-secondary" onClick={onRemovePage}>
           <Icon name="cross"/>
         </button>
       </div>
@@ -118,9 +116,9 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
 })
 
 const AcceptMap = {
-  image: 'image/jpeg,image/png,image/webp,image/avif,image/gif',
-  zip: 'application/zip',
-  epub: 'application/epub+zip',
+  image: 'image/jpeg,image/png,image/webp,image/avif,.jpg,.jpeg,.png,.webp,.avif',
+  zip: 'application/zip,.zip',
+  epub: 'application/epub+zip,.epub',
 }
 
 const MultipleAttrMap = {
@@ -131,20 +129,16 @@ const MultipleAttrMap = {
 
 const blobToFile = (theBlob: Blob, fileName:string): File => {
   var b: any = theBlob
-  //A Blob() is almost a File() - it's just missing the two properties below which we will add
   b.lastModifiedDate = new Date()
   b.name = fileName
-
-  //Cast to a File() type
   return theBlob as File
 }
 
 const Header = function() {
-  const { ui } = useStore()
+  const storeMain = useContext(StoreContext);
+  const { ui, book } = storeMain;
   const inputRef = useRef<HTMLInputElement>(null)
-  const shouldClickRef = useRef(false)
   const [inputType, setInputType] = useState<SupportType>('zip')
-  const t = useI18n()
 
   const onClickToggleBookVisible = useCallback(() => {
     ui.toggleBookVisible()
@@ -156,13 +150,12 @@ const Header = function() {
     ui.togglePageVisible()
   }, [ui])
 
-  const onClickImport = useCallback((e: React.MouseEvent<HTMLInputElement>) => {
+  const onClickImport = useCallback((e: React.MouseEvent<HTMLSpanElement>) => {
     const newType = e.currentTarget.dataset.type as SupportType
 
     if (newType === inputType) {
       inputRef.current?.click()
     } else {
-      shouldClickRef.current = true
       setInputType(newType)
     }
   }, [inputType])
@@ -170,16 +163,10 @@ const Header = function() {
   const handleGetFile = useCallback(async () => {
     const input: HTMLInputElement = inputRef.current as HTMLInputElement
 
-    if (inputType === 'epub' && (input?.files?.[0])) {
-      storeMain.importPageFromEpub(input.files[0])
-      return
-    }
-
     if (inputType === 'zip' && (input?.files?.[0])) {
       const fileName = input.files[0].name 
       JSZip.loadAsync(input.files[0]).then(zipContent => {
-        const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' })
-        const zipFiles = Object.keys(zipContent.files).sort(collator.compare).map((filename) => zipContent.files[filename])
+        const zipFiles = Object.keys(zipContent.files).sort().map((filename) => zipContent.files[filename])
         const promises: Promise<File | null>[] = zipFiles.map(zipItem => {
           if (zipItem.dir) {
             return Promise.resolve(null)
@@ -187,38 +174,32 @@ const Header = function() {
 
           return new Promise(resolve => {
             zipItem.async('uint8array').then(uint8Array => {
-              const header = Array.from(new Uint8Array(uint8Array).subarray(0, 12)).map(item => item.toString(16).padStart(2, '0')).join('')
+              const header = Array.from(new Uint8Array(uint8Array).subarray(0, 4)).map(item => item.toString(16)).join('')
               let mimeType = null
   
-              if (header.startsWith('89504e47')) {
-                mimeType = 'image/png'
-              } else if (header.startsWith('52494646')) {
-                mimeType = 'image/webp'
-              } else if (header.startsWith('ffd8ff')) {
-                mimeType = 'image/jpeg'
-              } else if (header.slice(8, 24) === '6674797061766966') {
-                mimeType = 'image/avif'
-              } else if (header.startsWith('47494638')) {
-                mimeType = 'image/gif'
-              }
-
-              if (!mimeType) {
-                const ext = zipItem.name.substring(zipItem.name.lastIndexOf('.') + 1).toLowerCase()
-                if (ext === 'png') {
+              switch (header) {
+                case '89504e47':
                   mimeType = 'image/png'
-                } else if (ext === 'webp') {
+                  break
+                case '52494646':
                   mimeType = 'image/webp'
-                } else if (ext === 'avif') {
-                  mimeType = 'image/avif'
-                } else if (ext === 'gif') {
-                  mimeType = 'image/gif'
-                } else if (ext === 'jpg' || ext === 'jpeg') {
+                  break
+                case 'ffd8ffe0':
+                case 'ffd8ffe1':
+                case 'ffd8ffe2':
+                case 'ffd8ffe3':
+                case 'ffd8ffe8':
                   mimeType = 'image/jpeg'
-                }
+                  break
+                case '00020':
+                  mimeType = 'image/avif'
+                  break
+                default:
+                  break
               }
 
               if (mimeType) {
-                const b = new Blob([uint8Array as any], { type: mimeType })
+                const b = new Blob([uint8Array], { type: mimeType })
                 resolve(
                   blobToFile(
                     b,
@@ -238,23 +219,16 @@ const Header = function() {
         if (storeMain.ui.firstImport) {
           storeMain.ui.toggleBookVisible(fileName)
         }
-      }).catch(err => {
-        console.error(err)
-        const errorMsg = storeMain.ui.lang === 'zh'
-          ? '加载 ZIP 文件失败，请检查文件是否损坏。'
-          : 'Failed to load ZIP file, please check if it is corrupted.'
-        alert(errorMsg)
       })
       return
     }
 
-    // inputType === jpg png webp
     storeMain.importPageFromImages(Array.from(input.files as FileList))
-  }, [inputType])
+  }, [inputType, storeMain])
 
   const onClickInsertBlankPage = useCallback(() => {
-    const max = storeMain.book.pages.length
-    const inputValue = window.prompt(t.prompt.insertPageIndex(max))
+    const max = book.pages.length
+    const inputValue = window.prompt(`page index (1 - ${max}):`)
     let num = parseInt(inputValue || '')
     
     if (isNaN(num) || num < 1) {
@@ -264,62 +238,43 @@ const Header = function() {
     }
 
     storeMain.insertBlankPage(num - 1)
-  }, [])
+  }, [book, storeMain])
 
   const onClickGenerate = useCallback(() => {
-    storeMain.ui.setLoading(true, storeMain.ui.lang === 'zh' ? '正在生成 EPUB...' : 'Generating EPUB...')
-    setTimeout(() => {
-      storeMain.generateBook().then((blob) => {
-        const anchor = document.createElement('a')
-        const objectURL = window.URL.createObjectURL(blob)
-        anchor.download = storeMain.book.bookTitle.trim() + '.epub'
-        anchor.href = objectURL
-        anchor.click()
-        window.URL.revokeObjectURL(objectURL)
-      }).catch(err => {
-        console.error(err)
-        alert('Failed to generate EPUB.')
-      }).finally(() => {
-        storeMain.ui.setLoading(false)
-      })
-    }, 100)
-  }, [])
+    storeMain.generateBook()
+  }, [storeMain])
 
   useLayoutEffect(() => {
-    if (shouldClickRef.current) {
-      shouldClickRef.current = false
-      setTimeout(() => {
-        inputRef.current?.click()
-      }, 0)
+    if (inputType) {
+      inputRef.current?.click()
     }
   }, [inputType])
 
   return (
-    <nav id="nav" className="navbar">
+    <nav id="nav" className="navbar bg-dark">
       <div className="nav-item dropdown">
-        <button type="button" className="btn">
+        <button type="button" className="btn btn-primary">
           <Icon name="upload"/>
         </button>
         <ul className="dropdown-menu" style={{top: 0,left:'100%'}}>
-          <li><span className="dropdown-item" data-type="image" onClick={onClickImport}>{t.nav.importImage}</span></li>
-          <li><span className="dropdown-item" data-type="zip" onClick={onClickImport}>{t.nav.importZip}</span></li>
-          <li><span className="dropdown-item" data-type="epub" onClick={onClickImport}>{ui.lang === 'zh' ? '导入 EPUB' : 'Import EPUB'}</span></li>
+          <li><span className="dropdown-item" data-type="image" onClick={onClickImport}>image</span></li>
+          <li><span className="dropdown-item" data-type="zip" onClick={onClickImport}>zip</span></li>
         </ul>
       </div>
       <div className="nav-item">
-        <button type="button" className="btn" onClick={onClickToggleBookVisible}><Icon name="book"/></button>
+        <button type="button" className="btn btn-primary" onClick={onClickToggleBookVisible}><Icon name="book"/></button>
       </div>
       <div className="nav-item">
-        <button type="button" className="btn" onClick={onClickToggleContentVisible}><Icon name="list"/></button>
+        <button type="button" className="btn btn-primary" onClick={onClickToggleContentVisible}><Icon name="list"/></button>
       </div>
       <div className="nav-item">
-        <button type="button" className="btn" onClick={onClickTogglePageVisible}><Icon name="tools"/></button>
+        <button type="button" className="btn btn-primary" onClick={onClickTogglePageVisible}><Icon name="tools"/></button>
       </div>
       <div className="nav-item">
         <button
           type="button"
-          className="btn"
-          disabled={storeMain.book.pages.length === 0}
+          className="btn btn-primary"
+          disabled={book.pages.length === 0}
           onClick={onClickInsertBlankPage}
         >
           <Icon name="notification"/>
@@ -328,40 +283,14 @@ const Header = function() {
       <div className="nav-item">
         <button
           type="button"
-          className="btn"
-          disabled={storeMain.book.pages.length === 0}
+          className="btn btn-primary"
+          disabled={book.pages.length === 0}
           onClick={onClickGenerate}
         >
           <Icon name="install"/>
         </button>
       </div>
       <PageControl pageIndex={ui.selectedPageIndex}/>
-      <div className="nav-item" style={{marginTop:'auto'}}>
-        <button
-          type="button"
-          className="btn"
-          onClick={() => ui.toggleTheme()}
-          title={ui.lang === 'zh'
-            ? (ui.theme === 'dark' ? '切换至浅色模式' : '切换至深色模式')
-            : (ui.theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode')
-          }
-        >
-          <Icon name={ui.theme === 'dark' ? 'sun' : 'moon'}/>
-        </button>
-      </div>
-      <div className="nav-item">
-        <button
-          type="button"
-          className="btn btn-outline-light btn-sm"
-          style={{fontSize:'12px',width:'50px'}}
-          onClick={() => {
-            const next: LangKey = storeMain.ui.lang === 'en' ? 'zh' : 'en'
-            storeMain.ui.setLang(next)
-          }}
-        >
-          {storeMain.ui.lang === 'en' ? t.lang.zh : t.lang.en}
-        </button>
-      </div>
       <input
         key={inputType}
         id="input-upload"
