@@ -13,7 +13,7 @@ const getText = (): string => `<?xml version="1.0" encoding="UTF-8"?>
 </nav>
 <nav epub:type="landmarks">
 <ol>
-<li><a epub:type="bodymatter" href="text/p_cover.xhtml">Start of Content</a></li>
+<li><a epub:type="bodymatter" href="text/{{startPage}}">Start of Content</a></li>
 </ol>
 </nav>
 </body>

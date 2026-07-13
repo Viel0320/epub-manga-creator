@@ -170,10 +170,38 @@ html.dark-theme body::before {
 }
 
 #nav .nav-item.dropdown { cursor: pointer; position: relative; }
-#nav .nav-item.dropdown:hover > .dropdown-menu {
+
+/* invisible bridge over the 10px gap between the button and the flyout, so
+   the parent keeps :hover while the pointer crosses it (lives on the parent —
+   a ::before on the menu itself would be clipped by its overflow-y: auto) */
+#nav .nav-item.dropdown::after {
+  content: '';
+  position: absolute;
+  left: 100%;
+  top: 0;
+  width: 12px;
+  height: 100%;
+}
+
+/* keep the menu mounted and toggle via visibility/opacity: the 0.25s
+   visibility delay is a grace period, so briefly leaving the hover area
+   (e.g. moving diagonally toward a lower menu item) doesn't dismiss it */
+#nav .nav-item.dropdown > .dropdown-menu {
   display: block;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateX(-6px) scale(0.97);
   transform-origin: left top;
-  animation: navMenuIn 0.16s ease;
+  transition:
+    opacity 0.16s ease,
+    transform 0.16s ease,
+    visibility 0s linear 0.25s;
+}
+#nav .nav-item.dropdown:hover > .dropdown-menu {
+  visibility: visible;
+  opacity: 1;
+  transform: translateX(0) scale(1);
+  transition-delay: 0s;
 }
 
 /* pin the theme + reset controls to the bottom of the dock, set apart from
@@ -397,16 +425,6 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
   font-size: 0.9rem;
 }
 
-/* invisible bridge so hover survives the gap between button and menu */
-#nav .dropdown-menu::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: -18px;
-  width: 18px;
-}
-
 .dropdown-item {
   display: block;
   width: 100%;
@@ -429,11 +447,6 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
 .dropdown-item.active {
   background: var(--accent);
   color: var(--text-on-accent);
-}
-
-@keyframes navMenuIn {
-  from { opacity: 0; transform: translateX(-6px) scale(0.97); }
-  to   { opacity: 1; transform: translateX(0) scale(1); }
 }
 
 /* ---------- Alerts ---------------------------------------- */

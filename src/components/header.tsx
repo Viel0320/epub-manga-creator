@@ -166,7 +166,10 @@ const Header = function() {
     if (inputType === 'zip' && (input?.files?.[0])) {
       const fileName = input.files[0].name 
       JSZip.loadAsync(input.files[0]).then(zipContent => {
-        const zipFiles = Object.keys(zipContent.files).sort().map((filename) => zipContent.files[filename])
+        // natural sort so "10.jpg" comes after "2.jpg"
+        const zipFiles = Object.keys(zipContent.files)
+          .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }))
+          .map((filename) => zipContent.files[filename])
         const promises: Promise<File | null>[] = zipFiles.map(zipItem => {
           if (zipItem.dir) {
             return Promise.resolve(null)
@@ -174,28 +177,22 @@ const Header = function() {
 
           return new Promise(resolve => {
             zipItem.async('uint8array').then(uint8Array => {
-              const header = Array.from(new Uint8Array(uint8Array).subarray(0, 4)).map(item => item.toString(16)).join('')
-              let mimeType = null
-  
-              switch (header) {
-                case '89504e47':
-                  mimeType = 'image/png'
-                  break
-                case '52494646':
-                  mimeType = 'image/webp'
-                  break
-                case 'ffd8ffe0':
-                case 'ffd8ffe1':
-                case 'ffd8ffe2':
-                case 'ffd8ffe3':
-                case 'ffd8ffe8':
-                  mimeType = 'image/jpeg'
-                  break
-                case '00020':
-                  mimeType = 'image/avif'
-                  break
-                default:
-                  break
+              const bytes = new Uint8Array(uint8Array)
+              const hexOf = (start: number, end: number) =>
+                Array.from(bytes.subarray(start, end)).map(b => b.toString(16).padStart(2, '0')).join('')
+              const asciiOf = (start: number, end: number) =>
+                String.fromCharCode(...Array.from(bytes.subarray(start, end)))
+
+              let mimeType: string | null = null
+
+              if (hexOf(0, 4) === '89504e47') {
+                mimeType = 'image/png'
+              } else if (hexOf(0, 3) === 'ffd8ff') { // any JPEG marker (E0-EF, DB, EE...)
+                mimeType = 'image/jpeg'
+              } else if (asciiOf(0, 4) === 'RIFF' && asciiOf(8, 12) === 'WEBP') {
+                mimeType = 'image/webp'
+              } else if (asciiOf(4, 8) === 'ftyp' && ['avif', 'avis'].includes(asciiOf(8, 12))) {
+                mimeType = 'image/avif'
               }
 
               if (mimeType) {

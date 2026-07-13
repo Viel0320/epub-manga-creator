@@ -39,7 +39,7 @@ class Store {
     const item = list[listIndex]
 
     list.splice(listIndex, 1)
-    if (item.pageIndex && (item.pageIndex in indexMap)) {
+    if (item.pageIndex !== null && (item.pageIndex in indexMap)) {
       delete indexMap[item.pageIndex]
     }
 
@@ -65,7 +65,7 @@ class Store {
   setPageIndexToTitle(listIndex: number, pageIndex: number) {
     const { list, indexMap } = cloneState.call(this)
 
-    if (indexMap[pageIndex] && indexMap[pageIndex] === listIndex) {
+    if (indexMap[pageIndex] === listIndex) {
       return
     }
 
@@ -93,8 +93,10 @@ class Store {
     const { list, indexMap } = cloneState.call(this)
 
     const item = list[listIndex]
-    list[listIndex].pageIndex = null
-    delete indexMap[item.pageIndex as number]
+    if (item.pageIndex !== null) {
+      delete indexMap[item.pageIndex]
+    }
+    item.pageIndex = null
 
     this.list = list
     this.indexMap = indexMap

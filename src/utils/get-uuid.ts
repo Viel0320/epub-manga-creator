@@ -1,18 +1,14 @@
-const generateRandomUUID = () => {
-  const char = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
-  let uuid = ""
-  let i = 36
-
-  while (i-- > 0) {
-    if (i === 27 || i === 22 || i === 17 || i === 12) {
-      uuid = uuid + "-"
-    } else {
-      uuid = uuid + String(char[Math.ceil(Math.random() * 35)])
-    }
+const generateRandomUUID = (): string => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
   }
 
-  return uuid
+  // RFC 4122 v4 fallback
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = Math.random() * 16 | 0
+    const v = c === 'x' ? r : (r & 0x3 | 0x8)
+    return v.toString(16)
+  })
 }
 
 export default generateRandomUUID

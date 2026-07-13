@@ -90,6 +90,25 @@ class Store {
   }
 
   @action
+  remove(uuid: string) {
+    const item = this.blobs[uuid]
+    if (!item) {
+      return
+    }
+
+    try {
+      URL.revokeObjectURL(item.blobURL)
+      URL.revokeObjectURL(item.thumbnailURL)
+    } catch {
+      // ignore
+    }
+
+    const next = { ...this.blobs }
+    delete next[uuid]
+    this.blobs = next
+  }
+
+  @action
   clear() {
     Object.values(this.blobs).forEach(item => {
       try {
