@@ -3,11 +3,13 @@ import { observer } from 'mobx-react'
 import React, { useCallback, useContext, useLayoutEffect, useRef, useState } from 'react'
 import Icon from 'components/icon'
 import { StoreContext } from 'store/main'
+import { useI18n } from 'i18n'
 
-type SupportType = 'image' | 'zip' | 'epub'
+type SupportType = 'image' | 'zip'
 
 const PageControl = observer(function(props: { pageIndex: number | null }) {
   const storeMain = useContext(StoreContext);
+  const t = useI18n();
   const onUseImageSizeToPage = useCallback(() => {
     const pageItem = storeMain.book.pages[props.pageIndex as number]
     const image = storeMain.blobs.blobs[pageItem.blobID].originImage
@@ -19,7 +21,7 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
 
   const onChangePageIndex = useCallback(() => {
     const max = storeMain.book.pages.length
-    const inputValue = window.prompt(`new page index (1 - ${max}):`)
+    const inputValue = window.prompt(t.prompt.newPageIndex(max))
     let num = parseInt(inputValue || '')
     
     if (isNaN(num) || num < 1) {
@@ -29,7 +31,7 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
     }
 
     storeMain.replacePageIndex(props.pageIndex as number, num - 1)
-  }, [props.pageIndex, storeMain])
+  }, [props.pageIndex, storeMain, t])
 
   const onSetContentq = useCallback((e: React.MouseEvent<HTMLSpanElement>) => {
     storeMain.contents.setPageIndexToTitle(
@@ -43,9 +45,9 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
   }, [props.pageIndex, storeMain])
 
   const onRemovePage = useCallback(() => {
-    const res = window.confirm(`remove page index ${props.pageIndex as number + 1}?`)
+    const res = window.confirm(t.prompt.removePage(props.pageIndex as number))
     res && storeMain.removePage(props.pageIndex as number)
-  }, [props.pageIndex, storeMain])
+  }, [props.pageIndex, storeMain, t])
 
   if (props.pageIndex === null) {
     return (
@@ -118,13 +120,11 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
 const AcceptMap = {
   image: 'image/jpeg,image/png,image/webp,image/avif,.jpg,.jpeg,.png,.webp,.avif',
   zip: 'application/zip,.zip',
-  epub: 'application/epub+zip,.epub',
 }
 
 const MultipleAttrMap = {
   image: true,
   zip: false,
-  epub: false,
 }
 
 const blobToFile = (theBlob: Blob, fileName:string): File => {
@@ -137,6 +137,7 @@ const blobToFile = (theBlob: Blob, fileName:string): File => {
 const Header = function() {
   const storeMain = useContext(StoreContext);
   const { ui, book } = storeMain;
+  const t = useI18n()
   const inputRef = useRef<HTMLInputElement>(null)
   const [inputType, setInputType] = useState<SupportType>('zip')
 
@@ -225,9 +226,9 @@ const Header = function() {
 
   const onClickInsertBlankPage = useCallback(() => {
     const max = book.pages.length
-    const inputValue = window.prompt(`page index (1 - ${max}):`)
+    const inputValue = window.prompt(t.prompt.insertPageIndex(max))
     let num = parseInt(inputValue || '')
-    
+
     if (isNaN(num) || num < 1) {
       return
     } else if (num > max) {
@@ -235,7 +236,7 @@ const Header = function() {
     }
 
     storeMain.insertBlankPage(num - 1)
-  }, [book, storeMain])
+  }, [book, storeMain, t])
 
   const onClickGenerate = useCallback(() => {
     storeMain.generateBook()
@@ -246,13 +247,10 @@ const Header = function() {
   }, [ui])
 
   const onClickReset = useCallback(() => {
-    const message = ui.lang === 'zh'
-      ? '确定要清空工作区吗？所有已导入的页面都将被移除，此操作不可撤销。'
-      : 'Clear the workspace? All imported pages will be removed. This cannot be undone.'
-    if (window.confirm(message)) {
+    if (window.confirm(t.confirm.reset)) {
       storeMain.resetWorkspace()
     }
-  }, [ui, storeMain])
+  }, [storeMain, t])
 
   useLayoutEffect(() => {
     if (inputType) {
@@ -267,8 +265,8 @@ const Header = function() {
           <Icon name="upload"/>
         </button>
         <ul className="dropdown-menu" style={{top: 0,left:'100%'}}>
-          <li><span className="dropdown-item" data-type="image" onClick={onClickImport}>image</span></li>
-          <li><span className="dropdown-item" data-type="zip" onClick={onClickImport}>zip</span></li>
+          <li><span className="dropdown-item" data-type="image" onClick={onClickImport}>{t.nav.importImage}</span></li>
+          <li><span className="dropdown-item" data-type="zip" onClick={onClickImport}>{t.nav.importZip}</span></li>
         </ul>
       </div>
       <div className="nav-item">
@@ -286,6 +284,7 @@ const Header = function() {
           className="btn btn-primary"
           disabled={book.pages.length === 0}
           onClick={onClickInsertBlankPage}
+          title={t.nav.insertBlankPage}
         >
           <Icon name="notification"/>
         </button>
@@ -296,6 +295,7 @@ const Header = function() {
           className="btn btn-primary"
           disabled={book.pages.length === 0}
           onClick={onClickGenerate}
+          title={t.nav.generate}
         >
           <Icon name="install"/>
         </button>
@@ -307,10 +307,7 @@ const Header = function() {
           className="btn btn-secondary"
           onClick={onCycleTheme}
           title={
-            (ui.lang === 'zh'
-              ? { light: '主题：浅色', dark: '主题：深色', auto: '主题：跟随系统' }
-              : { light: 'Theme: Light', dark: 'Theme: Dark', auto: 'Theme: Auto (system)' }
-            )[ui.theme]
+            { light: t.nav.themeLight, dark: t.nav.themeDark, auto: t.nav.themeAuto }[ui.theme]
           }
         >
           <Icon name={ui.theme === 'light' ? 'sun' : ui.theme === 'dark' ? 'moon' : 'theme-auto'}/>
@@ -322,7 +319,7 @@ const Header = function() {
           className="btn btn-secondary nav-reset-btn"
           disabled={book.pages.length === 0}
           onClick={onClickReset}
-          title={ui.lang === 'zh' ? '清空工作区' : 'Reset workspace'}
+          title={t.nav.reset}
         >
           <Icon name="trash"/>
         </button>

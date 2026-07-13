@@ -1,11 +1,12 @@
 import React from 'react';
-import { action, autorun, makeAutoObservable, observable, runInAction, toJS } from "mobx"
+import { autorun, makeAutoObservable, runInAction, toJS } from "mobx"
 import uuid from 'utils/get-uuid'
 import Book, { StoreBook } from 'store/book'
 import Ui from 'store/ui'
 import Contents from 'store/contents'
 import storeBlobs, { Store as Blobs } from 'store/blobs'
 import { db } from 'utils/db'
+import { getLocale } from 'i18n'
 import JSZip from "jszip"
 
 import getTemplateContainerXml from 'template/container.xml'
@@ -39,11 +40,11 @@ const getNumberStr = (num: number, zeroCount: number): string => {
 }
 
 class Store {
-  @observable ui: Ui
-  @observable book: Book
-  @observable contents: Contents
-  @observable blobs: Blobs
-  @observable isAutoSaveActive = false
+  ui: Ui
+  book: Book
+  contents: Contents
+  blobs: Blobs
+  isAutoSaveActive = false
 
   // blob UUIDs already persisted to IndexedDB (not part of reactive state)
   savedBlobIDs: Set<string> = new Set()
@@ -67,7 +68,6 @@ class Store {
     }
   }
 
-  @action
   resetWorkspace() {
     this.book.reset()
     this.contents.reset()
@@ -82,7 +82,6 @@ class Store {
     db.clearAll().catch(err => console.error('Failed to clear backup:', err))
   }
 
-  @action
   setAutoSaveActive(value: boolean) {
     this.isAutoSaveActive = value
   }
@@ -144,7 +143,6 @@ class Store {
     })
   }
 
-  @action
   importPageFromImages(fileList: File[]) {
     const uuids = fileList.map(() => uuid())
 
@@ -152,7 +150,6 @@ class Store {
     this.blobs.push(fileList, uuids)
   }
 
-  @action
   replacePageIndex(index: number, targetIndex: number) {
     this.book.switchIndex(index, index > targetIndex ? targetIndex : targetIndex + 1)
     this.ui.selectPageIndex(targetIndex)
@@ -172,7 +169,6 @@ class Store {
     this.book.updatePageItemIndex()
   }
 
-  @action
   async splitPage(index: number) {
     const pageItem = this.book.pages[index]
     const blobItem = this.blobs.blobs[pageItem.blobID]
@@ -230,7 +226,6 @@ class Store {
     this.contents.updateList(list)
   }
 
-  @action
   insertBlankPage(index: number) {
     this.book.insertBlankPage(index)
     this.book.updatePageItemIndex()
@@ -253,7 +248,6 @@ class Store {
     this.contents.updateList(list)
   }
 
-  @action
   removePage(index: number) {
     const pageItem = this.book.pages[index]
     if (pageItem && !pageItem.blank && pageItem.blobID) {
@@ -281,7 +275,7 @@ class Store {
   }
 
   async generateBook() {
-    this.ui.setLoading(true, this.ui.lang === 'zh' ? '正在生成 EPUB…' : 'Generating EPUB…')
+    this.ui.setLoading(true, getLocale(this.ui.lang).loading.generating)
     try {
       await this.buildAndDownloadBook()
     } catch (err) {

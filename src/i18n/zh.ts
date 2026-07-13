@@ -6,6 +6,14 @@ const zh: Locale = {
     importZip: 'ZIP 压缩包',
     insertBlankPage: '插入空白页',
     generate: '生成 EPUB',
+    themeLight: '主题：浅色',
+    themeDark: '主题：深色',
+    themeAuto: '主题：跟随系统',
+    reset: '清空工作区',
+  },
+
+  confirm: {
+    reset: '确定要清空工作区吗？所有已导入的页面都将被移除，此操作不可撤销。',
   },
 
   prompt: {
@@ -21,6 +29,22 @@ const zh: Locale = {
   main: {
     ready: '准备就绪 🚀',
     import: '导入',
+    zoomPreview: '放大预览',
+    restoreDetected: '检测到您上次未完成的项目，是否恢复进度？',
+    restore: '恢复',
+    dismiss: '忽略',
+  },
+
+  lightbox: {
+    page: '页面',
+    blankPage: '空白页',
+    close: '关闭',
+    prev: '上一页',
+    next: '下一页',
+  },
+
+  loading: {
+    generating: '正在生成 EPUB…',
   },
 
   book: {

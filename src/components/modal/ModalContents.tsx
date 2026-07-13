@@ -2,12 +2,13 @@ import React, { FormEvent, useCallback, useContext, useEffect, useState } from '
 import { observer } from 'mobx-react';
 import { toJS } from 'mobx';
 import { StoreContext } from 'store/main';
-import deepClone from 'utils/deep-clone';
 import Icon from 'components/icon';
+import { useI18n } from 'i18n';
 
 const ModalContents = observer(function() {
   const storeMain = useContext(StoreContext);
   const { ui: store, contents: storeContents, book: storeBook } = storeMain;
+  const t = useI18n();
   const setsSeletRef = React.useRef<HTMLSelectElement>(null);
   const [plainMode, setPlainMode] = useState(false);
   const [tempList, setTempList] = useState<typeof storeContents.list>([]);
@@ -29,17 +30,22 @@ const ModalContents = observer(function() {
       const list: typeof storeContents.list = [];
       const items = textAreaInput.split('\n');
       items.forEach(item => {
+        if (!item.trim()) {
+          return;
+        }
+
         const [pageIndex, ...title] = item.split('. ');
 
-        if (!isNaN(pageIndex as any) && title.length) {
+        if (pageIndex.trim() !== '' && !isNaN(pageIndex as any) && title.length) {
           list.push({
-            pageIndex: Math.abs(+pageIndex - 1),
-            title: title.join('')
+            pageIndex: Math.max(0, +pageIndex - 1),
+            title: title.join('. ')
           });
         } else {
+          // line without a leading "n. " — keep the title, leave it unassigned
           list.push({
-            pageIndex: 998,
-            title: pageIndex
+            pageIndex: null,
+            title: item.trim()
           });
         }
       });
@@ -47,7 +53,9 @@ const ModalContents = observer(function() {
       setTempList(list);
     } else {
       let value = tempList.map(contentItem => {
-        return ((contentItem.pageIndex || 0) + 1) + '. ' + contentItem.title;
+        return contentItem.pageIndex === null
+          ? contentItem.title
+          : (contentItem.pageIndex + 1) + '. ' + contentItem.title;
       }).join('\n');
 
       setTextAreaInput(value);
@@ -59,16 +67,17 @@ const ModalContents = observer(function() {
   const onInputPageIndex = useCallback((e: FormEvent<HTMLInputElement>) => {
     const listIndex = +(e.currentTarget.dataset.index as string);
     const value = e.currentTarget.value as string;
-    const newList = deepClone(tempList) as typeof storeContents.list;
+    const newList = structuredClone(tempList) as typeof storeContents.list;
     const item = newList[listIndex];
-    item.pageIndex = (+value - 1) || 0;
+    const num = parseInt(value);
+    item.pageIndex = isNaN(num) ? null : Math.max(0, num - 1);
     setTempList(newList);
   }, [tempList]);
 
   const onInputTitle = useCallback((e: FormEvent<HTMLInputElement>) => {
     const listIndex = +(e.currentTarget.dataset.index as string);
     const value = e.currentTarget.value as string;
-    const newList = deepClone(tempList) as typeof storeContents.list;
+    const newList = structuredClone(tempList) as typeof storeContents.list;
     const item = newList[listIndex];
     item.title = value;
     setTempList(newList);
@@ -76,7 +85,7 @@ const ModalContents = observer(function() {
 
   const onClickAdd = useCallback((e: FormEvent<HTMLButtonElement>) => {
     const listIndex = +(e.currentTarget.dataset.index as string);
-    const list = deepClone(tempList) as typeof storeContents.list;
+    const list = structuredClone(tempList) as typeof storeContents.list;
     const item = list[listIndex];
     list.splice(listIndex, 1, item, {
       pageIndex: 0,
@@ -87,22 +96,23 @@ const ModalContents = observer(function() {
 
   const onClickRemove = useCallback((e: FormEvent<HTMLButtonElement>) => {
     const listIndex = +(e.currentTarget.dataset.index as string);
-    const list = deepClone(tempList) as typeof storeContents.list;
+    const list = structuredClone(tempList) as typeof storeContents.list;
     list.splice(listIndex, 1);
     setTempList(list);
   }, [tempList]);
 
   const onSortList = useCallback(() => {
-    const list = deepClone(tempList) as typeof storeContents.list;
+    const list = structuredClone(tempList) as typeof storeContents.list;
 
+    // entries without a page number sort to the end
     list.sort((a, b) => {
-      if (isNaN(a.pageIndex as number)) {
+      if (a.pageIndex === null) {
         return 1;
       }
-      if (isNaN(b.pageIndex as number)) {
-        return 1;
+      if (b.pageIndex === null) {
+        return -1;
       }
-      return (a.pageIndex as number) - (b.pageIndex as number);
+      return a.pageIndex - b.pageIndex;
     });
 
     setTempList(list);
@@ -172,7 +182,7 @@ const ModalContents = observer(function() {
     <div className="modal-dialog modal-lg" onClick={onClickModal}>
       <div className="modal-content">
         <div className="modal-header">
-          <h5 className="modal-title">Content</h5>
+          <h5 className="modal-title">{t.contents.modalTitle}</h5>
           <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close" onClick={onClickClose}></button>
         </div>
         <div className="modal-body" onClick={onClickModalBody}>
@@ -181,7 +191,7 @@ const ModalContents = observer(function() {
               <textarea
                 cols={30}
                 rows={10}
-                placeholder="eg: \n 1. cover \n 2. xxxx \n 3.xxxx"
+                placeholder={t.contents.placeholder}
                 className="form-control"
                 style={{resize: 'none'}}
                 value={textAreaInput}
@@ -191,10 +201,10 @@ const ModalContents = observer(function() {
               <>
                 <div className="row mb-2">
                   <div className="col-2">
-                    <h6>index</h6>
+                    <h6>{t.contents.colIndex}</h6>
                   </div>
                   <div className="col-6">
-                    <h6>title</h6>
+                    <h6>{t.contents.colTitle}</h6>
                   </div>
                   <div className="col-auto"></div>
                 </div>
@@ -206,7 +216,7 @@ const ModalContents = observer(function() {
                           type="number"
                           className="form-control"
                           data-index={index}
-                          value={(contentItem.pageIndex || 0) + 1}
+                          value={contentItem.pageIndex === null ? '' : contentItem.pageIndex + 1}
                           onFocus={onFocusNumberInput}
                           onInput={onInputPageIndex}
                         />
@@ -234,7 +244,7 @@ const ModalContents = observer(function() {
         {
           plainMode ? null : (
             <div className="modal-footer justify-content-start">
-              <button type="button" className="btn btn-sm btn-outline-primary" onClick={onClickSaveSet}>save set</button>
+              <button type="button" className="btn btn-sm btn-outline-primary" onClick={onClickSaveSet}>{t.contents.saveSet}</button>
               <select className="form-select form-select-sm" key={selectedSetIndex} value={selectedSetIndex + ''} defaultChecked={false} ref={setsSeletRef} style={{width: '200px'}} onChange={onApplySet}>
                 {
                   storeContents.savedSets.map((set, index) =>
@@ -242,19 +252,19 @@ const ModalContents = observer(function() {
                   )
                 }
               </select>
-              <button type="button" disabled={selectedSetIndex === -1} className="btn btn-sm btn-outline-danger" onClick={onClickRemoveSet}>remove set</button>
+              <button type="button" disabled={selectedSetIndex === -1} className="btn btn-sm btn-outline-danger" onClick={onClickRemoveSet}>{t.contents.removeSet}</button>
             </div>
           )
         }
         <div className="modal-footer justify-content-start">
           <button type="button" className="btn btn-outline-primary" onClick={togglePlainMode}>
-            {plainMode ? 'form mode' : 'plain text mode'}
+            {plainMode ? t.contents.formMode : t.contents.plainMode}
           </button>
           <button type="button" disabled={plainMode} className="btn btn-outline-primary me-auto" onClick={onSortList}>
-            sort
+            {t.contents.sort}
           </button>
           <button type="button" disabled={plainMode} className="btn btn-primary" onClick={onSave}>
-            Save
+            {t.contents.save}
           </button>
         </div>
       </div>

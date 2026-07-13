@@ -4,13 +4,11 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "clone": "^2.1.2",
     "jszip": "^3.10.1",
     "mobx": "^6.16.1",
     "mobx-react": "^9.2.2",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "react-use": "^17.6.1",
     "web-vitals": "^2.1.4"
   },
   "devDependencies": {

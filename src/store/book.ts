@@ -1,4 +1,4 @@
-import { action, makeAutoObservable, observable, toJS } from "mobx"
+import { makeAutoObservable, toJS } from "mobx"
 import uuid from 'utils/get-uuid'
 
 export declare namespace StoreBook {
@@ -20,29 +20,28 @@ export declare namespace StoreBook {
 type BookPageProperty = 'bookID' | 'bookTitle' | 'bookAuthors' | 'bookSubject' | 'bookPublisher' | 'pageSize' | 'pagePosition' | 'pageShow' | 'pageFit' | 'pageBackgroundColor' | 'pageDirection' | 'coverPosition' | 'imgTag'
 
 class Store {
-  @observable bookID: string = uuid()
-  @observable bookTitle: string = ''
-  @observable bookAuthors: string[] = ['']
-  @observable bookSubject: string = ''
-  @observable bookPublisher: string = ''
+  bookID: string = uuid()
+  bookTitle: string = ''
+  bookAuthors: string[] = ['']
+  bookSubject: string = ''
+  bookPublisher: string = ''
 
-  @observable pageSize: [number, number] = [250, 353]
-  @observable pagePosition: ('center' | 'between') = 'between'
-  @observable pageShow: ('two' | 'one') = 'two'
-  @observable pageFit: ('stretch' | 'fit' | 'fill') = 'stretch'
-  @observable pageBackgroundColor: ('white' | 'black') = 'white'
-  @observable pageDirection: ('right' | 'left') = 'right'
-  @observable coverPosition: ('first-page' | 'alone') = 'first-page'
-  @observable imgTag: ('svg' | 'img') = 'svg'
+  pageSize: [number, number] = [250, 353]
+  pagePosition: ('center' | 'between') = 'between'
+  pageShow: ('two' | 'one') = 'two'
+  pageFit: ('stretch' | 'fit' | 'fill') = 'stretch'
+  pageBackgroundColor: ('white' | 'black') = 'white'
+  pageDirection: ('right' | 'left') = 'right'
+  coverPosition: ('first-page' | 'alone') = 'first-page'
+  imgTag: ('svg' | 'img') = 'svg'
 
-  @observable pages: StoreBook.PageItem[] = []
-  @observable savedSets: StoreBook.BookInfoSet[] = []
+  pages: StoreBook.PageItem[] = []
+  savedSets: StoreBook.BookInfoSet[] = []
 
   constructor() {
     makeAutoObservable(this)
   }
 
-  @action
   pushNewPage(blobUUIDs: string[]) {
     const newPages: StoreBook.PageItem[] = blobUUIDs.map((uuid, index) => ({
       index,
@@ -53,7 +52,6 @@ class Store {
     this.pages.push(...newPages);
   }
 
-  @action
   splitPage(index: number, blobUUIDs: string[]) {
     const newPageItem1: StoreBook.PageItem = {
       index,
@@ -71,17 +69,14 @@ class Store {
     this.pages.splice(index, 1, newPageItem1, newPageItem2)
   }
 
-  @action
   updateBookPageProperty<K extends BookPageProperty>(key: K, value: Store[K]) {
     (this as any)[key] = value
   }
 
-  @action
   removePage(index: number) {
     this.pages.splice(index, 1)
   }
 
-  @action
   switchIndex(index: number, targetIndex: number) {
     const pageItem = this.pages[index];
     if (pageItem) {
@@ -90,14 +85,12 @@ class Store {
     }
   }
 
-  @action
   updatePageItemIndex() {
     this.pages.forEach((pageItem, i) => {
       pageItem.index = i;
     });
   }
 
-  @action
   insertBlankPage(index: number) {
     const newPageItem: StoreBook.PageItem = {
       index: -1,
@@ -114,7 +107,6 @@ class Store {
     }
   }
 
-  @action
   saveBookInfoToSet() {
     const newSet = {
       bookTitle: this.bookTitle,
@@ -126,12 +118,10 @@ class Store {
     this.savedSets.push(newSet)
   }
 
-  @action
   removeBookInfoSet(index: number) {
     this.savedSets.splice(index, 1)
   }
 
-  @action
   reset() {
     this.bookID = uuid()
     this.bookTitle = ''
@@ -141,7 +131,6 @@ class Store {
     this.pages = []
   }
 
-  @action
   applySet(index: number) {
     const selectedSet = this.savedSets[index];
     if (selectedSet) {

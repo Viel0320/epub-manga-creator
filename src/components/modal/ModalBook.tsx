@@ -3,6 +3,7 @@ import { observer } from 'mobx-react';
 import { toJS } from 'mobx';
 import { StoreContext } from 'store/main';
 import Icon from 'components/icon';
+import { useI18n } from 'i18n';
 
 const KeywordPicker = function(props: { keywords: string[], onClick: (str: string) => void }) {
   const onClick = useCallback((e: FormEvent<HTMLButtonElement>) => {
@@ -29,6 +30,7 @@ const KeywordPicker = function(props: { keywords: string[], onClick: (str: strin
 
 const ModalBook = observer(function() {
   const { ui: storeUI, book: storeBook } = useContext(StoreContext);
+  const t = useI18n();
   const setsSeletRef = React.useRef<HTMLSelectElement>(null);
 
   const [fileName, setFileName] = useState('');
@@ -62,7 +64,7 @@ const ModalBook = observer(function() {
     if (suffix0) {
       let suffix = suffix0[0];
       let author = Array.from(suffix.match(/\(.*?\)/g) || []).pop();
-      const i = fileName.indexOf(suffix[0]);
+      const i = fileName.indexOf(suffix);
       const titleAndPrefix = fileName.slice(i === 0 ? suffix.length : i + suffix.length).trim();
 
       storeBook.updateBookPageProperty('bookTitle', titleAndPrefix);
@@ -74,7 +76,7 @@ const ModalBook = observer(function() {
     if (suffix1) {
       let suffix = suffix1[0];
       let author = Array.from(suffix.match(/\[.*?\]/g) || []).pop();
-      const i = fileName.indexOf(suffix[0]);
+      const i = fileName.indexOf(suffix);
       const titleAndPrefix = fileName.slice(i === 0 ? suffix.length : i + suffix.length).trim();
 
       storeBook.updateBookPageProperty('bookTitle', titleAndPrefix);
@@ -86,7 +88,7 @@ const ModalBook = observer(function() {
     if (suffix2) {
       let suffix = suffix2[0];
       let author = suffix.slice(1, -1);
-      const i = fileName.indexOf(suffix[0]);
+      const i = fileName.indexOf(suffix);
       const titleAndPrefix = fileName.slice(i === 0 ? suffix.length : i + suffix.length).trim();
 
       storeBook.updateBookPageProperty('bookTitle', titleAndPrefix);
@@ -98,7 +100,7 @@ const ModalBook = observer(function() {
     if (suffix3) {
       let suffix = suffix3[0];
       let author = suffix.slice(1, -1);
-      const i = fileName.indexOf(suffix[0]);
+      const i = fileName.indexOf(suffix);
       const titleAndPrefix = fileName.slice(i === 0 ? suffix.length : i + suffix.length).trim();
 
       storeBook.updateBookPageProperty('bookTitle', titleAndPrefix);
@@ -112,7 +114,6 @@ const ModalBook = observer(function() {
   }, [storeBook, fileName]);
 
   const onChangeFileName = useCallback((e: FormEvent<HTMLInputElement>) => {
-    console.log(e.currentTarget.value);
     setFileName(e.currentTarget.value);
   }, []);
   const onChangeBookID = useCallback((e: FormEvent) => {
@@ -226,12 +227,12 @@ const ModalBook = observer(function() {
     <div className="modal-dialog modal-lg" onClick={onClickModal}>
       <div className="modal-content">
         <div className="modal-header">
-          <h5 className="modal-title">Book</h5>
+          <h5 className="modal-title">{t.book.modalTitle}</h5>
           <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close" onClick={onClickClose}></button>
         </div>
         <div className="modal-body" onClick={onClickModalBody}>
           <div className="mb-3 row">
-            <label htmlFor="input-filename" className="col-sm-2 col-form-label text-end">filename</label>
+            <label htmlFor="input-filename" className="col-sm-2 col-form-label text-end">{t.book.filename}</label>
             <div className="col-sm-10">
               <div className="input-group">
                 <input type="text" className="form-control" id="input-filename" value={fileName} onInput={onChangeFileName}/>
@@ -246,13 +247,13 @@ const ModalBook = observer(function() {
             </div>
           </div>
           <div className="mb-3 row">
-            <label htmlFor="input-book-id" className="col-sm-2 col-form-label text-end">id</label>
+            <label htmlFor="input-book-id" className="col-sm-2 col-form-label text-end">{t.book.id}</label>
             <div className="col-sm-10">
               <input type="text" className="form-control" id="input-book-id" value={storeBook.bookID} onInput={onChangeBookID}/>
             </div>
           </div>
           <div className="mb-3 row">
-            <label htmlFor="input-book-title" className="col-sm-2 col-form-label text-end">title</label>
+            <label htmlFor="input-book-title" className="col-sm-2 col-form-label text-end">{t.book.title}</label>
             <div className="col-sm-10">
               <input type="text" className="form-control" id="input-book-title" value={storeBook.bookTitle} onInput={onChangeBookTitle}/>
               <div className={keywordsLength ? "mt-3" : ''}>
@@ -261,7 +262,7 @@ const ModalBook = observer(function() {
             </div>
           </div>
           <div className="mb-3 row">
-            <label htmlFor="input-book-author" className="col-sm-2 col-form-label text-end">author</label>
+            <label htmlFor="input-book-author" className="col-sm-2 col-form-label text-end">{t.book.author}</label>
             <div className="col-sm-10">
               {
                 storeBook.bookAuthors.map((name: string, index: number) => (
@@ -293,7 +294,7 @@ const ModalBook = observer(function() {
             </div>
           </div>
           <div className="mb-3 row">
-            <label htmlFor="input-book-subject" className="col-sm-2 col-form-label text-end">subject</label>
+            <label htmlFor="input-book-subject" className="col-sm-2 col-form-label text-end">{t.book.subject}</label>
             <div className="col-sm-10">
               <input type="text" className="form-control" list="dl-subject" id="input-book-subject" value={storeBook.bookSubject} onInput={onChangeBookSubject}/>
               <datalist id="dl-subject">
@@ -307,7 +308,7 @@ const ModalBook = observer(function() {
             </div>
           </div>
           <div className="mb-3 row">
-            <label htmlFor="input-book-publisher" className="col-sm-2 col-form-label text-end">publisher</label>
+            <label htmlFor="input-book-publisher" className="col-sm-2 col-form-label text-end">{t.book.publisher}</label>
             <div className="col-sm-10">
               <input type="text" className="form-control" list="dl-publisher" id="input-book-publisher" value={storeBook.bookPublisher} onInput={onChangeBookPublisher}/>
               <datalist id="dl-publisher">
@@ -331,7 +332,7 @@ const ModalBook = observer(function() {
           </div>
         </div>
         <div className="modal-footer justify-content-start">
-          <button type="button" className="btn btn-sm btn-outline-primary" onClick={onClickSaveSet}>save set</button>
+          <button type="button" className="btn btn-sm btn-outline-primary" onClick={onClickSaveSet}>{t.book.saveSet}</button>
           <select className="form-select form-select-sm" value={selectedSetIndex + ''} defaultChecked={false} ref={setsSeletRef} style={{width: '200px'}} onChange={onApplySet}>
             {
               storeBook.savedSets.map((set, index) =>
@@ -339,7 +340,7 @@ const ModalBook = observer(function() {
               )
             }
           </select>
-          <button type="button" disabled={selectedSetIndex === -1} className="btn btn-sm btn-outline-danger" onClick={onClickRemoveSet}>remove set</button>
+          <button type="button" disabled={selectedSetIndex === -1} className="btn btn-sm btn-outline-danger" onClick={onClickRemoveSet}>{t.book.removeSet}</button>
         </div>
       </div>
     </div>

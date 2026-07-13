@@ -5,6 +5,15 @@ const en = {
     importZip: 'ZIP archive',
     insertBlankPage: 'Insert blank page',
     generate: 'Generate EPUB',
+    themeLight: 'Theme: Light',
+    themeDark: 'Theme: Dark',
+    themeAuto: 'Theme: Auto (system)',
+    reset: 'Reset workspace',
+  },
+
+  // Confirm dialogs
+  confirm: {
+    reset: 'Clear the workspace? All imported pages will be removed. This cannot be undone.',
   },
 
   // Page operation prompts
@@ -23,6 +32,24 @@ const en = {
   main: {
     ready: 'Ready 🚀',
     import: 'Import',
+    zoomPreview: 'Zoom preview',
+    restoreDetected: 'Detected a backup from your last session. Would you like to restore it?',
+    restore: 'Restore',
+    dismiss: 'Dismiss',
+  },
+
+  // Lightbox (page preview)
+  lightbox: {
+    page: 'Page',
+    blankPage: 'Blank page',
+    close: 'Close',
+    prev: 'Previous page',
+    next: 'Next page',
+  },
+
+  // Loading overlay
+  loading: {
+    generating: 'Generating EPUB…',
   },
 
   // Modal – Book settings
@@ -97,7 +124,10 @@ export type Locale = {
     removePage: (idx: number) => string
   }
   alert: Record<keyof typeof en.alert, string>
+  confirm: Record<keyof typeof en.confirm, string>
   main: Record<keyof typeof en.main, string>
+  lightbox: Record<keyof typeof en.lightbox, string>
+  loading: Record<keyof typeof en.loading, string>
   book: Record<keyof typeof en.book, string>
   contents: Record<keyof typeof en.contents, string>
   page: Record<keyof typeof en.page, string>

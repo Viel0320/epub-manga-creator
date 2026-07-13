@@ -1,6 +1,5 @@
 import { observer } from 'mobx-react'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { useMount } from 'react-use'
 import storeMain, { useStore } from 'store/main'
 import storeBlobs, { StoreBlobs } from 'store/blobs'
 import Icon from './icon'
@@ -16,6 +15,7 @@ const PageCard = observer(function(props: {
   blank: boolean
 }) {
   const { ui: storeUI, book: storeBook, contents: storeContent } = useStore()
+  const t = useI18n()
 
   const onClickImage = useCallback(() => {
     storeMain.ui.selectPageIndex(props.pageItemIndex)
@@ -57,7 +57,7 @@ const PageCard = observer(function(props: {
           <button
             type="button"
             className="zoom-btn"
-            title={storeMain.ui.lang === 'zh' ? '放大预览' : 'Zoom Preview'}
+            title={t.main.zoomPreview}
             onClick={(e) => {
               e.stopPropagation()
               storeMain.ui.openPreview(props.pageItemIndex as number)
@@ -148,7 +148,7 @@ if (typeof window !== 'undefined') {
 }
 
 const RestoreBanner = observer(function() {
-  const { ui } = useStore()
+  const t = useI18n()
   const [hasBackup, setHasBackup] = useState(false)
 
   useEffect(() => {
@@ -186,17 +186,13 @@ const RestoreBanner = observer(function() {
 
   return (
     <div className="alert alert-info d-flex justify-content-between align-items-center" role="alert">
-      <span>
-        {ui.lang === 'zh'
-          ? '检测到您上次未完成的项目，是否恢复进度？'
-          : 'Detected a backup from your last session. Would you like to restore it?'}
-      </span>
+      <span>{t.main.restoreDetected}</span>
       <div>
         <button className="btn btn-sm btn-primary me-2" onClick={onRestore}>
-          {ui.lang === 'zh' ? '恢复' : 'Restore'}
+          {t.main.restore}
         </button>
         <button className="btn btn-sm btn-outline-secondary" onClick={onDismiss}>
-          {ui.lang === 'zh' ? '忽略' : 'Dismiss'}
+          {t.main.dismiss}
         </button>
       </div>
     </div>
@@ -261,11 +257,25 @@ const Main = function() {
     pageResizeCallback()
   }, [storeBook.pages, pageResizeCallback])
 
-  useMount(() => {
-    pageResizeCallback()
-    // TODO: 需要throttle优化
-    window.addEventListener('resize', pageResizeCallback)
-  })
+  useEffect(() => {
+    // rAF-throttled resize handler, cleaned up on unmount
+    let scheduled = false
+    const onResize = () => {
+      if (scheduled) {
+        return
+      }
+      scheduled = true
+      requestAnimationFrame(() => {
+        scheduled = false
+        pageResizeCallback()
+      })
+    }
+
+    window.addEventListener('resize', onResize)
+    return () => {
+      window.removeEventListener('resize', onResize)
+    }
+  }, [pageResizeCallback])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

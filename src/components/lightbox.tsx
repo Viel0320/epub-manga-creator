@@ -2,9 +2,11 @@ import React, { useCallback } from 'react'
 import { observer } from 'mobx-react'
 import storeMain, { useStore } from 'store/main'
 import Icon from 'components/icon'
+import { useI18n } from 'i18n'
 
 const Lightbox = observer(function() {
   const { ui, book, blobs } = useStore()
+  const t = useI18n()
 
   const onClose = useCallback(() => {
     ui.closePreview()
@@ -47,7 +49,7 @@ const Lightbox = observer(function() {
       <div className="lightbox-content">
         {/* Floating Header */}
         <div className="lightbox-header">
-          <span>{ui.lang === 'zh' ? '页面' : 'Page'} {pageIndex + 1} / {book.pages.length}</span>
+          <span>{t.lightbox.page} {pageIndex + 1} / {book.pages.length}</span>
           {bookmarkTitle && (
             <>
               <span>•</span>
@@ -57,13 +59,13 @@ const Lightbox = observer(function() {
           {isBlank && (
             <>
               <span>•</span>
-              <span className="text-warning">{ui.lang === 'zh' ? '空白页' : 'Blank Page'}</span>
+              <span className="text-warning">{t.lightbox.blankPage}</span>
             </>
           )}
         </div>
 
         {/* Close Button */}
-        <button type="button" className="lightbox-close-btn" onClick={onClose} title={ui.lang === 'zh' ? '关闭' : 'Close'}>
+        <button type="button" className="lightbox-close-btn" onClick={onClose} title={t.lightbox.close}>
           <Icon name="cross" />
         </button>
 
@@ -73,7 +75,7 @@ const Lightbox = observer(function() {
           className={`lightbox-nav-btn prev ${isFirst ? 'disabled' : ''}`}
           onClick={onPrev}
           disabled={isFirst}
-          title={ui.lang === 'zh' ? '上一页' : 'Previous Page'}
+          title={t.lightbox.prev}
         >
           <Icon name="chevron-left" />
         </button>
@@ -91,7 +93,7 @@ const Lightbox = observer(function() {
             onClick={onContentClick}
           >
             <span style={{ color: book.pageBackgroundColor === 'white' ? '#000' : '#fff', fontSize: '24px', fontWeight: 'bold' }}>
-              {ui.lang === 'zh' ? '空白页' : 'Blank Page'}
+              {t.lightbox.blankPage}
             </span>
           </div>
         ) : imageURL ? (
@@ -110,7 +112,7 @@ const Lightbox = observer(function() {
           className={`lightbox-nav-btn next ${isLast ? 'disabled' : ''}`}
           onClick={onNext}
           disabled={isLast}
-          title={ui.lang === 'zh' ? '下一页' : 'Next Page'}
+          title={t.lightbox.next}
         >
           <Icon name="chevron-right" />
         </button>

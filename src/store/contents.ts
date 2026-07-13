@@ -1,4 +1,4 @@
-import { action, makeAutoObservable, observable, toJS } from "mobx"
+import { makeAutoObservable, toJS } from "mobx"
 
 interface ContentItem {
   pageIndex: number | null
@@ -15,20 +15,19 @@ const cloneState = function(this: Store) {
 }
 
 class Store {
-  @observable list: ContentItem[] = [{
+  list: ContentItem[] = [{
     pageIndex: 0,
     title: '表紙'
   }]
-  @observable indexMap: IndexMap = {
+  indexMap: IndexMap = {
      0: 0
   }
-  @observable savedSets: { title: string; list: ContentItem[] }[] = []
+  savedSets: { title: string; list: ContentItem[] }[] = []
 
   constructor() {
     makeAutoObservable(this)
   }
 
-  @action
   removeTitle(listIndex: number) {
     const { list, indexMap } = cloneState.call(this)
 
@@ -47,7 +46,6 @@ class Store {
     this.indexMap = indexMap
   }
 
-  @action
   updateList(contentItems: ContentItem[]) {
     const indexMap: IndexMap = {}
 
@@ -61,7 +59,6 @@ class Store {
     this.indexMap = indexMap
   }
 
-  @action
   setPageIndexToTitle(listIndex: number, pageIndex: number) {
     const { list, indexMap } = cloneState.call(this)
 
@@ -88,7 +85,6 @@ class Store {
     this.indexMap = newIndexMap
   }
 
-  @action
   removePageIndex(listIndex: number) {
     const { list, indexMap } = cloneState.call(this)
 
@@ -102,13 +98,11 @@ class Store {
     this.indexMap = indexMap
   }
 
-  @action
   reset() {
     this.list = [{ pageIndex: 0, title: '表紙' }]
     this.indexMap = { 0: 0 }
   }
 
-  @action
   saveSet(title: string) {
     this.savedSets.push({
       title,
@@ -116,7 +110,6 @@ class Store {
     })
   }
 
-  @action
   removeSet(index: number) {
     const savedSets = toJS(this.savedSets)
     savedSets.splice(index, 1)

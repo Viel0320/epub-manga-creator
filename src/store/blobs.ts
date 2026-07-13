@@ -1,4 +1,4 @@
-import { action, makeAutoObservable, observable, runInAction } from "mobx"
+import { makeAutoObservable, runInAction } from "mobx"
 
 export declare namespace StoreBlobs {
   export interface ImageBlob {
@@ -56,13 +56,12 @@ const formatBlobItem = async (blob: Blob) => {
 }
 
 class Store {
-  @observable blobs: ({[id: string]: StoreBlobs.ImageBlob}) = {}
+  blobs: ({[id: string]: StoreBlobs.ImageBlob}) = {}
 
   constructor() {
     makeAutoObservable(this)
   }
 
-  @action
   async push(blobs: Blob[], uuids: string[]) {
     let formatBlobs: StoreBlobs.ImageBlob[] = []
 
@@ -89,7 +88,6 @@ class Store {
     })
   }
 
-  @action
   remove(uuid: string) {
     const item = this.blobs[uuid]
     if (!item) {
@@ -108,7 +106,6 @@ class Store {
     this.blobs = next
   }
 
-  @action
   clear() {
     Object.values(this.blobs).forEach(item => {
       try {

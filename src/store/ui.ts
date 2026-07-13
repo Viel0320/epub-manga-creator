@@ -1,4 +1,4 @@
-import { makeAutoObservable, observable, action } from 'mobx'
+import { makeAutoObservable } from 'mobx'
 import type { LangKey } from 'i18n'
 
 const STORAGE_LANG_KEY = 'EPUB_CREATOR_LANG'
@@ -32,18 +32,18 @@ function resolveTheme(theme: ThemeMode): 'dark' | 'light' {
 }
 
 class Store {
-  @observable modalBookVisible = false
-  @observable modalContentVisible = false
-  @observable modalPageVisible = false
-  @observable maxCardBoxCountInOneRow = 0
-  @observable selectedPageIndex: number | null = null
-  @observable fileName = ``
-  @observable lang: LangKey = 'en'
-  @observable theme: ThemeMode = 'auto'
-  @observable isLoading = false
-  @observable loadingText = ''
-  @observable isPreviewOpen = false
-  @observable previewPageIndex: number | null = null
+  modalBookVisible = false
+  modalContentVisible = false
+  modalPageVisible = false
+  maxCardBoxCountInOneRow = 0
+  selectedPageIndex: number | null = null
+  fileName = ``
+  lang: LangKey = 'en'
+  theme: ThemeMode = 'auto'
+  isLoading = false
+  loadingText = ''
+  isPreviewOpen = false
+  previewPageIndex: number | null = null
 
   firstImport = true
 
@@ -63,7 +63,6 @@ class Store {
     }
   }
 
-  @action
   toggleBookVisible(fileName?: string) {
     this.modalBookVisible = !this.modalBookVisible
     if (fileName && this.firstImport) {
@@ -71,30 +70,26 @@ class Store {
     }
   }
 
-  @action
   firstUploaded() {
     this.firstImport = false
   }
 
-  @action
   toggleContentVisible() {
     this.modalContentVisible = !this.modalContentVisible
   }
 
-  @action
   togglePageVisible() {
     this.modalPageVisible = !this.modalPageVisible
   }
 
-  @action
   hideModal() {
     Object.assign(this, {
       modalBookVisible: false,
+      modalContentVisible: false,
       modalPageVisible: false,
     })
   }
 
-  @action
   selectPageIndex(index: number | null) {
     if (index === null) {
       this.selectedPageIndex = null
@@ -105,7 +100,6 @@ class Store {
     }
   }
 
-  @action
   setLang(lang: LangKey) {
     this.lang = lang
     if (typeof window !== 'undefined') {
@@ -113,13 +107,11 @@ class Store {
     }
   }
 
-  @action
   setLoading(val: boolean, text: string = '') {
     this.isLoading = val
     this.loadingText = text
   }
 
-  @action
   applyTheme(theme: ThemeMode) {
     if (typeof document !== 'undefined') {
       const root = document.documentElement
@@ -135,7 +127,6 @@ class Store {
     }
   }
 
-  @action
   setTheme(theme: ThemeMode) {
     this.theme = theme
     this.applyTheme(theme)
@@ -144,32 +135,27 @@ class Store {
     }
   }
 
-  @action
   cycleTheme() {
     const next = THEME_CYCLE[(THEME_CYCLE.indexOf(this.theme) + 1) % THEME_CYCLE.length]
     this.setTheme(next)
   }
 
-  @action
   openPreview(index: number) {
     this.isPreviewOpen = true
     this.previewPageIndex = index
   }
 
-  @action
   closePreview() {
     this.isPreviewOpen = false
     this.previewPageIndex = null
   }
 
-  @action
   nextPreviewPage(maxLen: number) {
     if (this.previewPageIndex !== null && this.previewPageIndex < maxLen - 1) {
       this.previewPageIndex++
     }
   }
 
-  @action
   prevPreviewPage() {
     if (this.previewPageIndex !== null && this.previewPageIndex > 0) {
       this.previewPageIndex--
