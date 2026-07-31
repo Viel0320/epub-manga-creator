@@ -838,6 +838,34 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
   height: 16px;
 }
 
+/* Page Size Chip (Top Right) */
+.lightbox-size-chip {
+  position: absolute;
+  top: -48px;
+  right: 48px;
+  height: 36px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--glass-strong);
+  backdrop-filter: var(--blur-light);
+  -webkit-backdrop-filter: var(--blur-light);
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  box-shadow: var(--shadow-soft);
+  z-index: 3;
+  pointer-events: none;
+}
+.lightbox-size-chip .icon {
+  width: 15px;
+  height: 15px;
+  opacity: 0.8;
+}
+
 /* Frosted glass Close Button */
 .lightbox-close-btn {
   position: absolute;

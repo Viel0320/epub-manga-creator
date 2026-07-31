@@ -107,6 +107,24 @@ const Lightbox = observer(function() {
     pageNumberText = `${t.lightbox.page} ${minIndex + 1} / ${totalPages}`
   }
 
+  const pageDimensionsText = `${book.pageSize[0]}×${book.pageSize[1]}`
+
+  const imageDimensionsText = activeIndices
+    .map(idx => {
+      const page = book.pages[idx]
+      if (!page) return null
+      if (page.blank) {
+        return `${book.pageSize[0]}×${book.pageSize[1]}`
+      }
+      const blobItem = blobs.blobs[page.blobID]
+      if (blobItem && blobItem.originImage) {
+        return `${blobItem.originImage.width}×${blobItem.originImage.height}`
+      }
+      return null
+    })
+    .filter((d): d is string => d !== null)
+    .join(' / ')
+
   const bookmarkTitles = activeIndices
     .map(idx => {
       const listIdx = totalPages > 0 ? storeMain.contents.indexMap[idx] : undefined
@@ -173,12 +191,24 @@ const Lightbox = observer(function() {
         {/* Floating Header */}
         <div className="lightbox-header">
           <span>{pageNumberText}</span>
+          {imageDimensionsText ? (
+            <>
+              <span>•</span>
+              <span className="page-size">{imageDimensionsText}</span>
+            </>
+          ) : null}
           {bookmarkTitles.map((title, i) => (
             <React.Fragment key={i}>
               <span>•</span>
               <span className="page-title">{title}</span>
             </React.Fragment>
           ))}
+        </div>
+
+        {/* Page Size Chip (Top Right) */}
+        <div className="lightbox-size-chip" title={t.page.size}>
+          <Icon name="ruler" />
+          <span>{pageDimensionsText}</span>
         </div>
 
         {/* Close Button */}
