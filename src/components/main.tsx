@@ -298,48 +298,40 @@ const Main = function() {
   const t = useI18n()
 
   const pageResizeCallback = useCallback(() => {
-    const pageWidth = mainRef.current?.clientWidth
-    if (!pageWidth) {
-      return
-    }
+    const mainEl = mainRef.current
+    if (!mainEl) return
 
-    const boxCountInOneRow = Math.floor(pageWidth / (CARD_BOX_WIDTH + CARD_BOX_MARGIN * 2))
-    const rowCount = Math.ceil((1 + storeBook.pages.length) / boxCountInOneRow / 2)
+    const availableWidth = mainEl.clientWidth - 36
+    if (availableWidth <= 0) return
 
-    // if (maxCardBoxCountInOneRow === boxCountInOneRow) {
-    //   return
-    // }
+    const cardTotalWidth = CARD_BOX_WIDTH + CARD_BOX_MARGIN * 2
+    const boxCountInOneRow = Math.max(1, Math.floor(availableWidth / cardTotalWidth))
 
-    if (storeBook.pages.length === 0) {
-      // setMaxCardBoxCountInOneRow(boxCountInOneRow)
+    const len = storeBook.pages.length
+    if (len === 0) {
       setShowPages([])
       return
     }
 
-    let i = 0
-    let j = 0
+    const pages: [number | null, number | null][][] = []
     let x = -1
 
-    const pages: [any, any][][] = []
-    const len = storeBook.pages.length
-
-    while(i++ < rowCount) {
-      const r: [number | null, number | null][] = []
-      while(j++ < boxCountInOneRow) {
-        r.push([
-          storeBook.coverPosition === 'first-page'
-            ? x === -1 ? null : ++x < len ? x : null
-            : ++x < len ? x : null,
-          ++x < len ? x : null
-        ])
+    while (x < len - 1) {
+      const row: [number | null, number | null][] = []
+      for (let j = 0; j < boxCountInOneRow && x < len - 1; j++) {
+        const page1 = storeBook.coverPosition === 'first-page'
+          ? (x === -1 ? null : (++x < len ? x : null))
+          : (++x < len ? x : null)
+        const page2 = ++x < len ? x : null
+        row.push([page1, page2])
       }
-      j = 0
-      pages.push(storeBook.pageDirection === 'right' ? r.reverse() : r)
+      if (row.length > 0) {
+        pages.push(row)
+      }
     }
 
-    // setMaxCardBoxCountInOneRow(boxCountInOneRow)
     setShowPages(pages)
-  }, [storeBook.coverPosition, storeBook.pageDirection, storeBook.pages.length])
+  }, [storeBook.coverPosition, storeBook.pages.length])
 
   const onClickImport = useCallback(() => {
     document.getElementById('input-upload')?.click()
@@ -409,7 +401,10 @@ const Main = function() {
             : <div className="alert alert-secondary text-center" role="alert">{t.main.ready}</div>
         ) : (
           showPages.map((row, i) => (
-            <div key={i} className="row page-row justify-content-evenly">
+            <div
+              key={i}
+              className={`row page-row flex-nowrap justify-content-center ${storeBook.pageDirection === 'right' ? 'flex-row-reverse' : ''}`}
+            >
               {
                 row.map((pages, j) => (<DoublePageCard key={`${i}-${j}-${pages[0]}-${pages[1]}`} pages={pages}/>))
               }
