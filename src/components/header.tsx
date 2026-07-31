@@ -223,7 +223,7 @@ const Header = function() {
                 resolve(
                   blobToFile(
                     b,
-                    zipItem.name.replace(/^.+\/(.+)$/, '$1')
+                    zipItem.name
                   )
                 )
               } else {

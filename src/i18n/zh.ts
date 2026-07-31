@@ -81,6 +81,16 @@ const zh: Locale = {
     saveSet: '保存预设',
     removeSet: '删除预设',
     placeholder: '例如\n 1. 封面\n 2. 第一章\n 3. 第二章',
+    autoGenerate: '自动生成',
+    autoSmart: '智能识别 (章节/文件夹)',
+    autoFolder: '按文件夹分组',
+    autoInterval: '按固定页数间隔',
+    autoFilename: '按图片文件名',
+    autoPage: '按页码 (第 N 页)',
+    removeExceptCover: '清理目录',
+    intervalPrompt: '请输入间隔页数：',
+    autoSuccess: (count: number) => `已自动生成 ${count} 个目录项`,
+    noPages: '暂无可用页面，无法生成目录',
   },
 
   page: {

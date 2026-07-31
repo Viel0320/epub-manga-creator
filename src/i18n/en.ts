@@ -88,6 +88,16 @@ const en = {
     saveSet: 'Save set',
     removeSet: 'Remove set',
     placeholder: 'e.g.\n 1. Cover\n 2. Chapter 1\n 3. Chapter 2',
+    autoGenerate: 'Auto Generate',
+    autoSmart: 'Smart Detect (Chapter/Folder)',
+    autoFolder: 'By Subfolder Structure',
+    autoInterval: 'By Fixed Page Interval',
+    autoFilename: 'By Image Filename',
+    autoPage: 'By Page Number',
+    removeExceptCover: 'Clear',
+    intervalPrompt: 'Enter interval (pages):',
+    autoSuccess: (count: number) => `Generated ${count} TOC items`,
+    noPages: 'No image pages available to generate TOC',
   },
 
   // Modal – Page settings
@@ -139,7 +149,11 @@ export type Locale = {
   lightbox: Record<keyof typeof en.lightbox, string>
   loading: Record<keyof typeof en.loading, string>
   book: Record<keyof typeof en.book, string>
-  contents: Record<keyof typeof en.contents, string>
+  contents: {
+    [K in keyof typeof en.contents]: (typeof en.contents)[K] extends (...args: any[]) => any
+      ? (typeof en.contents)[K]
+      : string
+  }
   page: Record<keyof typeof en.page, string>
   option: Record<keyof typeof en.option, string>
   lang: Record<keyof typeof en.lang, string>

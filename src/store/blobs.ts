@@ -3,6 +3,7 @@ import { makeAutoObservable, runInAction } from "mobx"
 export declare namespace StoreBlobs {
   export interface ImageBlob {
     blob: Blob
+    name: string
     blobURL: string
     thumbnailURL: string
     originImage: HTMLImageElement
@@ -45,8 +46,11 @@ const formatBlobItem = async (blob: Blob) => {
     )
   )
 
+  const name = (blob as File).name || ''
+
   const item: StoreBlobs.ImageBlob = {
     blob,
+    name,
     blobURL,
     thumbnailURL: URL.createObjectURL(thumbnailBlob),
     originImage
