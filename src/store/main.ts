@@ -582,12 +582,15 @@ class Store {
       ].join('\n')
     }).join('\n')
 
+    const primaryWritingMode = this.book.pageDirection === 'right' ? 'horizontal-rl' : 'horizontal-lr'
+
     templateStandardOpf = templateStandardOpf
       .replace('{{uuid}}', () => htmlToEscape(this.book.bookID))
       .replace('{{title}}', () => bookTitle)
       .replace('<!-- creator-list -->', () => authorsStr)
       .replace('{{subject}}', () => htmlToEscape(this.book.bookSubject))
       .replace('{{publisher}}', () => htmlToEscape(this.book.bookPublisher))
+      .replace('{{primaryWritingMode}}', primaryWritingMode)
       .replace('{{spread}}', this.book.pageShow === 'one' ? 'none' : 'landscape')
       .replace('{{createTime}}', new Date().toISOString())
       .replace(new RegExp('{{width}}', 'gm'), viewPortWidth)
