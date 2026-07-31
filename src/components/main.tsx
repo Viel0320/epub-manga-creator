@@ -366,10 +366,22 @@ const Main = function() {
       if (storeMain.ui.isPreviewOpen) {
         if (e.code === 'ArrowLeft') {
           e.preventDefault()
-          storeMain.ui.prevPreviewPage()
+          storeMain.ui.navigatePreview(
+            'left',
+            storeBook.pageDirection,
+            storeBook.pageShow,
+            storeBook.coverPosition,
+            storeBook.pages.length
+          )
         } else if (e.code === 'ArrowRight') {
           e.preventDefault()
-          storeMain.ui.nextPreviewPage(storeBook.pages.length)
+          storeMain.ui.navigatePreview(
+            'right',
+            storeBook.pageDirection,
+            storeBook.pageShow,
+            storeBook.coverPosition,
+            storeBook.pages.length
+          )
         } else if (e.code === 'Escape' || e.code === 'Space') {
           e.preventDefault()
           storeMain.ui.closePreview()

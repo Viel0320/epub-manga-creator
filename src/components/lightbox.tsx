@@ -78,32 +78,18 @@ const Lightbox = observer(function() {
   const isFirst = minIndex === 0
   const isLast = maxIndex >= totalPages - 1
 
-  const onPrev = (e: React.MouseEvent) => {
+  const isRTL = book.pageDirection === 'right'
+  const isLeftDisabled = isRTL ? isLast : isFirst
+  const isRightDisabled = isRTL ? isFirst : isLast
+
+  const onLeftClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    if (isFirst) return
-    if (isTwoPages) {
-      if (book.coverPosition === 'first-page' && minIndex === 1) {
-        ui.openPreview(0)
-      } else {
-        ui.openPreview(Math.max(0, minIndex - 2))
-      }
-    } else {
-      ui.prevPreviewPage(1)
-    }
+    ui.navigatePreview('left', book.pageDirection, book.pageShow, book.coverPosition, totalPages)
   }
 
-  const onNext = (e: React.MouseEvent) => {
+  const onRightClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    if (isLast) return
-    if (isTwoPages) {
-      if (book.coverPosition === 'first-page' && minIndex === 0) {
-        ui.openPreview(1)
-      } else {
-        ui.openPreview(Math.min(totalPages - 1, maxIndex + 1))
-      }
-    } else {
-      ui.nextPreviewPage(totalPages, 1)
-    }
+    ui.navigatePreview('right', book.pageDirection, book.pageShow, book.coverPosition, totalPages)
   }
 
   const onTogglePageShow = (e: React.MouseEvent) => {
@@ -203,10 +189,10 @@ const Lightbox = observer(function() {
         {/* Navigation Arrows */}
         <button
           type="button"
-          className={`lightbox-nav-btn prev ${isFirst ? 'disabled' : ''}`}
-          onClick={onPrev}
-          disabled={isFirst}
-          title={t.lightbox.prev}
+          className={`lightbox-nav-btn prev ${isLeftDisabled ? 'disabled' : ''}`}
+          onClick={onLeftClick}
+          disabled={isLeftDisabled}
+          title={isRTL ? t.lightbox.next : t.lightbox.prev}
         >
           <Icon name="chevron-left" />
         </button>
@@ -223,10 +209,10 @@ const Lightbox = observer(function() {
 
         <button
           type="button"
-          className={`lightbox-nav-btn next ${isLast ? 'disabled' : ''}`}
-          onClick={onNext}
-          disabled={isLast}
-          title={t.lightbox.next}
+          className={`lightbox-nav-btn next ${isRightDisabled ? 'disabled' : ''}`}
+          onClick={onRightClick}
+          disabled={isRightDisabled}
+          title={isRTL ? t.lightbox.prev : t.lightbox.next}
         >
           <Icon name="chevron-right" />
         </button>
