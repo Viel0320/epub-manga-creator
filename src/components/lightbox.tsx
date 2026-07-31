@@ -131,20 +131,6 @@ const Lightbox = observer(function() {
       pageFitSetting: book.pageFit
     })
 
-    let objectFit: React.CSSProperties['objectFit'] = 'contain'
-    if (book.pageFit === 'stretch') {
-      objectFit = 'fill'
-    } else if (book.pageFit === 'fill') {
-      objectFit = 'cover'
-    }
-
-    const imageStyle: React.CSSProperties = {
-      objectFit,
-      objectPosition: layout.objectPosition,
-      aspectRatio: `${book.pageSize[0]} / ${book.pageSize[1]}`,
-      backgroundColor: book.pageBackgroundColor === 'white' ? '#fff' : '#000',
-    }
-
     return (
       <div key={idx} className="lightbox-page-wrapper">
         {/* Page Chip aligned strictly to this image's vertical center axis */}
@@ -179,13 +165,26 @@ const Lightbox = observer(function() {
             </span>
           </div>
         ) : imageURL ? (
-          <img
-            src={imageURL}
-            alt={`Page ${idx + 1}`}
+          <svg
             className="lightbox-image"
-            style={imageStyle}
+            viewBox={'0 0 ' + book.pageSize.join(' ')}
+            style={{
+              height: 'calc(88vh - 60px)',
+              width: 'auto',
+              maxWidth: isTwoPages ? '42vw' : '82vw',
+              maxHeight: 'calc(88vh - 60px)',
+              aspectRatio: `${book.pageSize[0]} / ${book.pageSize[1]}`,
+            }}
             onClick={onContentClick}
-          />
+          >
+            <rect x="0" y="0" width="100%" height="100%" fill={book.pageBackgroundColor === 'white' ? '#fff' : '#000'} />
+            <image
+              width="100%"
+              height="100%"
+              preserveAspectRatio={layout.par}
+              xlinkHref={imageURL}
+            />
+          </svg>
         ) : (
           <div className="spinner-border text-primary" role="status"></div>
         )}

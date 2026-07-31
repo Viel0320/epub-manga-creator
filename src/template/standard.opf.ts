@@ -46,7 +46,8 @@ const getText = (): string => `<?xml version="1.0" encoding="UTF-8"?>
 
 <!-- Fixed-Layout Documents指定 -->
 <meta property="rendition:layout">pre-paginated</meta>
-<meta property="rendition:spread">{{spread}}</meta>
+<meta property="rendition:spread">both</meta>
+<meta name="fixed-layout" content="true" />
 
 <!-- etc. -->
 <meta property="ibooks:specified-fonts">true</meta>
@@ -55,6 +56,7 @@ const getText = (): string => `<?xml version="1.0" encoding="UTF-8"?>
 <meta name="cover" content="cover"></meta>
 <meta name="original-resolution" content="{{width}}x{{height}}"/>
 <meta name="orientation-lock" content="none"/>
+<meta property="rendition:orientation">auto</meta>
 
 <!-- Kindle / Manga Meta -->
 <meta name="book-type" content="comic"/>
