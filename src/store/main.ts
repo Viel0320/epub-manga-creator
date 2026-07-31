@@ -9,6 +9,7 @@ import { db } from 'utils/db'
 import { getLocale } from 'i18n'
 import JSZip from "jszip"
 import { getPageLayoutInfo } from 'utils/page-layout'
+import { parseEpub } from 'utils/epub-parser'
 
 import getTemplateContainerXml from 'template/container.xml'
 import getTemplatePageXhtml from 'template/page.xhtml'
@@ -166,6 +167,59 @@ class Store {
 
     this.book.pushNewPage(uuids)
     this.blobs.push(fileList, uuids)
+  }
+
+  async importFromEpub(file: File) {
+    this.ui.setLoading(true, getLocale(this.ui.lang).loading.importingEpub)
+    try {
+      const result = await parseEpub(file)
+
+      this.resetWorkspace()
+
+      // Import images
+      const uuids = result.images.map(() => uuid())
+      this.book.pushNewPage(uuids)
+      await this.blobs.push(result.images, uuids)
+
+      runInAction(() => {
+        // Apply metadata
+        const m = result.metadata
+        this.book.bookTitle = m.bookTitle
+        this.book.bookAuthors = m.bookAuthors.length > 0 ? m.bookAuthors : ['']
+        this.book.bookSubject = m.bookSubject
+        this.book.bookPublisher = m.bookPublisher
+        this.book.bookLanguage = m.bookLanguage || 'ja'
+        this.book.bookSeriesName = m.bookSeriesName
+        this.book.bookSeriesVolume = m.bookSeriesVolume
+        this.book.bookDescription = m.bookDescription
+        this.book.bookDate = m.bookDate
+        this.book.bookContributors = m.bookContributors
+        this.book.bookISBN = m.bookISBN
+
+        // Apply page settings
+        const ps = result.pageSettings
+        if (ps.pageSize) this.book.pageSize = ps.pageSize
+        if (ps.pageShow) this.book.pageShow = ps.pageShow
+        if (ps.pageDirection) this.book.pageDirection = ps.pageDirection
+
+        // Apply TOC
+        if (result.toc.length > 0) {
+          const tocList = result.toc.map(item => ({
+            pageIndex: item.pageIndex as number | null,
+            title: item.title,
+            level: item.level
+          }))
+          this.contents.updateList(tocList)
+        }
+
+        this.ui.firstImport = false
+      })
+    } catch (err) {
+      console.error('Failed to import EPUB:', err)
+      alert('Failed to import EPUB\n' + err)
+    } finally {
+      this.ui.setLoading(false)
+    }
   }
 
   replacePageIndex(index: number, targetIndex: number) {
