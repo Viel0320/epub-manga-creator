@@ -215,7 +215,6 @@ const Lightbox = observer(function() {
         {isSpreadPair ? (
           <div className="lightbox-spread-wrapper" onClick={onContentClick}>
             {leftIndex !== null && renderSingleImage(leftIndex)}
-            <div className="lightbox-spine" />
             {rightIndex !== null && renderSingleImage(rightIndex)}
           </div>
         ) : (

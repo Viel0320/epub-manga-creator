@@ -123,7 +123,6 @@ const DoublePageCard = observer(function(props: {
         pagePosition={storeBook.pagePosition === 'between' ? 'left' : 'center'}
         blank={leftSidePage?.blank || false}
       />
-      <div className="book-spine" />
       <PageCard
         pageItemIndex={rightSidePageIndex === null ? null : (rightSidePageIndex - coverPosition)}
         blobItem={rightSidePage ? storeBlobs.blobs[rightSidePage.blobID] : null}

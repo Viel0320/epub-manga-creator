@@ -530,10 +530,19 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
   width: var(--card-box-width);
   margin: 0 var(--card-box-margin);
   padding: 0;
-  overflow: visible;
+  overflow: hidden;
   background: transparent;
   display: flex;
   align-items: stretch;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+#main .card-group:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-panel);
+  z-index: 2;
 }
 
 #main .card {
@@ -541,17 +550,15 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
   height: 200px;
   position: relative;
   flex: 1;
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-sm);
+  border: none;
+  border-radius: 0;
   background: var(--glass);
   backdrop-filter: var(--blur-light);
-  box-shadow: var(--shadow-soft);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: none;
 }
 #main .card:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-panel);
-  z-index: 2;
+  transform: none;
+  box-shadow: none;
 }
 
 #main .card .card-image {
@@ -561,15 +568,6 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
   border-radius: inherit;
 }
 #main .card .card-image .spinner-border { margin: auto; }
-
-/* thin gutter between the two pages of a spread */
-#main .book-spine {
-  width: 2px;
-  align-self: stretch;
-  margin: 6px 0;
-  background: linear-gradient(to bottom, transparent, var(--glass-hairline), transparent);
-  flex: 0 0 auto;
-}
 
 /* bookmarked-page ribbon */
 #main .card .bookmark-ribbon {
@@ -759,6 +757,8 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
   box-shadow: var(--shadow-panel);
 }
 
+
+
 /* Double-page spread container & spine */
 .lightbox-spread-wrapper {
   display: flex;
@@ -766,25 +766,23 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
   justify-content: center;
   max-width: 86vw;
   max-height: calc(88vh - 60px);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-panel);
+  overflow: hidden;
 }
 
 .lightbox-spread-wrapper .lightbox-image {
   max-width: 42vw;
   max-height: calc(88vh - 60px);
+  box-shadow: none;
+  border-radius: 0;
 }
 
 .lightbox-spread-wrapper .lightbox-blank-page {
   max-width: 42vw;
   height: calc(88vh - 60px);
-}
-
-.lightbox-spine {
-  width: 2px;
-  align-self: stretch;
-  margin: 0 4px;
-  background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.25), transparent);
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
-  flex: 0 0 auto;
+  box-shadow: none;
+  border-radius: 0;
 }
 
 
