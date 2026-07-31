@@ -150,15 +150,15 @@ class Store {
     this.previewPageIndex = null
   }
 
-  nextPreviewPage(maxLen: number) {
+  nextPreviewPage(maxLen: number, step: number = 1) {
     if (this.previewPageIndex !== null && this.previewPageIndex < maxLen - 1) {
-      this.previewPageIndex++
+      this.previewPageIndex = Math.min(maxLen - 1, this.previewPageIndex + step)
     }
   }
 
-  prevPreviewPage() {
+  prevPreviewPage(step: number = 1) {
     if (this.previewPageIndex !== null && this.previewPageIndex > 0) {
-      this.previewPageIndex--
+      this.previewPageIndex = Math.max(0, this.previewPageIndex - step)
     }
   }
 }

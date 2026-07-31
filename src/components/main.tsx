@@ -68,7 +68,7 @@ const PageCard = observer(function(props: {
         )
       }
       {
-        (props.blobItem || (!props.blobItem && props.blank)) ? (
+        props.blobItem || (!props.blobItem && props.blank) ? (
           <svg
             className="card-image"
             viewBox={'0 0 ' + storeBook.pageSize.join(' ')} onClick={onClickImage}
