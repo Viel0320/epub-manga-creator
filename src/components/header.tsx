@@ -41,13 +41,21 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
   }, [props.pageIndex, storeMain])
 
   const onSplitPage = useCallback(() => {
-    storeMain.splitPage(props.pageIndex as number)
+    if (props.pageIndex !== null) {
+      storeMain.splitPage(props.pageIndex)
+    }
   }, [props.pageIndex, storeMain])
+
+  const onUndoSplit = useCallback(() => {
+    storeMain.undoLastSplit()
+  }, [storeMain])
 
   const onRemovePage = useCallback(() => {
     const res = window.confirm(t.prompt.removePage(props.pageIndex as number))
     res && storeMain.removePage(props.pageIndex as number)
   }, [props.pageIndex, storeMain, t])
+
+  const hasUndo = !!storeMain.lastSplitRecord
 
   if (props.pageIndex === null) {
     return (
@@ -70,11 +78,25 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
             <span className="nav-label">{t.nav.bookmark}</span>
           </button>
         </div>
-        <div className="nav-item">
+        <div className={`nav-item ${hasUndo ? 'dropdown' : ''}`}>
           <button type="button" className="btn btn-outline-secondary disabled" disabled>
             <Icon name="scissors"/>
             <span className="nav-label">{t.nav.split}</span>
           </button>
+          {
+            hasUndo ? (
+              <ul className="dropdown-menu" style={{top: 0, left: '100%'}}>
+                <li>
+                  <span
+                    className="dropdown-item"
+                    onClick={onUndoSplit}
+                  >
+                    {t.nav.undoSplit}
+                  </span>
+                </li>
+              </ul>
+            ) : null
+          }
         </div>
         <div className="nav-item">
           <button type="button" className="btn btn-outline-secondary disabled" disabled>
@@ -123,11 +145,25 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
           }
         </ul>
       </div>
-      <div className="nav-item">
+      <div className={`nav-item ${hasUndo ? 'dropdown' : ''}`}>
         <button type="button" className="btn btn-secondary" disabled={blankPage} onClick={onSplitPage}>
           <Icon name="scissors"/>
           <span className="nav-label">{t.nav.split}</span>
         </button>
+        {
+          hasUndo ? (
+            <ul className="dropdown-menu" style={{top: 0, left: '100%'}}>
+              <li>
+                <span
+                  className="dropdown-item"
+                  onClick={onUndoSplit}
+                >
+                  {t.nav.undoSplit}
+                </span>
+              </li>
+            </ul>
+          ) : null
+        }
       </div>
       <div className="nav-item">
         <button type="button" className="btn btn-secondary" onClick={onRemovePage}>

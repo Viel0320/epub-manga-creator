@@ -19,6 +19,7 @@ const en = {
     themeDark: 'Theme: Dark',
     themeAuto: 'Theme: Auto (system)',
     reset: 'Reset',
+    undoSplit: 'Undo',
   },
 
   // Confirm dialogs

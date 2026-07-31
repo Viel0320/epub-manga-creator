@@ -20,6 +20,7 @@ const zh: Locale = {
     themeDark: '主题：深色',
     themeAuto: '主题：跟随系统',
     reset: '清空',
+    undoSplit: '撤销',
   },
 
   confirm: {

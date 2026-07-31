@@ -4,7 +4,7 @@ import uuid from 'utils/get-uuid'
 import Book, { StoreBook } from 'store/book'
 import Ui from 'store/ui'
 import Contents from 'store/contents'
-import storeBlobs, { Store as Blobs } from 'store/blobs'
+import storeBlobs, { Store as Blobs, StoreBlobs } from 'store/blobs'
 import { db } from 'utils/db'
 import { getLocale } from 'i18n'
 import JSZip from "jszip"
@@ -39,12 +39,21 @@ const getNumberStr = (num: number, zeroCount: number): string => {
   return str
 }
 
+export interface SplitRecord {
+  originalIndex: number
+  originalPageItem: StoreBook.PageItem
+  originalBlobItem: StoreBlobs.ImageBlob
+  newBlobIDs: string[]
+  originalContentsList: any[]
+}
+
 class Store {
   ui: Ui
   book: Book
   contents: Contents
   blobs: Blobs
   isAutoSaveActive = false
+  lastSplitRecord: SplitRecord | null = null
 
   // blob UUIDs already persisted to IndexedDB (not part of reactive state)
   savedBlobIDs: Set<string> = new Set()
@@ -78,6 +87,7 @@ class Store {
     this.ui.modalBookVisible = false
     this.ui.modalContentVisible = false
     this.ui.modalPageVisible = false
+    this.lastSplitRecord = null
     this.savedBlobIDs.clear()
     db.clearAll().catch(err => console.error('Failed to clear backup:', err))
   }
@@ -172,6 +182,8 @@ class Store {
   async splitPage(index: number) {
     const pageItem = this.book.pages[index]
     const blobItem = this.blobs.blobs[pageItem.blobID]
+    if (!pageItem || !blobItem) return
+
     const uuids = [uuid(), uuid()]
     const mime = blobItem.blob.type
 
@@ -208,6 +220,10 @@ class Store {
       ),
     ])
 
+    const originalPageItem = toJS(pageItem)
+    const originalBlobItem = blobItem
+    const originalContentsList = toJS(this.contents.list)
+
     this.book.splitPage(index, uuids)
     this.book.updatePageItemIndex()
     this.blobs.push(blobs, this.book.pageDirection === 'left' ? uuids : uuids.reverse())
@@ -224,6 +240,42 @@ class Store {
     })
 
     this.contents.updateList(list)
+
+    runInAction(() => {
+      this.lastSplitRecord = {
+        originalIndex: index,
+        originalPageItem,
+        originalBlobItem,
+        newBlobIDs: uuids,
+        originalContentsList,
+      }
+    })
+  }
+
+  undoLastSplit() {
+    if (!this.lastSplitRecord) return
+
+    const { originalIndex, originalPageItem, originalBlobItem, newBlobIDs, originalContentsList } = this.lastSplitRecord
+
+    const idx1 = this.book.pages.findIndex(p => p.blobID === newBlobIDs[0])
+    const idx2 = this.book.pages.findIndex(p => p.blobID === newBlobIDs[1])
+
+    let targetIndex = originalIndex
+    if (idx1 !== -1 && idx2 !== -1) {
+      targetIndex = Math.min(idx1, idx2)
+    }
+
+    this.blobs.remove(newBlobIDs[0])
+    this.blobs.remove(newBlobIDs[1])
+    this.blobs.blobs[originalPageItem.blobID] = originalBlobItem
+
+    this.book.pages = this.book.pages.filter(p => !newBlobIDs.includes(p.blobID))
+    this.book.pages.splice(targetIndex, 0, originalPageItem)
+    this.book.updatePageItemIndex()
+
+    this.contents.updateList(originalContentsList)
+    this.ui.selectPageIndex(targetIndex)
+    this.lastSplitRecord = null
   }
 
   insertBlankPage(index: number) {
