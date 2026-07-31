@@ -212,14 +212,14 @@ const DoublePageCard = observer(function(props: {
         pageItemIndex={leftSidePageIndex === null ? null : (leftSidePageIndex - coverPosition)}
         realPageIndex={leftSidePageIndex}
         blobItem={leftSidePage ? storeBlobs.blobs[leftSidePage.blobID] : null}
-        pagePosition={storeBook.pagePosition === 'between' ? 'left' : 'center'}
+        pagePosition={storeBook.pagePosition === 'between' ? 'right' : 'center'}
         blank={leftSidePage?.blank || false}
       />
       <PageCard
         pageItemIndex={rightSidePageIndex === null ? null : (rightSidePageIndex - coverPosition)}
         realPageIndex={rightSidePageIndex}
         blobItem={rightSidePage ? storeBlobs.blobs[rightSidePage.blobID] : null}
-        pagePosition={storeBook.pagePosition === 'between' ? 'right' : 'center'}
+        pagePosition={storeBook.pagePosition === 'between' ? 'left' : 'center'}
         blank={rightSidePage?.blank || false}
       />
     </div>
@@ -234,13 +234,24 @@ const SinglePageCard = observer(function(props: {
   const page = storeBook.pages[realPageIndex]
   const coverPosition = storeBook.coverPosition === 'alone' ? 1 : 0
 
+  let position: 'center' | 'left' | 'right' = 'center'
+  if (storeBook.pagePosition === 'between') {
+    const isRTL = storeBook.pageDirection === 'right'
+    const isOdd = (realPageIndex + 1) % 2 === 1
+    if (isRTL) {
+      position = isOdd ? 'left' : 'right'
+    } else {
+      position = isOdd ? 'right' : 'left'
+    }
+  }
+
   return (
     <div className="card-group is-single">
       <PageCard
         pageItemIndex={realPageIndex - coverPosition}
         realPageIndex={realPageIndex}
         blobItem={page ? storeBlobs.blobs[page.blobID] : null}
-        pagePosition="center"
+        pagePosition={position}
         blank={page?.blank || false}
       />
     </div>

@@ -99,7 +99,7 @@ const Lightbox = observer(function() {
 
   const pageDimensionsText = `${book.pageSize[0]}×${book.pageSize[1]}`
 
-  const renderSingleImage = (idx: number) => {
+  const renderSingleImage = (idx: number, side?: 'left' | 'right') => {
     const page = book.pages[idx]
     if (!page) return null
 
@@ -120,6 +120,38 @@ const Lightbox = observer(function() {
 
     const listIdx = totalPages > 0 ? storeMain.contents.indexMap[idx] : undefined
     const bookmarkTitle = listIdx !== undefined ? storeMain.contents.list[listIdx]?.title : null
+
+    let objectFit: React.CSSProperties['objectFit'] = 'contain'
+    if (book.pageFit === 'stretch') {
+      objectFit = 'fill'
+    } else if (book.pageFit === 'fill') {
+      objectFit = 'cover'
+    }
+
+    let objectPosition = 'center center'
+    if (book.pageFit !== 'stretch') {
+      if (book.pagePosition === 'between') {
+        if (side === 'left') {
+          objectPosition = 'right center'
+        } else if (side === 'right') {
+          objectPosition = 'left center'
+        } else {
+          const isOdd = (idx + 1) % 2 === 1
+          if (book.pageDirection === 'right') {
+            objectPosition = isOdd ? 'left center' : 'right center'
+          } else {
+            objectPosition = isOdd ? 'right center' : 'left center'
+          }
+        }
+      }
+    }
+
+    const imageStyle: React.CSSProperties = {
+      objectFit,
+      objectPosition,
+      aspectRatio: `${book.pageSize[0]} / ${book.pageSize[1]}`,
+      backgroundColor: book.pageBackgroundColor === 'white' ? '#fff' : '#000',
+    }
 
     return (
       <div key={idx} className="lightbox-page-wrapper">
@@ -159,6 +191,7 @@ const Lightbox = observer(function() {
             src={imageURL}
             alt={`Page ${idx + 1}`}
             className="lightbox-image"
+            style={imageStyle}
             onClick={onContentClick}
           />
         ) : (
@@ -207,8 +240,8 @@ const Lightbox = observer(function() {
         {/* Display Content */}
         {isSpreadPair ? (
           <div className="lightbox-spread-wrapper" onClick={onContentClick}>
-            {leftIndex !== null && renderSingleImage(leftIndex)}
-            {rightIndex !== null && renderSingleImage(rightIndex)}
+            {leftIndex !== null && renderSingleImage(leftIndex, 'left')}
+            {rightIndex !== null && renderSingleImage(rightIndex, 'right')}
           </div>
         ) : (
           renderSingleImage(pageIndex)
