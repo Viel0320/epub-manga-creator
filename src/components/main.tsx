@@ -140,11 +140,12 @@ const PageCard = observer(function(props: {
 
   const imageFocus = props.pageItemIndex !== null && (storeUI.selectedPageIndex === props.pageItemIndex)
   const pageItem = props.realPageIndex !== undefined && props.realPageIndex !== null ? storeBook.pages[props.realPageIndex] : null
-  const effectiveSize = getPageEffectiveSize(pageItem, props.blobItem, storeBook.pageSizeMode, storeBook.pageSize)
+  const effectiveSize = getPageEffectiveSize(pageItem, props.blobItem, storeBook.pageSizeMode, storeBook.pageSize, storeMain.modePageSize)
 
   return (
     <div
       className={`card ${isDragging ? 'is-dragging' : ''} ${dragPosition ? `drag-over-${dragPosition}` : ''}`}
+      style={{ aspectRatio: `${effectiveSize[0]} / ${effectiveSize[1]}` }}
       draggable={isDraggable}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
@@ -263,28 +264,30 @@ const DoublePageCard = observer(function(props: {
     )
   }
 
+  const isRightJP = storeBook.pageDirection === 'right'
+
   const leftLayout = leftSidePageIndex !== null ? getPageLayoutInfo({
     pageIndex: leftSidePageIndex,
-    pages: storeBook.pages,
     coverPosition: storeBook.coverPosition,
     pageDirection: storeBook.pageDirection,
     pagePositionSetting: storeBook.pagePosition,
     pageFitSetting: storeBook.pageFit,
-    customSpread: leftSidePage?.customSpread
+    customSpread: leftSidePage?.customSpread,
+    isFirstInPair: isRightJP ? false : true
   }) : null
 
   const rightLayout = rightSidePageIndex !== null ? getPageLayoutInfo({
     pageIndex: rightSidePageIndex,
-    pages: storeBook.pages,
     coverPosition: storeBook.coverPosition,
     pageDirection: storeBook.pageDirection,
     pagePositionSetting: storeBook.pagePosition,
     pageFitSetting: storeBook.pageFit,
-    customSpread: rightSidePage?.customSpread
+    customSpread: rightSidePage?.customSpread,
+    isFirstInPair: isRightJP ? true : false
   }) : null
 
-  const isExplicitBound = (leftSidePage?.customSpread === 'bind-next' || leftSidePage?.customSpread === 'bind-prev') &&
-                          (rightSidePage?.customSpread === 'bind-next' || rightSidePage?.customSpread === 'bind-prev')
+  const isExplicitBound = (leftSidePage?.customSpread === 'bind-next' && rightSidePage?.customSpread === 'bind-prev') ||
+                          (leftSidePage?.customSpread === 'bind-prev' && rightSidePage?.customSpread === 'bind-next')
 
   return (
     <div className="card-group">
@@ -326,12 +329,12 @@ const SinglePageCard = observer(function(props: {
 
   const layout = getPageLayoutInfo({
     pageIndex: realPageIndex,
-    pages: storeBook.pages,
     coverPosition: storeBook.coverPosition,
     pageDirection: storeBook.pageDirection,
     pagePositionSetting: storeBook.pagePosition,
     pageFitSetting: storeBook.pageFit,
-    customSpread: page?.customSpread
+    customSpread: page?.customSpread,
+    isSingle: true
   })
 
   return (

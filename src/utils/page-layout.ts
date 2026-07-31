@@ -11,6 +11,8 @@ export interface PageLayoutInfoOptions {
   pageFitSetting?: 'stretch' | 'fit' | 'fill'
   customSpread?: CustomSpreadType
   pageShow?: 'two' | 'one'
+  isFirstInPair?: boolean
+  isSingle?: boolean
 }
 
 export interface PageLayoutInfo {
@@ -95,11 +97,19 @@ export function getSpreadPairs(
 }
 
 export function getPageLayoutInfo(options: PageLayoutInfoOptions): PageLayoutInfo {
-  const { pageIndex, pages, coverPosition, pageDirection, pagePositionSetting, pageFitSetting, customSpread, pageShow } = options
+  const { pageIndex, pages, coverPosition, pageDirection, pagePositionSetting, pageFitSetting, customSpread, pageShow, isFirstInPair, isSingle } = options
 
   let spread: 'left' | 'right' | 'center'
 
-  if (pages && Array.isArray(pages)) {
+  if (isSingle || customSpread === 'center' || (pageIndex === 0 && coverPosition === 'first-page')) {
+    spread = 'center'
+  } else if (isFirstInPair !== undefined) {
+    if (pageDirection === 'right') {
+      spread = isFirstInPair ? 'right' : 'left'
+    } else {
+      spread = isFirstInPair ? 'left' : 'right'
+    }
+  } else if (pages && Array.isArray(pages)) {
     const pairs = getSpreadPairs(pages, coverPosition, pageShow || 'two')
     const pair = pairs.find(p => p.includes(pageIndex))
 

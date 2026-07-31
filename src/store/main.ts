@@ -8,8 +8,9 @@ import storeBlobs, { Store as Blobs, StoreBlobs } from 'store/blobs'
 import { db } from 'utils/db'
 import { getLocale } from 'i18n'
 import JSZip from "jszip"
-import { getPageLayoutInfo } from 'utils/page-layout'
+import { getPageLayoutInfo, getSpreadPairs } from 'utils/page-layout'
 import { parseEpub } from 'utils/epub-parser'
+import { getModePageSize, getPageEffectiveSize } from 'utils/page-size'
 
 import getTemplateContainerXml from 'template/container.xml'
 import getTemplatePageXhtml from 'template/page.xhtml'
@@ -96,6 +97,14 @@ class Store {
 
   setAutoSaveActive(value: boolean) {
     this.isAutoSaveActive = value
+  }
+
+  get modePageSize(): [number, number] {
+    return getModePageSize(this.book.pages, this.blobs.blobs, this.book.pageSize)
+  }
+
+  get displayPageSize(): [number, number] {
+    return this.book.pageSizeMode === 'auto' ? this.modePageSize : this.book.pageSize
   }
 
   async restoreWorkspace() {
@@ -528,6 +537,19 @@ class Store {
         ? 'right'
         : 'left'
 
+    const refPairs = getSpreadPairs(this.book.pages, this.book.coverPosition)
+    const layoutPairs = getSpreadPairs(this.book.pages, this.book.coverPosition, this.book.pageShow)
+    const refPairMap = new Map<number, boolean | undefined>()
+    for (const pair of refPairs) {
+      if (pair.length === 1) { refPairMap.set(pair[0], undefined) }
+      else { refPairMap.set(pair[0], true); refPairMap.set(pair[1], false) }
+    }
+    const layoutPairMap = new Map<number, boolean | undefined>()
+    for (const pair of layoutPairs) {
+      if (pair.length === 1) { layoutPairMap.set(pair[0], undefined) }
+      else { layoutPairMap.set(pair[0], true); layoutPairMap.set(pair[1], false) }
+    }
+
     this.book.pages.forEach((pageItem, i) => {
       const numStr = i === 0 ? 'cover' : getNumberStr(i - 1, 4)
       const imageFileName = (i === 0 ? '' : 'i_') + numStr
@@ -541,16 +563,20 @@ class Store {
       }
 
       if (i !== 0) {
+        const refFirst = refPairMap.get(i)
+        const isSinglePage = refFirst === undefined
         const layout = getPageLayoutInfo({
           pageIndex: i,
-          pages: this.book.pages,
           coverPosition: this.book.coverPosition,
           pageDirection: this.book.pageDirection,
           pagePositionSetting: this.book.pagePosition,
           pageFitSetting: this.book.pageFit,
-          customSpread: pageItem.customSpread
+          customSpread: pageItem.customSpread,
+          isFirstInPair: refFirst,
+          isSingle: isSinglePage
         })
-        itemRefStr.push(`<itemref linear="yes" idref="p_${numStr}" properties="page-spread-${layout.spread}"></itemref>`)
+        const spreadDir = isSinglePage ? 'center' : layout.spread
+        itemRefStr.push(`<itemref linear="yes" idref="p_${numStr}" properties="page-spread-${spreadDir}"></itemref>`)
       }
     })
 
@@ -562,14 +588,20 @@ class Store {
       itemRefStr.unshift(`<itemref linear="yes" idref="p_cover" properties="rendition:page-spread-center"></itemref>`)
     }
 
-    const viewPortWidth = this.book.pageSize[0] + ''
-    const viewPortHeight = this.book.pageSize[1] + ''
+    const modeSize = getModePageSize(this.book.pages, this.blobs.blobs, this.book.pageSize)
+    const opfPageSize = this.book.pageSizeMode === 'auto' ? modeSize : this.book.pageSize
+    const opfWidth = opfPageSize[0] + ''
+    const opfHeight = opfPageSize[1] + ''
     const fitMode = this.book.pageFit
     const bookTitle = htmlToEscape(this.book.bookTitle.trim())
 
     if (this.book.imgTag === 'svg') {
       this.book.pages.forEach((pageItem, i) => {
         const numStr = i === 0 ? 'cover' : getNumberStr(i - 1, 4)
+        const blobItem = pageItem.blank ? null : this.blobs.blobs[pageItem.blobID]
+        const effSize = getPageEffectiveSize(pageItem, blobItem, this.book.pageSizeMode, this.book.pageSize, modeSize)
+        const pageViewPortWidth = effSize[0] + ''
+        const pageViewPortHeight = effSize[1] + ''
 
         if (pageItem.blank) {
           if (i === 0 && coverAlone) {
@@ -578,8 +610,8 @@ class Store {
           Zip.file(
             `OEBPS/text/p_${numStr}.xhtml`,
             fillTemplate(templatePageXhtml, '{{title}}', bookTitle)
-              .replace(new RegExp('{{width}}', 'gm'), viewPortWidth)
-              .replace(new RegExp('{{height}}', 'gm'), viewPortHeight)
+              .replace(new RegExp('{{width}}', 'gm'), pageViewPortWidth)
+              .replace(new RegExp('{{height}}', 'gm'), pageViewPortHeight)
               .replace('{{image}}', '')
           )
           return
@@ -596,28 +628,33 @@ class Store {
           return
         }
 
+        const layoutFirst = layoutPairMap.get(i)
         const layout = getPageLayoutInfo({
           pageIndex: i,
-          pages: this.book.pages,
           coverPosition: this.book.coverPosition,
           pageDirection: this.book.pageDirection,
           pagePositionSetting: this.book.pagePosition,
           pageFitSetting: this.book.pageFit,
-          pageShow: this.book.pageShow,
-          customSpread: pageItem.customSpread
+          customSpread: pageItem.customSpread,
+          isFirstInPair: layoutFirst,
+          isSingle: layoutFirst === undefined
         })
 
         Zip.file(
           `OEBPS/text/p_${numStr}.xhtml`,
           fillTemplate(templatePageXhtml, '{{title}}', bookTitle)
-            .replace(new RegExp('{{width}}', 'gm'), viewPortWidth)
-            .replace(new RegExp('{{height}}', 'gm'), viewPortHeight)
+            .replace(new RegExp('{{width}}', 'gm'), pageViewPortWidth)
+            .replace(new RegExp('{{height}}', 'gm'), pageViewPortHeight)
             .replace('{{image}}', `<image width="100%" height="100%" preserveAspectRatio="${layout.par}" xlink:href="../image/${imageFileName}" />`)
         )
       })
     } else { // this.book.imgTag === 'img'
       this.book.pages.forEach((pageItem, i) => {
         const numStr = i === 0 ? 'cover' : getNumberStr(i - 1, 4)
+        const blobItem = pageItem.blank ? null : this.blobs.blobs[pageItem.blobID]
+        const effSize = getPageEffectiveSize(pageItem, blobItem, this.book.pageSizeMode, this.book.pageSize, modeSize)
+        const pageViewPortWidth = effSize[0] + ''
+        const pageViewPortHeight = effSize[1] + ''
 
         if (pageItem.blank) {
           if (i === 0 && coverAlone) {
@@ -626,8 +663,8 @@ class Store {
           Zip.file(
             `OEBPS/text/p_${numStr}.xhtml`,
             fillTemplate(templatePageImgXhtml, '{{title}}', bookTitle)
-              .replace(new RegExp('{{width}}', 'gm'), viewPortWidth)
-              .replace(new RegExp('{{height}}', 'gm'), viewPortHeight)
+              .replace(new RegExp('{{width}}', 'gm'), pageViewPortWidth)
+              .replace(new RegExp('{{height}}', 'gm'), pageViewPortHeight)
               .replace(`<img src="{{imageSource}}" style="{{style}}"/>`, '<div style="width:100%;height:100%;"></div>')
           )
           return
@@ -644,14 +681,16 @@ class Store {
           return
         }
 
+        const layoutFirst2 = layoutPairMap.get(i)
         const layout = getPageLayoutInfo({
           pageIndex: i,
-          pages: this.book.pages,
           coverPosition: this.book.coverPosition,
           pageDirection: this.book.pageDirection,
           pagePositionSetting: this.book.pagePosition,
           pageFitSetting: this.book.pageFit,
-          customSpread: pageItem.customSpread
+          customSpread: pageItem.customSpread,
+          isFirstInPair: layoutFirst2,
+          isSingle: layoutFirst2 === undefined
         })
 
         let imgStyle = 'object-fit:fill'
@@ -668,8 +707,8 @@ class Store {
         Zip.file(
           `OEBPS/text/p_${numStr}.xhtml`,
           fillTemplate(templatePageImgXhtml, '{{title}}', bookTitle)
-            .replace(new RegExp('{{width}}', 'gm'), viewPortWidth)
-            .replace(new RegExp('{{height}}', 'gm'), viewPortHeight)
+            .replace(new RegExp('{{width}}', 'gm'), pageViewPortWidth)
+            .replace(new RegExp('{{height}}', 'gm'), pageViewPortHeight)
             .replace('{{imageSource}}', `../image/${imageFileName}`)
             .replace('{{style}}', imgStyle)
         )
@@ -731,8 +770,8 @@ class Store {
       .replace('{{primaryWritingMode}}', primaryWritingMode)
       .replace('{{spread}}', this.book.pageShow === 'one' ? 'none' : 'landscape')
       .replace('{{createTime}}', new Date().toISOString())
-      .replace(new RegExp('{{width}}', 'gm'), viewPortWidth)
-      .replace(new RegExp('{{height}}', 'gm'), viewPortHeight)
+      .replace(new RegExp('{{width}}', 'gm'), opfWidth)
+      .replace(new RegExp('{{height}}', 'gm'), opfHeight)
       .replace('<!-- item-image -->', () => imageItemStr.join('\n'))
       .replace('<!-- item-xhtml -->', () => pageItemStr.join('\n'))
       .replace('<!-- itemref-xhtml -->', () => itemRefStr.join('\n'))

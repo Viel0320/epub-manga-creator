@@ -588,7 +588,7 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
 
 #main .card {
   overflow: hidden;
-  height: 200px;
+  height: auto;
   position: relative;
   flex: 1;
   border: none;

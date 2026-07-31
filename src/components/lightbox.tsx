@@ -4,7 +4,7 @@ import storeMain, { useStore } from 'store/main'
 import Icon from 'components/icon'
 import { useI18n } from 'i18n'
 import { getPageLayoutInfo, getSpreadPairs, CustomSpreadType } from 'utils/page-layout'
-import { getPageEffectiveSize, getModePageSize } from 'utils/page-size'
+import { getPageEffectiveSize } from 'utils/page-size'
 
 function getSpreadPair(
   index: number,
@@ -77,8 +77,8 @@ const Lightbox = observer(function() {
     book.updateBookPageProperty('pageShow', isTwoPages ? 'one' : 'two')
   }
 
-  const modeSize = getModePageSize(book.pages, blobs.blobs, book.pageSize)
-  const displaySize = book.pageSizeMode === 'auto' ? modeSize : book.pageSize
+  const modeSize = storeMain.modePageSize
+  const displaySize = storeMain.displayPageSize
   const pageDimensionsText = book.pageSizeMode === 'auto'
     ? `Auto (${displaySize[0]}×${displaySize[1]})`
     : `${displaySize[0]}×${displaySize[1]}`

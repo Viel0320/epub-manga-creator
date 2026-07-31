@@ -3,8 +3,10 @@ import { observer } from 'mobx-react';
 import { StoreContext } from 'store/main';
 import Icon from 'components/icon';
 import { useI18n } from 'i18n';
+import storeMain from 'store/main';
 
 const PAGE_SIZE: { [name: string]: () => [number, number] } = {
+  'Kindle': () => [1200, 1600],
   'B4': () => [1250, 1765],
   'B5': () => [880, 1250],
   'A4': () => [1050, 1485],
@@ -35,6 +37,8 @@ const ModalPage = observer(function() {
   const { ui: store, book: storeBook } = useContext(StoreContext);
   const t = useI18n();
 
+  const displaySize = storeMain.displayPageSize;
+
   const onClickModal = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     return;
@@ -45,18 +49,21 @@ const ModalPage = observer(function() {
   }, [store]);
 
   const onChangePageWidth = useCallback((e: FormEvent<HTMLInputElement>) => {
+    storeBook.updateBookPageProperty('pageSizeMode', 'manual');
     storeBook.updateBookPageProperty('pageSize', [
       +e.currentTarget.value || 1,
       storeBook.pageSize[1]
     ]);
   }, [storeBook]);
   const onChangePageHeight = useCallback((e: FormEvent<HTMLInputElement>) => {
+    storeBook.updateBookPageProperty('pageSizeMode', 'manual');
     storeBook.updateBookPageProperty('pageSize', [
       storeBook.pageSize[0],
       +e.currentTarget.value || 1
     ]);
   }, [storeBook]);
   const onSwitchPageSize = useCallback(() => {
+    storeBook.updateBookPageProperty('pageSizeMode', 'manual');
     storeBook.updateBookPageProperty('pageSize', [
       storeBook.pageSize[1],
       storeBook.pageSize[0]
@@ -64,7 +71,11 @@ const ModalPage = observer(function() {
   }, [storeBook]);
   const onChangeSizeWithDefaultValue = useCallback((key: string) => {
     let func = PAGE_SIZE[key];
+    storeBook.updateBookPageProperty('pageSizeMode', 'manual');
     storeBook.updateBookPageProperty('pageSize', func());
+  }, [storeBook]);
+  const onSetAutoPageSize = useCallback(() => {
+    storeBook.updateBookPageProperty('pageSizeMode', 'auto');
   }, [storeBook]);
   const onChangePagePosition = useCallback((value: 'center' | 'between') => {
     storeBook.updateBookPageProperty('pagePosition', value);
@@ -105,7 +116,7 @@ const ModalPage = observer(function() {
                       className="form-control"
                       min="1"
                       max="9999"
-                      value={storeBook.pageSize[0]}
+                      value={displaySize[0]}
                       onInput={onChangePageWidth}
                     />
                   </div>
@@ -123,7 +134,7 @@ const ModalPage = observer(function() {
                       className="form-control"
                       min="1"
                       max="9999"
-                      value={storeBook.pageSize[1]}
+                      value={displaySize[1]}
                       onInput={onChangePageHeight}
                     />
                   </div>
@@ -133,7 +144,9 @@ const ModalPage = observer(function() {
           </div>
           <div className="mb-2 row">
             <div className="col-3"></div>
-            <div className="col-9 d-flex align-items-center">
+            <div className="col-9 d-flex align-items-center flex-wrap gap-1">
+              <ButtonRadio current={storeBook.pageSizeMode === 'auto' ? 'Auto' : 'x'} value="Auto" label="Auto" onClick={onSetAutoPageSize}/>
+              <ButtonRadio current="x" value="Kindle" label="Kindle" onClick={onChangeSizeWithDefaultValue}/>
               <ButtonRadio current="x" value="B4" label="B4" onClick={onChangeSizeWithDefaultValue}/>
               <ButtonRadio current="x" value="B5" label="B5" onClick={onChangeSizeWithDefaultValue}/>
               <ButtonRadio current="x" value="A4" label="A4" onClick={onChangeSizeWithDefaultValue}/>
