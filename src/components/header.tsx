@@ -5,7 +5,7 @@ import Icon from 'components/icon'
 import { StoreContext } from 'store/main'
 import { useI18n } from 'i18n'
 
-type SupportType = 'image' | 'zip'
+type SupportType = 'image' | 'zip' | 'epub'
 
 const PageControl = observer(function(props: { pageIndex: number | null }) {
   const storeMain = useContext(StoreContext);
@@ -178,11 +178,13 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
 const AcceptMap = {
   image: 'image/jpeg,image/png,image/webp,image/avif,.jpg,.jpeg,.png,.webp,.avif',
   zip: 'application/zip,.zip',
+  epub: 'application/epub+zip,.epub',
 }
 
 const MultipleAttrMap = {
   image: true,
   zip: false,
+  epub: false,
 }
 
 const blobToFile = (theBlob: Blob, fileName:string): File => {
@@ -221,6 +223,11 @@ const Header = function() {
 
   const handleGetFile = useCallback(async () => {
     const input: HTMLInputElement = inputRef.current as HTMLInputElement
+
+    if (inputType === 'epub' && (input?.files?.[0])) {
+      storeMain.importFromEpub(input.files[0])
+      return
+    }
 
     if (inputType === 'zip' && (input?.files?.[0])) {
       const fileName = input.files[0].name 
@@ -334,6 +341,7 @@ const Header = function() {
         <ul className="dropdown-menu" style={{top: 0,left:'100%'}}>
           <li><span className="dropdown-item" data-type="image" onClick={onClickImport}>{t.nav.importImage}</span></li>
           <li><span className="dropdown-item" data-type="zip" onClick={onClickImport}>{t.nav.importZip}</span></li>
+          <li><span className="dropdown-item" data-type="epub" onClick={onClickImport}>{t.nav.importEpub}</span></li>
         </ul>
       </div>
       <div className="nav-item">
