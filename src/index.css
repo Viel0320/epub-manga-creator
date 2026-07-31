@@ -551,6 +551,9 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
   box-shadow: var(--shadow-soft);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
+#main .card-group.is-single {
+  width: calc(var(--card-box-width) / 2);
+}
 #main .card-group:hover {
   transform: translateY(-3px);
   box-shadow: var(--shadow-panel);

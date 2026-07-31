@@ -226,6 +226,27 @@ const DoublePageCard = observer(function(props: {
   )
 })
 
+const SinglePageCard = observer(function(props: {
+  pageIndex: number
+}) {
+  const { book: storeBook } = useStore()
+  const realPageIndex = props.pageIndex
+  const page = storeBook.pages[realPageIndex]
+  const coverPosition = storeBook.coverPosition === 'alone' ? 1 : 0
+
+  return (
+    <div className="card-group is-single">
+      <PageCard
+        pageItemIndex={realPageIndex - coverPosition}
+        realPageIndex={realPageIndex}
+        blobItem={page ? storeBlobs.blobs[page.blobID] : null}
+        pagePosition="center"
+        blank={page?.blank || false}
+      />
+    </div>
+  )
+})
+
 let CARD_BOX_WIDTH = 120;
 let CARD_BOX_MARGIN = 8;
 
@@ -294,7 +315,7 @@ const RestoreBanner = observer(function() {
 const Main = function() {
   const mainRef = useRef<HTMLElement>(null)
   const { book: storeBook } = useStore()
-  const [showPages, setShowPages] = useState<[any, any][][]>([])
+  const [showPages, setShowPages] = useState<any[][]>([])
   const t = useI18n()
 
   const pageResizeCallback = useCallback(() => {
@@ -304,7 +325,9 @@ const Main = function() {
     const availableWidth = mainEl.clientWidth - 36
     if (availableWidth <= 0) return
 
-    const cardTotalWidth = CARD_BOX_WIDTH + CARD_BOX_MARGIN * 2
+    const isSingle = storeBook.pageShow === 'one'
+    const cardBoxWidth = isSingle ? CARD_BOX_WIDTH / 2 : CARD_BOX_WIDTH
+    const cardTotalWidth = cardBoxWidth + CARD_BOX_MARGIN * 2
     const boxCountInOneRow = Math.max(1, Math.floor(availableWidth / cardTotalWidth))
 
     const len = storeBook.pages.length
@@ -313,25 +336,40 @@ const Main = function() {
       return
     }
 
-    const pages: [number | null, number | null][][] = []
-    let x = -1
+    if (isSingle) {
+      const pages: number[][] = []
+      let x = 0
+      while (x < len) {
+        const row: number[] = []
+        for (let j = 0; j < boxCountInOneRow && x < len; j++) {
+          row.push(x++)
+        }
+        if (row.length > 0) {
+          pages.push(row)
+        }
+      }
+      setShowPages(pages)
+    } else {
+      const pages: [number | null, number | null][][] = []
+      let x = -1
 
-    while (x < len - 1) {
-      const row: [number | null, number | null][] = []
-      for (let j = 0; j < boxCountInOneRow && x < len - 1; j++) {
-        const page1 = storeBook.coverPosition === 'first-page'
-          ? (x === -1 ? null : (++x < len ? x : null))
-          : (++x < len ? x : null)
-        const page2 = ++x < len ? x : null
-        row.push([page1, page2])
+      while (x < len - 1) {
+        const row: [number | null, number | null][] = []
+        for (let j = 0; j < boxCountInOneRow && x < len - 1; j++) {
+          const page1 = storeBook.coverPosition === 'first-page'
+            ? (x === -1 ? null : (++x < len ? x : null))
+            : (++x < len ? x : null)
+          const page2 = ++x < len ? x : null
+          row.push([page1, page2])
+        }
+        if (row.length > 0) {
+          pages.push(row)
+        }
       }
-      if (row.length > 0) {
-        pages.push(row)
-      }
+
+      setShowPages(pages)
     }
-
-    setShowPages(pages)
-  }, [storeBook.coverPosition, storeBook.pages.length])
+  }, [storeBook.coverPosition, storeBook.pages.length, storeBook.pageShow])
 
   const onClickImport = useCallback(() => {
     document.getElementById('input-upload')?.click()
@@ -339,7 +377,7 @@ const Main = function() {
 
   useEffect(() => {
     pageResizeCallback()
-  }, [storeBook.pages, pageResizeCallback])
+  }, [storeBook.pages, storeBook.pageShow, pageResizeCallback])
 
   useEffect(() => {
     // rAF-throttled resize handler, cleaned up on unmount
@@ -418,7 +456,13 @@ const Main = function() {
               className={`row page-row flex-nowrap justify-content-center ${storeBook.pageDirection === 'right' ? 'flex-row-reverse' : ''}`}
             >
               {
-                row.map((pages, j) => (<DoublePageCard key={`${i}-${j}-${pages[0]}-${pages[1]}`} pages={pages}/>))
+                storeBook.pageShow === 'one'
+                  ? (row as number[]).map((pageIdx, j) => (
+                      <SinglePageCard key={`${i}-${j}-${pageIdx}`} pageIndex={pageIdx} />
+                    ))
+                  : (row as [number | null, number | null][]).map((pages, j) => (
+                      <DoublePageCard key={`${i}-${j}-${pages[0]}-${pages[1]}`} pages={pages} />
+                    ))
               }
             </div>
           ))
