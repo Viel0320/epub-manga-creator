@@ -47,6 +47,7 @@ const getText = (): string => `<?xml version="1.0" encoding="UTF-8"?>
 <!-- Fixed-Layout Documents指定 -->
 <meta property="rendition:layout">pre-paginated</meta>
 <meta property="rendition:spread">both</meta>
+<meta property="rendition:orientation">auto</meta>
 <meta name="fixed-layout" content="true" />
 
 <!-- etc. -->
@@ -56,13 +57,13 @@ const getText = (): string => `<?xml version="1.0" encoding="UTF-8"?>
 <meta name="cover" content="cover"></meta>
 <meta name="original-resolution" content="{{width}}x{{height}}"/>
 <meta name="orientation-lock" content="none"/>
-<meta property="rendition:orientation">auto</meta>
 
 <!-- Kindle / Manga Meta -->
 <meta name="book-type" content="comic"/>
 <meta name="zero-gutter" content="true"/>
 <meta name="zero-margin" content="true"/>
 <meta name="primary-writing-mode" content="{{primaryWritingMode}}"/>
+<meta name="RegionMagnification" content="true"/>
 
 <meta property="fixed-layout-jp:viewport">width={{width}}, height={{height}}</meta>
 

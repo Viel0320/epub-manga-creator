@@ -14,7 +14,7 @@ xml:lang="ja"
 </head>
 <body>
 <div class="main">
-<img src="{{imageSource}}" style="{{style}}"/>
+<img src="{{imageSource}}" class="comic-page" alt="Manga Page"/>
 </div>
 </body>
 </html>`
