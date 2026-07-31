@@ -2,12 +2,14 @@ import { makeAutoObservable, toJS } from "mobx"
 import uuid from 'utils/get-uuid'
 
 export declare namespace StoreBook {
+  export type CustomSpreadType = 'center' | 'bind-prev' | 'bind-next' | 'auto'
+
   export interface PageItem {
     index: number,
     blobID: string
     sticky: 'auto' | 'left' | 'right',
     blank: boolean
-    customSpread?: 'center' | 'auto'
+    customSpread?: CustomSpreadType
   }
 
   export interface ContributorItem {
@@ -30,7 +32,7 @@ export declare namespace StoreBook {
   }
 }
 
-type BookPageProperty = 'bookID' | 'bookISBN' | 'bookTitle' | 'bookAuthors' | 'bookSubject' | 'bookPublisher' | 'bookLanguage' | 'bookSeriesName' | 'bookSeriesVolume' | 'bookDescription' | 'bookDate' | 'bookContributors' | 'pageSize' | 'pagePosition' | 'pageShow' | 'pageFit' | 'pageBackgroundColor' | 'pageDirection' | 'coverPosition' | 'imgTag'
+type BookPageProperty = 'bookID' | 'bookISBN' | 'bookTitle' | 'bookAuthors' | 'bookSubject' | 'bookPublisher' | 'bookLanguage' | 'bookSeriesName' | 'bookSeriesVolume' | 'bookDescription' | 'bookDate' | 'bookContributors' | 'pageSize' | 'pageSizeMode' | 'pagePosition' | 'pageShow' | 'pageFit' | 'pageBackgroundColor' | 'pageDirection' | 'coverPosition' | 'imgTag'
 
 class Store {
   bookID: string = uuid()
@@ -47,6 +49,7 @@ class Store {
   bookContributors: StoreBook.ContributorItem[] = []
 
   pageSize: [number, number] = [250, 353]
+  pageSizeMode: ('manual' | 'auto') = 'auto'
   pagePosition: ('center' | 'between') = 'between'
   pageShow: ('two' | 'one') = 'two'
   pageFit: ('stretch' | 'fit' | 'fill') = 'stretch'
@@ -120,15 +123,73 @@ class Store {
     });
   }
 
-  togglePageCustomSpread(index: number) {
+  unbindSpread(index: number) {
     const page = this.pages[index]
-    if (page && index > 0) {
-      if (page.customSpread === 'center') {
-        page.customSpread = 'auto'
-      } else {
-        page.customSpread = 'center'
+    if (!page) return
+
+    if (page.customSpread === 'bind-next') {
+      const nextP = this.pages[index + 1]
+      if (nextP && nextP.customSpread === 'bind-prev') {
+        nextP.customSpread = 'auto'
       }
+      page.customSpread = 'auto'
+    } else if (page.customSpread === 'bind-prev') {
+      const prevP = this.pages[index - 1]
+      if (prevP && prevP.customSpread === 'bind-next') {
+        prevP.customSpread = 'auto'
+      }
+      page.customSpread = 'auto'
+    } else if (page.customSpread === 'center') {
+      page.customSpread = 'auto'
     }
+  }
+
+  bindSpreadPair(indexA: number, indexB: number) {
+    if (indexA < 0 || indexB >= this.pages.length || indexA >= indexB) return
+    this.unbindSpread(indexA)
+    this.unbindSpread(indexB)
+    if (this.pages[indexA]) {
+      this.pages[indexA].customSpread = 'bind-next'
+    }
+    if (this.pages[indexB]) {
+      this.pages[indexB].customSpread = 'bind-prev'
+    }
+  }
+
+  setSinglePage(index: number) {
+    if (index < 0 || index >= this.pages.length) return
+    this.unbindSpread(index)
+    if (this.pages[index]) {
+      this.pages[index].customSpread = 'center'
+    }
+  }
+
+  setPageCustomSpread(index: number, mode: StoreBook.CustomSpreadType) {
+    if (mode === 'center') {
+      if (this.pages[index]?.customSpread === 'center') {
+        this.unbindSpread(index)
+      } else {
+        this.setSinglePage(index)
+      }
+    } else if (mode === 'bind-prev') {
+      if (this.pages[index]?.customSpread === 'bind-prev') {
+        this.unbindSpread(index)
+      } else {
+        this.bindSpreadPair(index - 1, index)
+      }
+    } else if (mode === 'bind-next') {
+      if (this.pages[index]?.customSpread === 'bind-next') {
+        this.unbindSpread(index)
+      } else {
+        this.bindSpreadPair(index, index + 1)
+      }
+    } else {
+      this.unbindSpread(index)
+    }
+  }
+
+  togglePageCustomSpread(index: number) {
+    this.setPageCustomSpread(index, 'center')
   }
 
   insertBlankPage(index: number) {

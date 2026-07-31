@@ -5,7 +5,8 @@ import storeBlobs, { StoreBlobs } from 'store/blobs'
 import Icon from './icon'
 import { useI18n } from 'i18n'
 import { db } from 'utils/db'
-import { getPageLayoutInfo } from 'utils/page-layout'
+import { getPageLayoutInfo, getSpreadPairs } from 'utils/page-layout'
+import { getPageEffectiveSize } from 'utils/page-size'
 
 const THIS_YEAR = (new Date()).getFullYear()
 
@@ -138,6 +139,8 @@ const PageCard = observer(function(props: {
   }
 
   const imageFocus = props.pageItemIndex !== null && (storeUI.selectedPageIndex === props.pageItemIndex)
+  const pageItem = props.realPageIndex !== undefined && props.realPageIndex !== null ? storeBook.pages[props.realPageIndex] : null
+  const effectiveSize = getPageEffectiveSize(pageItem, props.blobItem, storeBook.pageSizeMode, storeBook.pageSize)
 
   return (
     <div
@@ -155,11 +158,7 @@ const PageCard = observer(function(props: {
           ? <div className="bookmark-ribbon" title={storeContent.list[storeContent.indexMap[props.pageItemIndex]].title} />
           : null
       }
-      {
-        props.realPageIndex !== undefined && props.realPageIndex !== null && props.realPageIndex > 0 && storeBook.pages[props.realPageIndex]?.customSpread === 'center' ? (
-          <div className="card-center-badge">Center</div>
-        ) : null
-      }
+
       {
         props.pageItemIndex !== null && (props.blobItem || props.blank) && (
           <button
@@ -180,7 +179,7 @@ const PageCard = observer(function(props: {
         props.blobItem || (!props.blobItem && props.blank) ? (
           <svg
             className="card-image"
-            viewBox={'0 0 ' + storeBook.pageSize.join(' ')}
+            viewBox={'0 0 ' + effectiveSize.join(' ')}
             preserveAspectRatio={preserveAspectRatio}
             onClick={onClickImage}
           >
@@ -220,6 +219,7 @@ const DoublePageCard = observer(function(props: {
   onContextMenu?: (e: React.MouseEvent, pageIndex: number) => void
 }) {
   const { book: storeBook } = useStore()
+  const t = useI18n()
 
   const leftSidePageIndex = storeBook.pageDirection === 'right' ? props.pages[1] : props.pages[0]
   const rightSidePageIndex = storeBook.pageDirection === 'right' ? props.pages[0] : props.pages[1]
@@ -244,15 +244,7 @@ const DoublePageCard = observer(function(props: {
     }
 
     const page = storeBook.pages[singleIndex]
-    const layout = getPageLayoutInfo({
-      pageIndex: singleIndex,
-      pages: storeBook.pages,
-      coverPosition: storeBook.coverPosition,
-      pageDirection: storeBook.pageDirection,
-      pagePositionSetting: storeBook.pagePosition,
-      pageFitSetting: storeBook.pageFit,
-      customSpread: page?.customSpread
-    })
+    const isSingleSpecified = page?.customSpread === 'center'
 
     return (
       <div className="card-group is-spread-center">
@@ -264,6 +256,9 @@ const DoublePageCard = observer(function(props: {
           blank={page?.blank || false}
           onContextMenu={props.onContextMenu}
         />
+        {isSingleSpecified && (
+          <div className="card-group-badge">{t.option.singlePageBadge || '单页指定'}</div>
+        )}
       </div>
     )
   }
@@ -288,6 +283,9 @@ const DoublePageCard = observer(function(props: {
     customSpread: rightSidePage?.customSpread
   }) : null
 
+  const isExplicitBound = (leftSidePage?.customSpread === 'bind-next' || leftSidePage?.customSpread === 'bind-prev') &&
+                          (rightSidePage?.customSpread === 'bind-next' || rightSidePage?.customSpread === 'bind-prev')
+
   return (
     <div className="card-group">
       <PageCard
@@ -306,6 +304,9 @@ const DoublePageCard = observer(function(props: {
         blank={rightSidePage?.blank || false}
         onContextMenu={props.onContextMenu}
       />
+      {isExplicitBound && (
+        <div className="card-group-badge">{t.option.boundSpreadBadge || '跨页绑定'}</div>
+      )}
     </div>
   )
 })
@@ -315,9 +316,13 @@ const SinglePageCard = observer(function(props: {
   onContextMenu?: (e: React.MouseEvent, pageIndex: number) => void
 }) {
   const { book: storeBook } = useStore()
+  const t = useI18n()
   const realPageIndex = props.pageIndex
   const page = storeBook.pages[realPageIndex]
   const coverPosition = storeBook.coverPosition === 'alone' ? 1 : 0
+
+  const isSingleSpecified = page?.customSpread === 'center'
+  const isExplicitBound = page?.customSpread === 'bind-next' || page?.customSpread === 'bind-prev'
 
   const layout = getPageLayoutInfo({
     pageIndex: realPageIndex,
@@ -339,6 +344,12 @@ const SinglePageCard = observer(function(props: {
         blank={page?.blank || false}
         onContextMenu={props.onContextMenu}
       />
+      {isSingleSpecified && (
+        <div className="card-group-badge">{t.option.singlePageBadge || '单页指定'}</div>
+      )}
+      {isExplicitBound && (
+        <div className="card-group-badge">{t.option.boundSpreadBadge || '跨页绑定'}</div>
+      )}
     </div>
   )
 })
@@ -424,16 +435,34 @@ const PageContextMenu = observer(function(props: {
 
   if (!props.state.visible || props.state.pageIndex === null || props.state.pageIndex <= 0) return null
 
-  const page = storeBook.pages[props.state.pageIndex]
+  const pageIdx = props.state.pageIndex
+  const page = storeBook.pages[pageIdx]
   if (!page) return null
 
   const isCentered = page.customSpread === 'center'
+  const isBoundPrev = page.customSpread === 'bind-prev' && storeBook.pages[pageIdx - 1]?.customSpread === 'bind-next'
+  const isBoundNext = page.customSpread === 'bind-next' && storeBook.pages[pageIdx + 1]?.customSpread === 'bind-prev'
 
   const onToggleCenter = (e: React.MouseEvent) => {
     e.stopPropagation()
-    storeBook.togglePageCustomSpread(props.state.pageIndex as number)
+    storeBook.setPageCustomSpread(pageIdx, 'center')
     props.onClose()
   }
+
+  const onToggleBindPrev = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    storeBook.setPageCustomSpread(pageIdx, 'bind-prev')
+    props.onClose()
+  }
+
+  const onToggleBindNext = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    storeBook.setPageCustomSpread(pageIdx, 'bind-next')
+    props.onClose()
+  }
+
+  const canBindPrev = pageIdx > 1 || (storeBook.coverPosition === 'alone' && pageIdx > 0)
+  const canBindNext = pageIdx < storeBook.pages.length - 1
 
   return (
     <div
@@ -443,8 +472,22 @@ const PageContextMenu = observer(function(props: {
     >
       <button type="button" className="context-menu-item" onClick={onToggleCenter}>
         <Icon name={isCentered ? "cross" : "align-center"} />
-        <span>{isCentered ? (t.option.removeCenter || '取消居中 (恢复自动)') : (t.option.setCenter || '设为居中 (Spread Center)')}</span>
+        <span>{isCentered ? (t.option.removeCenter || '取消单页 (恢复自动)') : (t.option.setCenter || '设为单页')}</span>
       </button>
+
+      {canBindPrev && (
+        <button type="button" className="context-menu-item" onClick={onToggleBindPrev}>
+          <Icon name={isBoundPrev ? "cross" : "align-left"} />
+          <span>{isBoundPrev ? (t.option.removeBindPrev || '取消跨页绑定') : (t.option.bindPrev || '绑定跨页（前一张）')}</span>
+        </button>
+      )}
+
+      {canBindNext && (
+        <button type="button" className="context-menu-item" onClick={onToggleBindNext}>
+          <Icon name={isBoundNext ? "cross" : "align-right"} />
+          <span>{isBoundNext ? (t.option.removeBindNext || '取消跨页绑定') : (t.option.bindNext || '绑定跨页（后一张）')}</span>
+        </button>
+      )}
     </div>
   )
 })
@@ -508,58 +551,32 @@ const Main = function() {
       }
       setShowPages(pages)
     } else {
-      const pages: [number | null, number | null][][] = []
-      let x = -1
+      const pairs = getSpreadPairs(storeBook.pages, storeBook.coverPosition)
+      const rows: [number | null, number | null][][] = []
+      let currentRow: [number | null, number | null][] = []
 
-      while (x < len - 1) {
-        const row: [number | null, number | null][] = []
-        for (let j = 0; j < boxCountInOneRow && x < len - 1; j++) {
-          let page1: number | null = null
-          let page2: number | null = null
-
-          if (x === -1) {
-            if (storeBook.coverPosition === 'first-page') {
-              page1 = null
-              page2 = ++x < len ? x : null
-            } else {
-              page1 = ++x < len ? x : null
-              const p1 = page1 !== null ? storeBook.pages[page1] : null
-              if (p1 && p1.customSpread === 'center' && page1 !== 0) {
-                page2 = null
-              } else {
-                const nextIdx = x + 1
-                const nextP = nextIdx < len ? storeBook.pages[nextIdx] : null
-                if (nextP && nextP.customSpread === 'center' && nextIdx !== 0) {
-                  page2 = null
-                } else {
-                  page2 = ++x < len ? x : null
-                }
-              }
-            }
+      for (const pair of pairs) {
+        let pageItemPair: [number | null, number | null]
+        if (pair.length === 1) {
+          if (pair[0] === 0 && storeBook.coverPosition === 'first-page') {
+            pageItemPair = [null, 0]
           } else {
-            page1 = ++x < len ? x : null
-            const p1 = page1 !== null ? storeBook.pages[page1] : null
-            if (p1 && p1.customSpread === 'center' && page1 !== 0) {
-              page2 = null
-            } else {
-              const nextIdx = x + 1
-              const nextP = nextIdx < len ? storeBook.pages[nextIdx] : null
-              if (nextP && nextP.customSpread === 'center' && nextIdx !== 0) {
-                page2 = null
-              } else {
-                page2 = ++x < len ? x : null
-              }
-            }
+            pageItemPair = [pair[0], null]
           }
-
-          row.push([page1, page2])
+        } else {
+          pageItemPair = [pair[0], pair[1]]
         }
-        if (row.length > 0) {
-          pages.push(row)
+
+        currentRow.push(pageItemPair)
+        if (currentRow.length >= boxCountInOneRow) {
+          rows.push(currentRow)
+          currentRow = []
         }
       }
-
-      setShowPages(pages)
+      if (currentRow.length > 0) {
+        rows.push(currentRow)
+      }
+      setShowPages(rows)
     }
   }, [storeBook.coverPosition, storeBook.pages.length, storeBook.pages, storeBook.pageShow, pagesSpreadKey])
 

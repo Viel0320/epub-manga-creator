@@ -1,11 +1,16 @@
+import { StoreBook } from 'store/book'
+
+export type CustomSpreadType = StoreBook.CustomSpreadType
+
 export interface PageLayoutInfoOptions {
   pageIndex: number
-  pages?: Array<{ customSpread?: 'center' | 'auto' }>
+  pages?: Array<{ customSpread?: CustomSpreadType }>
   coverPosition: 'first-page' | 'alone'
   pageDirection: 'left' | 'right'
   pagePositionSetting: 'center' | 'between'
   pageFitSetting?: 'stretch' | 'fit' | 'fill'
-  customSpread?: 'center' | 'auto'
+  customSpread?: CustomSpreadType
+  pageShow?: 'two' | 'one'
 }
 
 export interface PageLayoutInfo {
@@ -15,37 +20,111 @@ export interface PageLayoutInfo {
   objectPosition: string
 }
 
+export function getSpreadPairs(
+  pages: Array<{ customSpread?: CustomSpreadType }>,
+  coverPosition: 'first-page' | 'alone',
+  pageShow: 'two' | 'one' = 'two'
+): Array<number[]> {
+  const result: Array<number[]> = []
+  if (!pages || pages.length === 0) return result
+
+  let i = 0
+  if (coverPosition === 'first-page') {
+    result.push([0])
+    i = 1
+  }
+
+  while (i < pages.length) {
+    const p1 = pages[i]
+
+    if (p1.customSpread === 'center') {
+      result.push([i])
+      i++
+      continue
+    }
+
+    const pNext = i + 1 < pages.length ? pages[i + 1] : null
+
+    if (p1.customSpread === 'bind-next') {
+      if (pNext && pNext.customSpread !== 'center') {
+        result.push([i, i + 1])
+        i += 2
+      } else {
+        result.push([i])
+        i++
+      }
+      continue
+    }
+
+    if (pNext && pNext.customSpread === 'bind-prev') {
+      result.push([i, i + 1])
+      i += 2
+      continue
+    }
+
+    const pAfterNext = i + 2 < pages.length ? pages[i + 2] : null
+
+    if (pNext && pAfterNext && pAfterNext.customSpread === 'bind-prev') {
+      result.push([i])
+      i++
+      continue
+    }
+
+    if (pNext && pNext.customSpread === 'bind-next') {
+      result.push([i])
+      i++
+      continue
+    }
+
+    if (pNext && pNext.customSpread === 'center') {
+      result.push([i])
+      i++
+      continue
+    }
+
+    if (pNext && pageShow === 'two') {
+      result.push([i, i + 1])
+      i += 2
+    } else {
+      result.push([i])
+      i++
+    }
+  }
+
+  return result
+}
+
 export function getPageLayoutInfo(options: PageLayoutInfoOptions): PageLayoutInfo {
-  const { pageIndex, pages, coverPosition, pageDirection, pagePositionSetting, pageFitSetting, customSpread } = options
+  const { pageIndex, pages, coverPosition, pageDirection, pagePositionSetting, pageFitSetting, customSpread, pageShow } = options
 
   let spread: 'left' | 'right' | 'center'
 
-  const isSelfCenter = (pageIndex === 0 && coverPosition === 'first-page') ||(customSpread === 'center')
+  if (pages && Array.isArray(pages)) {
+    const pairs = getSpreadPairs(pages, coverPosition, pageShow || 'two')
+    const pair = pairs.find(p => p.includes(pageIndex))
 
-  if (isSelfCenter) {
-    spread = 'center'
-  } else {
-    let pairSlot = 0
-    const startIdx = coverPosition === 'first-page' ? 1 : 0
-
-    if (pages && Array.isArray(pages)) {
-      for (let k = startIdx; k < pageIndex; k++) {
-        const item = pages[k]
-        if (item && item.customSpread === 'center') {
-          pairSlot = 0
-        } else {
-          pairSlot = (pairSlot + 1) % 2
-        }
+    if (!pair || pair.length === 1) {
+      spread = 'center'
+    } else {
+      const firstInPair = pair[0] === pageIndex
+      if (pageDirection === 'right') {
+        spread = firstInPair ? 'right' : 'left'
+      } else {
+        spread = firstInPair ? 'left' : 'right'
       }
+    }
+  } else {
+    const isSelfCenter = (pageIndex === 0 && coverPosition === 'first-page') || ((customSpread as string) === 'center')
+    if (isSelfCenter) {
+      spread = 'center'
     } else {
       const baseIndex = coverPosition === 'first-page' ? pageIndex - 1 : pageIndex
-      pairSlot = Math.max(0, baseIndex) % 2
-    }
-
-    if (pageDirection === 'right') {
-      spread = pairSlot === 0 ? 'right' : 'left'
-    } else {
-      spread = pairSlot === 0 ? 'left' : 'right'
+      const pairSlot = Math.max(0, baseIndex) % 2
+      if (pageDirection === 'right') {
+        spread = pairSlot === 0 ? 'right' : 'left'
+      } else {
+        spread = pairSlot === 0 ? 'left' : 'right'
+      }
     }
   }
 

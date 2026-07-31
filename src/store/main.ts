@@ -603,6 +603,7 @@ class Store {
           pageDirection: this.book.pageDirection,
           pagePositionSetting: this.book.pagePosition,
           pageFitSetting: this.book.pageFit,
+          pageShow: this.book.pageShow,
           customSpread: pageItem.customSpread
         })
 

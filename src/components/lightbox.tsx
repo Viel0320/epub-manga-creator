@@ -3,58 +3,28 @@ import { observer } from 'mobx-react'
 import storeMain, { useStore } from 'store/main'
 import Icon from 'components/icon'
 import { useI18n } from 'i18n'
-import { getPageLayoutInfo } from 'utils/page-layout'
+import { getPageLayoutInfo, getSpreadPairs, CustomSpreadType } from 'utils/page-layout'
+import { getPageEffectiveSize, getModePageSize } from 'utils/page-size'
 
 function getSpreadPair(
   index: number,
-  pages: Array<{ customSpread?: 'center' | 'auto' }>,
+  pages: Array<{ customSpread?: CustomSpreadType }>,
   coverPosition: 'first-page' | 'alone',
-  pageDirection: 'left' | 'right'
+  pageDirection: 'left' | 'right',
+  pageShow: 'two' | 'one' = 'two'
 ): [number | null, number | null] {
   const totalPages = pages.length
   if (totalPages <= 0 || index < 0 || index >= totalPages) return [null, null]
 
-  const isCenter = (coverPosition === 'first-page' && index === 0) || (pages[index]?.customSpread === 'center')
-  if (isCenter) {
-    return pageDirection === 'right' ? [null, index] : [index, null]
+  const pairs = getSpreadPairs(pages, coverPosition, pageShow)
+  const pair = pairs.find(p => p.includes(index))
+
+  if (!pair || pair.length === 1) {
+    const pVal = pair ? pair[0] : index
+    return pageDirection === 'right' ? [null, pVal] : [pVal, null]
   }
 
-  const startIdx = coverPosition === 'first-page' ? 1 : 0
-  let x = startIdx - 1
-  let targetPair: [number | null, number | null] | null = null
-
-  while (x < totalPages - 1) {
-    let p1: number | null = null
-    let p2: number | null = null
-
-    p1 = ++x < totalPages ? x : null
-    const page1Item = p1 !== null ? pages[p1] : null
-
-    if (page1Item && page1Item.customSpread === 'center') {
-      p2 = null
-    } else {
-      const nextIdx = x + 1
-      const nextItem = nextIdx < totalPages ? pages[nextIdx] : null
-      if (nextItem && nextItem.customSpread === 'center') {
-        p2 = null
-      } else {
-        p2 = ++x < totalPages ? x : null
-      }
-    }
-
-    if (p1 === index || p2 === index) {
-      targetPair = [p1, p2]
-      break
-    }
-  }
-
-  if (!targetPair) return [index, null]
-
-  const [p1, p2] = targetPair
-  if (p2 === null) {
-    return pageDirection === 'right' ? [null, p1] : [p1, null]
-  }
-
+  const [p1, p2] = pair
   return pageDirection === 'right' ? [p2, p1] : [p1, p2]
 }
 
@@ -76,20 +46,10 @@ const Lightbox = observer(function() {
   const pageIndex = Math.max(0, Math.min(totalPages - 1, ui.previewPageIndex))
   const isTwoPages = book.pageShow === 'two'
 
-  let leftIndex: number | null = null
-  let rightIndex: number | null = null
-  let isSpreadPair = false
-
-  if (isTwoPages) {
-    const pair = getSpreadPair(pageIndex, book.pages, book.coverPosition, book.pageDirection)
-    leftIndex = pair[0]
-    rightIndex = pair[1]
-    isSpreadPair = leftIndex !== null && rightIndex !== null
-  } else {
-    leftIndex = pageIndex
-    rightIndex = null
-    isSpreadPair = false
-  }
+  const pair = getSpreadPair(pageIndex, book.pages, book.coverPosition, book.pageDirection, book.pageShow)
+  const leftIndex = pair[0]
+  const rightIndex = pair[1]
+  const isSpreadPair = leftIndex !== null && rightIndex !== null
 
   const activeIndices = [leftIndex, rightIndex].filter((x): x is number => x !== null)
   const minIndex = activeIndices.length > 0 ? Math.min(...activeIndices) : pageIndex
@@ -117,7 +77,11 @@ const Lightbox = observer(function() {
     book.updateBookPageProperty('pageShow', isTwoPages ? 'one' : 'two')
   }
 
-  const pageDimensionsText = `${book.pageSize[0]}×${book.pageSize[1]}`
+  const modeSize = getModePageSize(book.pages, blobs.blobs, book.pageSize)
+  const displaySize = book.pageSizeMode === 'auto' ? modeSize : book.pageSize
+  const pageDimensionsText = book.pageSizeMode === 'auto'
+    ? `Auto (${displaySize[0]}×${displaySize[1]})`
+    : `${displaySize[0]}×${displaySize[1]}`
 
   const renderSingleImage = (idx: number, side?: 'left' | 'right') => {
     const page = book.pages[idx]
@@ -126,6 +90,8 @@ const Lightbox = observer(function() {
     const isBlank = page.blank
     const blobItem = isBlank ? null : blobs.blobs[page.blobID]
     const imageURL = blobItem ? blobItem.blobURL : null
+
+    const effectiveSize = getPageEffectiveSize(page, blobItem, book.pageSizeMode, book.pageSize, modeSize)
 
     const pageStr = isTwoPages
       ? `${t.lightbox.page} ${idx + 1}`
@@ -154,13 +120,13 @@ const Lightbox = observer(function() {
     const svgStyle: React.CSSProperties = isTwoPages && side ? {
       width: '100%',
       height: '100%',
-      aspectRatio: `${book.pageSize[0]} / ${book.pageSize[1]}`,
+      aspectRatio: `${effectiveSize[0]} / ${effectiveSize[1]}`,
     } : {
       height: 'calc(88vh - 60px)',
       width: 'auto',
       maxWidth: '82vw',
       maxHeight: 'calc(88vh - 60px)',
-      aspectRatio: `${book.pageSize[0]} / ${book.pageSize[1]}`,
+      aspectRatio: `${effectiveSize[0]} / ${effectiveSize[1]}`,
     }
 
     return (
@@ -186,7 +152,7 @@ const Lightbox = observer(function() {
           <div
             className="lightbox-image lightbox-blank-page d-flex align-items-center justify-content-center"
             style={{
-              aspectRatio: `${book.pageSize[0]} / ${book.pageSize[1]}`,
+              aspectRatio: `${effectiveSize[0]} / ${effectiveSize[1]}`,
               backgroundColor: book.pageBackgroundColor === 'white' ? '#fff' : '#000',
               border: '1px solid rgba(255, 255, 255, 0.15)'
             }}
@@ -199,7 +165,7 @@ const Lightbox = observer(function() {
         ) : imageURL ? (
           <svg
             className="lightbox-image"
-            viewBox={'0 0 ' + book.pageSize.join(' ')}
+            viewBox={'0 0 ' + effectiveSize.join(' ')}
             preserveAspectRatio={layout.par}
             style={svgStyle}
             onClick={onContentClick}

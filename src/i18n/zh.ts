@@ -130,8 +130,14 @@ const zh: Locale = {
     left: '左翻',
     firstPage: '首页',
     alone: '独立封面',
-    setCenter: '设为居中 (Spread Center)',
-    removeCenter: '取消居中 (恢复自动)',
+    singlePageBadge: '单页指定',
+    boundSpreadBadge: '跨页绑定',
+    setCenter: '设为单页',
+    removeCenter: '取消单页 (恢复自动)',
+    bindPrev: '绑定跨页（前一张）',
+    removeBindPrev: '取消跨页绑定',
+    bindNext: '绑定跨页（后一张）',
+    removeBindNext: '取消跨页绑定',
   },
 
   lang: {

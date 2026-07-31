@@ -139,8 +139,14 @@ const en = {
     left: 'Left',
     firstPage: 'First page',
     alone: 'Alone',
-    setCenter: 'Set to Spread Center',
-    removeCenter: 'Remove Spread Center',
+    singlePageBadge: 'Single Page',
+    boundSpreadBadge: 'Bound Spread',
+    setCenter: 'Set to Single Page',
+    removeCenter: 'Remove Single Page (Auto)',
+    bindPrev: 'Bind Spread (Previous)',
+    removeBindPrev: 'Unbind Spread',
+    bindNext: 'Bind Spread (Next)',
+    removeBindNext: 'Unbind Spread',
   },
 
   // Language switcher
