@@ -10,22 +10,41 @@ export declare namespace StoreBook {
     customSpread?: 'center' | 'auto'
   }
 
+  export interface ContributorItem {
+    name: string
+    role: 'ill' | 'trl' | 'edt'
+  }
+
   export interface BookInfoSet {
     bookTitle: string
     bookAuthors: string[]
     bookSubject: string
     bookPublisher: string
+    bookLanguage?: string
+    bookSeriesName?: string
+    bookSeriesVolume?: string
+    bookDescription?: string
+    bookDate?: string
+    bookContributors?: ContributorItem[]
+    bookISBN?: string
   }
 }
 
-type BookPageProperty = 'bookID' | 'bookTitle' | 'bookAuthors' | 'bookSubject' | 'bookPublisher' | 'pageSize' | 'pagePosition' | 'pageShow' | 'pageFit' | 'pageBackgroundColor' | 'pageDirection' | 'coverPosition' | 'imgTag'
+type BookPageProperty = 'bookID' | 'bookISBN' | 'bookTitle' | 'bookAuthors' | 'bookSubject' | 'bookPublisher' | 'bookLanguage' | 'bookSeriesName' | 'bookSeriesVolume' | 'bookDescription' | 'bookDate' | 'bookContributors' | 'pageSize' | 'pagePosition' | 'pageShow' | 'pageFit' | 'pageBackgroundColor' | 'pageDirection' | 'coverPosition' | 'imgTag'
 
 class Store {
   bookID: string = uuid()
+  bookISBN: string = ''
   bookTitle: string = ''
   bookAuthors: string[] = ['']
   bookSubject: string = ''
   bookPublisher: string = ''
+  bookLanguage: string = 'ja'
+  bookSeriesName: string = ''
+  bookSeriesVolume: string = ''
+  bookDescription: string = ''
+  bookDate: string = ''
+  bookContributors: StoreBook.ContributorItem[] = []
 
   pageSize: [number, number] = [250, 353]
   pagePosition: ('center' | 'between') = 'between'
@@ -129,11 +148,18 @@ class Store {
   }
 
   saveBookInfoToSet() {
-    const newSet = {
+    const newSet: StoreBook.BookInfoSet = {
       bookTitle: this.bookTitle,
-      bookAuthors: toJS(this.bookAuthors), // Keep toJS here for deep copy
+      bookAuthors: toJS(this.bookAuthors),
       bookSubject: this.bookSubject,
       bookPublisher: this.bookPublisher,
+      bookLanguage: this.bookLanguage,
+      bookSeriesName: this.bookSeriesName,
+      bookSeriesVolume: this.bookSeriesVolume,
+      bookDescription: this.bookDescription,
+      bookDate: this.bookDate,
+      bookContributors: toJS(this.bookContributors),
+      bookISBN: this.bookISBN,
     }
 
     this.savedSets.push(newSet)
@@ -145,10 +171,17 @@ class Store {
 
   reset() {
     this.bookID = uuid()
+    this.bookISBN = ''
     this.bookTitle = ''
     this.bookAuthors = ['']
     this.bookSubject = ''
     this.bookPublisher = ''
+    this.bookLanguage = 'ja'
+    this.bookSeriesName = ''
+    this.bookSeriesVolume = ''
+    this.bookDescription = ''
+    this.bookDate = ''
+    this.bookContributors = []
     this.pages = []
   }
 
@@ -156,9 +189,16 @@ class Store {
     const selectedSet = this.savedSets[index];
     if (selectedSet) {
       this.bookTitle = selectedSet.bookTitle
-      this.bookAuthors = toJS(selectedSet.bookAuthors) // Keep toJS here to avoid assigning observable to observable
+      this.bookAuthors = toJS(selectedSet.bookAuthors)
       this.bookSubject = selectedSet.bookSubject
       this.bookPublisher = selectedSet.bookPublisher
+      this.bookLanguage = selectedSet.bookLanguage || 'ja'
+      this.bookSeriesName = selectedSet.bookSeriesName || ''
+      this.bookSeriesVolume = selectedSet.bookSeriesVolume || ''
+      this.bookDescription = selectedSet.bookDescription || ''
+      this.bookDate = selectedSet.bookDate || ''
+      this.bookContributors = selectedSet.bookContributors ? toJS(selectedSet.bookContributors) : []
+      this.bookISBN = selectedSet.bookISBN || ''
     }
   }
 }

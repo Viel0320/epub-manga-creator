@@ -379,6 +379,24 @@ html.dark-theme body::before {
   color: var(--text);
 }
 
+.form-select option,
+select option {
+  background-color: #ffffff;
+  color: #1d1d1f;
+}
+
+html.dark-theme .form-select option,
+html.dark-theme select option {
+  background-color: #22242c;
+  color: #f5f5f7;
+}
+
+html.dark-theme .form-select option:checked,
+html.dark-theme select option:checked {
+  background-color: #0a84ff !important;
+  color: #ffffff !important;
+}
+
 /* ---------- Modal ----------------------------------------- */
 
 .modal-backdrop {

@@ -25,9 +25,20 @@ const getText = (): string => `<?xml version="1.0" encoding="UTF-8"?>
 <dc:publisher id="publisher">{{publisher}}</dc:publisher>
 
 <!-- 言语 -->
-<dc:language>ja</dc:language>
+<dc:language>{{language}}</dc:language>
+
+<!-- 贡献者列表 (绘者/译者等) -->
+<!-- contributor-list -->
+
+<!-- 简介与日期 -->
+<!-- description -->
+<!-- date -->
+
+<!-- 系列与卷号 -->
+<!-- collection-info -->
 
 <!-- 文件id -->
+<!-- isbn -->
 <dc:identifier id="unique-id">urn:uuid:{{uuid}}</dc:identifier>
 
 <!-- 更新日 -->

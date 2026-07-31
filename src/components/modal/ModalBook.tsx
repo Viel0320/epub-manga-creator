@@ -4,6 +4,8 @@ import { toJS } from 'mobx';
 import { StoreContext } from 'store/main';
 import Icon from 'components/icon';
 import { useI18n } from 'i18n';
+import { normalizeDateString } from 'utils/date-normalizer';
+import { StoreBook } from 'store/book';
 
 const KeywordPicker = function(props: { keywords: string[], onClick: (str: string) => void }) {
   const onClick = useCallback((e: FormEvent<HTMLButtonElement>) => {
@@ -120,6 +122,10 @@ const ModalBook = observer(function() {
     const eventTarget = e.currentTarget as HTMLInputElement;
     storeBook.updateBookPageProperty('bookID', eventTarget.value);
   }, [storeBook]);
+  const onChangeBookISBN = useCallback((e: FormEvent) => {
+    const eventTarget = e.currentTarget as HTMLInputElement;
+    storeBook.updateBookPageProperty('bookISBN', eventTarget.value);
+  }, [storeBook]);
   const onChangeBookTitle = useCallback((e: FormEvent<HTMLInputElement>) => {
     storeBook.updateBookPageProperty('bookTitle', e.currentTarget.value);
   }, [storeBook]);
@@ -151,6 +157,67 @@ const ModalBook = observer(function() {
   const onChangeBookPublisher = useCallback((e: FormEvent) => {
     const eventTarget = e.currentTarget as HTMLInputElement;
     storeBook.updateBookPageProperty('bookPublisher', eventTarget.value);
+  }, [storeBook]);
+
+  const onChangeBookLanguage = useCallback((e: FormEvent<HTMLSelectElement>) => {
+    storeBook.updateBookPageProperty('bookLanguage', e.currentTarget.value);
+  }, [storeBook]);
+
+  const onChangeBookSeriesName = useCallback((e: FormEvent<HTMLInputElement>) => {
+    storeBook.updateBookPageProperty('bookSeriesName', e.currentTarget.value);
+  }, [storeBook]);
+
+  const onChangeBookSeriesVolume = useCallback((e: FormEvent<HTMLInputElement>) => {
+    storeBook.updateBookPageProperty('bookSeriesVolume', e.currentTarget.value);
+  }, [storeBook]);
+
+  const onChangeBookDescription = useCallback((e: FormEvent<HTMLTextAreaElement>) => {
+    storeBook.updateBookPageProperty('bookDescription', e.currentTarget.value);
+  }, [storeBook]);
+
+  const onChangeDateText = useCallback((e: FormEvent<HTMLInputElement>) => {
+    storeBook.updateBookPageProperty('bookDate', e.currentTarget.value);
+  }, [storeBook]);
+
+  const onBlurDateText = useCallback(() => {
+    if (storeBook.bookDate) {
+      const normalized = normalizeDateString(storeBook.bookDate);
+      if (normalized !== storeBook.bookDate) {
+        storeBook.updateBookPageProperty('bookDate', normalized);
+      }
+    }
+  }, [storeBook]);
+
+  const onChangeDatePicker = useCallback((e: FormEvent<HTMLInputElement>) => {
+    storeBook.updateBookPageProperty('bookDate', e.currentTarget.value);
+  }, [storeBook]);
+
+  const onAddContributor = useCallback(() => {
+    const list = [...toJS(storeBook.bookContributors || [])];
+    list.push({ name: '', role: 'ill' });
+    storeBook.updateBookPageProperty('bookContributors', list);
+  }, [storeBook]);
+
+  const onRemoveContributor = useCallback((index: number) => {
+    const list = [...toJS(storeBook.bookContributors || [])];
+    list.splice(index, 1);
+    storeBook.updateBookPageProperty('bookContributors', list);
+  }, [storeBook]);
+
+  const onChangeContributorName = useCallback((index: number, name: string) => {
+    const list = [...toJS(storeBook.bookContributors || [])];
+    if (list[index]) {
+      list[index].name = name;
+      storeBook.updateBookPageProperty('bookContributors', list);
+    }
+  }, [storeBook]);
+
+  const onChangeContributorRole = useCallback((index: number, role: 'ill' | 'trl' | 'edt') => {
+    const list = [...toJS(storeBook.bookContributors || [])];
+    if (list[index]) {
+      list[index].role = role;
+      storeBook.updateBookPageProperty('bookContributors', list);
+    }
   }, [storeBook]);
 
   const onChangeTitleFromPicker = useCallback((value: string) => {
@@ -224,16 +291,17 @@ const ModalBook = observer(function() {
   });
 
   return (
-    <div className="modal-dialog modal-lg" onClick={onClickModal}>
+    <div className="modal-dialog modal-xl" onClick={onClickModal}>
       <div className="modal-content">
         <div className="modal-header">
           <h5 className="modal-title">{t.book.modalTitle}</h5>
           <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close" onClick={onClickClose}></button>
         </div>
         <div className="modal-body" onClick={onClickModalBody}>
+          {/* 1. 文件名 */}
           <div className="mb-3 row">
-            <label htmlFor="input-filename" className="col-sm-2 col-form-label text-end">{t.book.filename}</label>
-            <div className="col-sm-10">
+            <label htmlFor="input-filename" className="col-sm-3 col-form-label text-end">{t.book.filename}</label>
+            <div className="col-sm-9">
               <div className="input-group">
                 <input type="text" className="form-control" id="input-filename" value={fileName} onInput={onChangeFileName}/>
                 <button
@@ -246,24 +314,41 @@ const ModalBook = observer(function() {
               </div>
             </div>
           </div>
+
+          {/* 2. ID & ISBN 双列并排 */}
           <div className="mb-3 row">
-            <label htmlFor="input-book-id" className="col-sm-2 col-form-label text-end">{t.book.id}</label>
-            <div className="col-sm-10">
+            <label htmlFor="input-book-id" className="col-sm-3 col-form-label text-end">{t.book.id}</label>
+            <div className="col-sm-3">
               <input type="text" className="form-control" id="input-book-id" value={storeBook.bookID} onInput={onChangeBookID}/>
             </div>
+            <label htmlFor="input-book-isbn" className="col-sm-3 col-form-label text-end">{t.book.isbn}</label>
+            <div className="col-sm-3">
+              <input
+                type="text"
+                className="form-control"
+                id="input-book-isbn"
+                spellCheck={false}
+                value={storeBook.bookISBN || ''}
+                onInput={onChangeBookISBN}
+              />
+            </div>
           </div>
+
+          {/* 3. 标题 */}
           <div className="mb-3 row">
-            <label htmlFor="input-book-title" className="col-sm-2 col-form-label text-end">{t.book.title}</label>
-            <div className="col-sm-10">
+            <label htmlFor="input-book-title" className="col-sm-3 col-form-label text-end">{t.book.title}</label>
+            <div className="col-sm-9">
               <input type="text" className="form-control" id="input-book-title" value={storeBook.bookTitle} onInput={onChangeBookTitle}/>
               <div className={keywordsLength ? "mt-3" : ''}>
                 <KeywordPicker keywords={keywords} onClick={onChangeTitleFromPicker}/>
               </div>
             </div>
           </div>
+
+          {/* 4. 作者 */}
           <div className="mb-3 row">
-            <label htmlFor="input-book-author" className="col-sm-2 col-form-label text-end">{t.book.author}</label>
-            <div className="col-sm-10">
+            <label htmlFor="input-book-author" className="col-sm-3 col-form-label text-end">{t.book.author}</label>
+            <div className="col-sm-9">
               {
                 storeBook.bookAuthors.map((name: string, index: number) => (
                   <div key={index} className={"input-group" + ((index + 1) === storeBook.bookAuthors.length ? '' : ' mb-3')}>
@@ -293,23 +378,11 @@ const ModalBook = observer(function() {
               </div>
             </div>
           </div>
+
+          {/* 5. 出版商 & 出版日期 双列并排 */}
           <div className="mb-3 row">
-            <label htmlFor="input-book-subject" className="col-sm-2 col-form-label text-end">{t.book.subject}</label>
-            <div className="col-sm-10">
-              <input type="text" className="form-control" list="dl-subject" id="input-book-subject" value={storeBook.bookSubject} onInput={onChangeBookSubject}/>
-              <datalist id="dl-subject">
-                <option value="少年" />
-                <option value="少女" />
-                <option value="青年" />
-                <option value="同人誌" />
-                <option value="漫画" />
-                <option value="成年コミック" />
-              </datalist>
-            </div>
-          </div>
-          <div className="mb-3 row">
-            <label htmlFor="input-book-publisher" className="col-sm-2 col-form-label text-end">{t.book.publisher}</label>
-            <div className="col-sm-10">
+            <label htmlFor="input-book-publisher" className="col-sm-3 col-form-label text-end">{t.book.publisher}</label>
+            <div className="col-sm-3">
               <input type="text" className="form-control" list="dl-publisher" id="input-book-publisher" value={storeBook.bookPublisher} onInput={onChangeBookPublisher}/>
               <datalist id="dl-publisher">
                 <option value="KADOKAWA" />
@@ -325,9 +398,143 @@ const ModalBook = observer(function() {
                 <option value="ワニマガジン社" />
                 <option value="FAKKU" />
               </datalist>
-              <div className={keywordsLength ? "mt-3" : ''}>
+            </div>
+            <label htmlFor="input-book-date" className="col-sm-3 col-form-label text-end">{t.book.date}</label>
+            <div className="col-sm-3">
+              <div className="input-group">
+                <input
+                  type="text"
+                  className="form-control"
+                  id="input-book-date"
+                  value={storeBook.bookDate || ''}
+                  onInput={onChangeDateText}
+                  onBlur={onBlurDateText}
+                />
+                <div
+                  className="btn btn-outline-secondary position-relative d-flex justify-content-center align-items-center"
+                  style={{ width: '42px', padding: 0 }}
+                  title="选择日期"
+                >
+                  <Icon name="calendar" />
+                  <input
+                    type="date"
+                    className="position-absolute w-100 h-100 top-0 start-0 opacity-0"
+                    style={{ cursor: 'pointer' }}
+                    value={/^\d{4}-\d{2}-\d{2}$/.test(storeBook.bookDate) ? storeBook.bookDate : ''}
+                    onChange={onChangeDatePicker}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          {keywordsLength ? (
+            <div className="mb-3 row">
+              <div className="col-sm-9 offset-sm-3">
                 <KeywordPicker keywords={keywords} onClick={onChangePublisherFromPicker}/>
               </div>
+            </div>
+          ) : null}
+
+          {/* 6. 语言 & 主题/分类 双列并排 */}
+          <div className="mb-3 row">
+            <label htmlFor="select-book-language" className="col-sm-3 col-form-label text-end">{t.book.language}</label>
+            <div className="col-sm-3">
+              <select
+                id="select-book-language"
+                className="form-select"
+                value={storeBook.bookLanguage || 'ja'}
+                onChange={onChangeBookLanguage}
+              >
+                <option value="ja">日本語 (ja)</option>
+                <option value="zh-CN">简体中文 (zh-CN)</option>
+                <option value="zh-TW">繁體中文 (zh-TW)</option>
+                <option value="zh-HK">繁體中文 - 香港 (zh-HK)</option>
+                <option value="en">English (en)</option>
+                <option value="ko">한국어 (ko)</option>
+                <option value="fr">Français (fr)</option>
+                <option value="de">Deutsch (de)</option>
+                <option value="es">Español (es)</option>
+                <option value="it">Italiano (it)</option>
+                <option value="ru">Русский (ru)</option>
+                <option value="pt">Português (pt)</option>
+              </select>
+            </div>
+            <label htmlFor="input-book-subject" className="col-sm-3 col-form-label text-end">{t.book.subject}</label>
+            <div className="col-sm-3">
+              <input type="text" className="form-control" list="dl-subject" id="input-book-subject" value={storeBook.bookSubject} onInput={onChangeBookSubject}/>
+              <datalist id="dl-subject">
+                <option value="少年" />
+                <option value="少女" />
+                <option value="青年" />
+                <option value="同人誌" />
+                <option value="漫画" />
+                <option value="成年コミック" />
+              </datalist>
+            </div>
+          </div>
+
+          {/* 7. 系列名称 & 卷号 双列并排 */}
+          <div className="mb-3 row">
+            <label htmlFor="input-book-series" className="col-sm-3 col-form-label text-end">{t.book.seriesName}</label>
+            <div className="col-sm-3">
+              <input type="text" className="form-control" id="input-book-series" value={storeBook.bookSeriesName || ''} onInput={onChangeBookSeriesName}/>
+            </div>
+            <label htmlFor="input-book-volume" className="col-sm-3 col-form-label text-end">{t.book.seriesVolume}</label>
+            <div className="col-sm-3">
+              <input type="text" className="form-control" id="input-book-volume" value={storeBook.bookSeriesVolume || ''} onInput={onChangeBookSeriesVolume}/>
+            </div>
+          </div>
+
+          {/* 8. 贡献者列表 */}
+          <div className="mb-3 row">
+            <label className="col-sm-3 col-form-label text-end">{t.book.contributor}</label>
+            <div className="col-sm-9">
+              {
+                (storeBook.bookContributors || []).map((item, index) => (
+                  <div key={index} className="input-group mb-2">
+                    <select
+                      className="form-select"
+                      style={{ maxWidth: '175px' }}
+                      value={item.role}
+                      onChange={(e) => onChangeContributorRole(index, e.target.value as any)}
+                    >
+                      <option value="ill">{t.book.roleIll}</option>
+                      <option value="trl">{t.book.roleTrl}</option>
+                      <option value="edt">{t.book.roleEdt}</option>
+                    </select>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={item.name}
+                      onInput={(e) => onChangeContributorName(index, (e.target as HTMLInputElement).value)}
+                    />
+                    <button
+                      className="btn btn-outline-secondary d-flex justify-content-center align-items-center"
+                      type="button"
+                      onClick={() => onRemoveContributor(index)}
+                    >
+                      <Icon name="minus"></Icon>
+                    </button>
+                  </div>
+                ))
+              }
+              <button type="button" className="btn btn-outline-secondary btn-sm" onClick={onAddContributor}>
+                <Icon name="plus" /> <span className="ms-1">{t.book.addContributor}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* 9. 内容简介 */}
+          <div className="mb-3 row">
+            <label htmlFor="input-book-desc" className="col-sm-3 col-form-label text-end">{t.book.description}</label>
+            <div className="col-sm-9">
+              <textarea
+                className="form-control"
+                id="input-book-desc"
+                rows={3}
+                value={storeBook.bookDescription || ''}
+                onInput={onChangeBookDescription}
+              />
             </div>
           </div>
         </div>

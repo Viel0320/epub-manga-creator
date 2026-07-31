@@ -131,6 +131,13 @@ class Store {
         this.book.bookAuthors = backup.bookInfo.bookAuthors?.length ? backup.bookInfo.bookAuthors : ['']
         this.book.bookSubject = backup.bookInfo.bookSubject || ''
         this.book.bookPublisher = backup.bookInfo.bookPublisher || ''
+        this.book.bookLanguage = (backup.bookInfo as any).bookLanguage || 'ja'
+        this.book.bookSeriesName = (backup.bookInfo as any).bookSeriesName || ''
+        this.book.bookSeriesVolume = (backup.bookInfo as any).bookSeriesVolume || ''
+        this.book.bookDescription = (backup.bookInfo as any).bookDescription || ''
+        this.book.bookDate = (backup.bookInfo as any).bookDate || ''
+        this.book.bookContributors = Array.isArray((backup.bookInfo as any).bookContributors) ? (backup.bookInfo as any).bookContributors : []
+        this.book.bookISBN = (backup.bookInfo as any).bookISBN || ''
       }
 
       if (backup.pageSettings) {
@@ -582,14 +589,49 @@ class Store {
       ].join('\n')
     }).join('\n')
 
+    let contributorsStr = (this.book.bookContributors || []).map((item, i) => {
+      if (!item.name.trim()) return ''
+      return [
+        `<dc:contributor id="contrib${i + 1}">${htmlToEscape(item.name.trim())}</dc:contributor>`,
+        `<meta refines="#contrib${i + 1}" property="role" scheme="marc:relators">${item.role}</meta>`
+      ].join('\n')
+    }).filter(Boolean).join('\n')
+
+    let descriptionStr = this.book.bookDescription.trim()
+      ? `<dc:description>${htmlToEscape(this.book.bookDescription.trim())}</dc:description>`
+      : ''
+
+    let dateStr = this.book.bookDate.trim()
+      ? `<dc:date>${htmlToEscape(this.book.bookDate.trim())}</dc:date>`
+      : ''
+
+    let collectionStr = ''
+    if (this.book.bookSeriesName.trim()) {
+      collectionStr = [
+        `<meta property="belongs-to-collection" id="c01">${htmlToEscape(this.book.bookSeriesName.trim())}</meta>`,
+        `<meta refines="#c01" property="collection-type">series</meta>`,
+        this.book.bookSeriesVolume.trim() ? `<meta refines="#c01" property="group-position">${htmlToEscape(this.book.bookSeriesVolume.trim())}</meta>` : ''
+      ].filter(Boolean).join('\n')
+    }
+
+    let isbnStr = this.book.bookISBN.trim()
+      ? `<dc:identifier id="isbn-id">urn:isbn:${htmlToEscape(this.book.bookISBN.trim())}</dc:identifier>`
+      : ''
+
     const primaryWritingMode = this.book.pageDirection === 'right' ? 'horizontal-rl' : 'horizontal-lr'
 
     templateStandardOpf = templateStandardOpf
       .replace('{{uuid}}', () => htmlToEscape(this.book.bookID))
+      .replace('<!-- isbn -->', () => isbnStr)
       .replace('{{title}}', () => bookTitle)
       .replace('<!-- creator-list -->', () => authorsStr)
       .replace('{{subject}}', () => htmlToEscape(this.book.bookSubject))
       .replace('{{publisher}}', () => htmlToEscape(this.book.bookPublisher))
+      .replace('{{language}}', () => htmlToEscape(this.book.bookLanguage || 'ja'))
+      .replace('<!-- contributor-list -->', () => contributorsStr)
+      .replace('<!-- description -->', () => descriptionStr)
+      .replace('<!-- date -->', () => dateStr)
+      .replace('<!-- collection-info -->', () => collectionStr)
       .replace('{{primaryWritingMode}}', primaryWritingMode)
       .replace('{{spread}}', this.book.pageShow === 'one' ? 'none' : 'landscape')
       .replace('{{createTime}}', new Date().toISOString())
@@ -696,6 +738,13 @@ autorun(() => {
       bookAuthors: toJS(store.book.bookAuthors),
       bookSubject: store.book.bookSubject,
       bookPublisher: store.book.bookPublisher,
+      bookLanguage: store.book.bookLanguage,
+      bookSeriesName: store.book.bookSeriesName,
+      bookSeriesVolume: store.book.bookSeriesVolume,
+      bookDescription: store.book.bookDescription,
+      bookDate: store.book.bookDate,
+      bookContributors: toJS(store.book.bookContributors),
+      bookISBN: store.book.bookISBN,
     },
     pageSettings: {
       pageSize: toJS(store.book.pageSize),
