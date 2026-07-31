@@ -184,10 +184,10 @@ const RestoreBanner = observer(function() {
   if (!hasBackup || storeMain.isAutoSaveActive) return null
 
   return (
-    <div className="alert alert-info d-flex justify-content-between align-items-center" role="alert">
+    <div className="alert alert-info restore-alert-banner d-flex justify-content-between align-items-center" role="alert">
       <span>{t.main.restoreDetected}</span>
-      <div>
-        <button className="btn btn-sm btn-primary me-2" onClick={onRestore}>
+      <div className="d-flex gap-2 ms-3">
+        <button className="btn btn-sm btn-primary" onClick={onRestore}>
           {t.main.restore}
         </button>
         <button className="btn btn-sm btn-outline-secondary" onClick={onDismiss}>

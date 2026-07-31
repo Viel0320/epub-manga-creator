@@ -519,7 +519,19 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
   box-shadow: var(--shadow-panel);
 }
 
-#main > .alert { width: 320px; margin: auto; }
+#main > .alert,
+.restore-alert-banner {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  width: max-content;
+  max-width: 90vw;
+  margin: 0;
+  box-sizing: border-box;
+  box-shadow: var(--shadow-panel);
+}
 
 #main .row { width: 100%; }
 #main .row.page-row { margin: 0 0 22px 0; }
