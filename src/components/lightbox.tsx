@@ -97,40 +97,7 @@ const Lightbox = observer(function() {
     book.updateBookPageProperty('pageShow', isTwoPages ? 'one' : 'two')
   }
 
-  // Header Title & Bookmark info
-  let pageNumberText = ''
-  if (isSpreadPair && leftIndex !== null && rightIndex !== null) {
-    const pFirst = Math.min(leftIndex, rightIndex) + 1
-    const pSecond = Math.max(leftIndex, rightIndex) + 1
-    pageNumberText = `${t.lightbox.page} ${pFirst}-${pSecond} / ${totalPages}`
-  } else {
-    pageNumberText = `${t.lightbox.page} ${minIndex + 1} / ${totalPages}`
-  }
-
   const pageDimensionsText = `${book.pageSize[0]}×${book.pageSize[1]}`
-
-  const imageDimensionsText = activeIndices
-    .map(idx => {
-      const page = book.pages[idx]
-      if (!page) return null
-      if (page.blank) {
-        return `${book.pageSize[0]}×${book.pageSize[1]}`
-      }
-      const blobItem = blobs.blobs[page.blobID]
-      if (blobItem && blobItem.originImage) {
-        return `${blobItem.originImage.width}×${blobItem.originImage.height}`
-      }
-      return null
-    })
-    .filter((d): d is string => d !== null)
-    .join(' / ')
-
-  const bookmarkTitles = activeIndices
-    .map(idx => {
-      const listIdx = totalPages > 0 ? storeMain.contents.indexMap[idx] : undefined
-      return listIdx !== undefined ? storeMain.contents.list[listIdx]?.title : null
-    })
-    .filter(Boolean)
 
   const renderSingleImage = (idx: number) => {
     const page = book.pages[idx]
@@ -140,38 +107,65 @@ const Lightbox = observer(function() {
     const blobItem = isBlank ? null : blobs.blobs[page.blobID]
     const imageURL = blobItem ? blobItem.blobURL : null
 
+    const pageStr = isTwoPages
+      ? `${t.lightbox.page} ${idx + 1}`
+      : `${t.lightbox.page} ${idx + 1} / ${totalPages}`
+
+    let sizeStr = ''
     if (isBlank) {
-      return (
-        <div
-          key={idx}
-          className="lightbox-image lightbox-blank-page d-flex align-items-center justify-content-center"
-          style={{
-            aspectRatio: `${book.pageSize[0]} / ${book.pageSize[1]}`,
-            backgroundColor: book.pageBackgroundColor === 'white' ? '#fff' : '#000',
-            border: '1px solid rgba(255, 255, 255, 0.15)'
-          }}
-          onClick={onContentClick}
-        >
-          <span style={{ color: book.pageBackgroundColor === 'white' ? '#000' : '#fff', fontSize: '24px', fontWeight: 'bold' }}>
-            {t.lightbox.blankPage}
-          </span>
+      sizeStr = t.lightbox.blankPage
+    } else if (blobItem && blobItem.originImage) {
+      sizeStr = `${blobItem.originImage.width}×${blobItem.originImage.height}`
+    }
+
+    const listIdx = totalPages > 0 ? storeMain.contents.indexMap[idx] : undefined
+    const bookmarkTitle = listIdx !== undefined ? storeMain.contents.list[listIdx]?.title : null
+
+    return (
+      <div key={idx} className="lightbox-page-wrapper">
+        {/* Page Chip aligned strictly to this image's vertical center axis */}
+        <div className="lightbox-page-chip" onClick={onContentClick}>
+          <span>{pageStr}</span>
+          {sizeStr ? (
+            <>
+              <span>•</span>
+              <span className="chip-dim">{sizeStr}</span>
+            </>
+          ) : null}
+          {bookmarkTitle ? (
+            <>
+              <span>•</span>
+              <span className="chip-bookmark">{bookmarkTitle}</span>
+            </>
+          ) : null}
         </div>
-      )
-    }
 
-    if (imageURL) {
-      return (
-        <img
-          key={idx}
-          src={imageURL}
-          alt={`Page ${idx + 1}`}
-          className="lightbox-image"
-          onClick={onContentClick}
-        />
-      )
-    }
-
-    return <div key={idx} className="spinner-border text-primary" role="status"></div>
+        {isBlank ? (
+          <div
+            className="lightbox-image lightbox-blank-page d-flex align-items-center justify-content-center"
+            style={{
+              aspectRatio: `${book.pageSize[0]} / ${book.pageSize[1]}`,
+              backgroundColor: book.pageBackgroundColor === 'white' ? '#fff' : '#000',
+              border: '1px solid rgba(255, 255, 255, 0.15)'
+            }}
+            onClick={onContentClick}
+          >
+            <span style={{ color: book.pageBackgroundColor === 'white' ? '#000' : '#fff', fontSize: '24px', fontWeight: 'bold' }}>
+              {t.lightbox.blankPage}
+            </span>
+          </div>
+        ) : imageURL ? (
+          <img
+            src={imageURL}
+            alt={`Page ${idx + 1}`}
+            className="lightbox-image"
+            onClick={onContentClick}
+          />
+        ) : (
+          <div className="spinner-border text-primary" role="status"></div>
+        )}
+      </div>
+    )
   }
 
   return (
@@ -188,25 +182,8 @@ const Lightbox = observer(function() {
           <span className="toggle-text">{isTwoPages ? t.option.twoPages : t.option.onePage}</span>
         </button>
 
-        {/* Floating Header */}
+        {/* Central Floating Header: Displays Book Page Size */}
         <div className="lightbox-header">
-          <span>{pageNumberText}</span>
-          {imageDimensionsText ? (
-            <>
-              <span>•</span>
-              <span className="page-size">{imageDimensionsText}</span>
-            </>
-          ) : null}
-          {bookmarkTitles.map((title, i) => (
-            <React.Fragment key={i}>
-              <span>•</span>
-              <span className="page-title">{title}</span>
-            </React.Fragment>
-          ))}
-        </div>
-
-        {/* Page Size Chip (Top Right) */}
-        <div className="lightbox-size-chip" title={t.page.size}>
           <Icon name="ruler" />
           <span>{pageDimensionsText}</span>
         </div>
