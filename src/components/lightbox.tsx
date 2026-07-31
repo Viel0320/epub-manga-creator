@@ -7,30 +7,55 @@ import { getPageLayoutInfo } from 'utils/page-layout'
 
 function getSpreadPair(
   index: number,
+  pages: Array<{ customSpread?: 'center' | 'auto' }>,
   coverPosition: 'first-page' | 'alone',
-  pageDirection: 'left' | 'right',
-  totalPages: number
+  pageDirection: 'left' | 'right'
 ): [number | null, number | null] {
-  if (totalPages <= 0) return [null, null]
+  const totalPages = pages.length
+  if (totalPages <= 0 || index < 0 || index >= totalPages) return [null, null]
 
-  if (coverPosition === 'first-page') {
-    // 封面单独占用单面，不与任何页面拼接
-    if (index === 0) {
-      return pageDirection === 'right' ? [null, 0] : [0, null]
-    }
-    // index >= 1 正文两两成对：(1,2), (3,4), (5,6)...
-    const offset = index - 1
-    const group = Math.floor(offset / 2)
-    const p1 = 1 + group * 2
-    const p2 = p1 + 1 < totalPages ? p1 + 1 : null
-    return pageDirection === 'right' ? [p2, p1] : [p1, p2]
-  } else {
-    // coverPosition === 'alone'：从 0 开始两两成对：(0,1), (2,3), (4,5)...
-    const group = Math.floor(index / 2)
-    const p1 = group * 2
-    const p2 = p1 + 1 < totalPages ? p1 + 1 : null
-    return pageDirection === 'right' ? [p2, p1] : [p1, p2]
+  const isCenter = (coverPosition === 'first-page' && index === 0) || (pages[index]?.customSpread === 'center')
+  if (isCenter) {
+    return pageDirection === 'right' ? [null, index] : [index, null]
   }
+
+  const startIdx = coverPosition === 'first-page' ? 1 : 0
+  let x = startIdx - 1
+  let targetPair: [number | null, number | null] | null = null
+
+  while (x < totalPages - 1) {
+    let p1: number | null = null
+    let p2: number | null = null
+
+    p1 = ++x < totalPages ? x : null
+    const page1Item = p1 !== null ? pages[p1] : null
+
+    if (page1Item && page1Item.customSpread === 'center') {
+      p2 = null
+    } else {
+      const nextIdx = x + 1
+      const nextItem = nextIdx < totalPages ? pages[nextIdx] : null
+      if (nextItem && nextItem.customSpread === 'center') {
+        p2 = null
+      } else {
+        p2 = ++x < totalPages ? x : null
+      }
+    }
+
+    if (p1 === index || p2 === index) {
+      targetPair = [p1, p2]
+      break
+    }
+  }
+
+  if (!targetPair) return [index, null]
+
+  const [p1, p2] = targetPair
+  if (p2 === null) {
+    return pageDirection === 'right' ? [null, p1] : [p1, null]
+  }
+
+  return pageDirection === 'right' ? [p2, p1] : [p1, p2]
 }
 
 const Lightbox = observer(function() {
@@ -56,16 +81,10 @@ const Lightbox = observer(function() {
   let isSpreadPair = false
 
   if (isTwoPages) {
-    if (book.coverPosition === 'first-page' && pageIndex === 0) {
-      leftIndex = 0
-      rightIndex = null
-      isSpreadPair = false
-    } else {
-      const pair = getSpreadPair(pageIndex, book.coverPosition, book.pageDirection, totalPages)
-      leftIndex = pair[0]
-      rightIndex = pair[1]
-      isSpreadPair = leftIndex !== null && rightIndex !== null
-    }
+    const pair = getSpreadPair(pageIndex, book.pages, book.coverPosition, book.pageDirection)
+    leftIndex = pair[0]
+    rightIndex = pair[1]
+    isSpreadPair = leftIndex !== null && rightIndex !== null
   } else {
     leftIndex = pageIndex
     rightIndex = null
@@ -128,8 +147,21 @@ const Lightbox = observer(function() {
       coverPosition: book.coverPosition,
       pageDirection: book.pageDirection,
       pagePositionSetting: book.pagePosition,
-      pageFitSetting: book.pageFit
+      pageFitSetting: book.pageFit,
+      customSpread: page?.customSpread
     })
+
+    const svgStyle: React.CSSProperties = isTwoPages && side ? {
+      width: '100%',
+      height: '100%',
+      aspectRatio: `${book.pageSize[0]} / ${book.pageSize[1]}`,
+    } : {
+      height: 'calc(88vh - 60px)',
+      width: 'auto',
+      maxWidth: '82vw',
+      maxHeight: 'calc(88vh - 60px)',
+      aspectRatio: `${book.pageSize[0]} / ${book.pageSize[1]}`,
+    }
 
     return (
       <div key={idx} className="lightbox-page-wrapper">
@@ -168,13 +200,8 @@ const Lightbox = observer(function() {
           <svg
             className="lightbox-image"
             viewBox={'0 0 ' + book.pageSize.join(' ')}
-            style={{
-              height: 'calc(88vh - 60px)',
-              width: 'auto',
-              maxWidth: isTwoPages ? '42vw' : '82vw',
-              maxHeight: 'calc(88vh - 60px)',
-              aspectRatio: `${book.pageSize[0]} / ${book.pageSize[1]}`,
-            }}
+            preserveAspectRatio={layout.par}
+            style={svgStyle}
             onClick={onContentClick}
           >
             <rect x="0" y="0" width="100%" height="100%" fill={book.pageBackgroundColor === 'white' ? '#fff' : '#000'} />
@@ -230,7 +257,10 @@ const Lightbox = observer(function() {
 
         {/* Display Content */}
         {isSpreadPair ? (
-          <div className="lightbox-spread-wrapper" onClick={onContentClick}>
+          <div
+            className="lightbox-spread-wrapper"
+            onClick={onContentClick}
+          >
             {leftIndex !== null && renderSingleImage(leftIndex, 'left')}
             {rightIndex !== null && renderSingleImage(rightIndex, 'right')}
           </div>

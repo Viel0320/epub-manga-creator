@@ -180,7 +180,9 @@ const PageCard = observer(function(props: {
         props.blobItem || (!props.blobItem && props.blank) ? (
           <svg
             className="card-image"
-            viewBox={'0 0 ' + storeBook.pageSize.join(' ')} onClick={onClickImage}
+            viewBox={'0 0 ' + storeBook.pageSize.join(' ')}
+            preserveAspectRatio={preserveAspectRatio}
+            onClick={onClickImage}
           >
             <rect x="0" y="0" width="100%" height="100%" fill={storeBook.pageBackgroundColor === 'white' ? '#fff' : '#000'}/>
             {

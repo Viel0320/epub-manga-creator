@@ -849,14 +849,29 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
   justify-content: center;
   max-width: 86vw;
   max-height: calc(88vh - 60px);
+  height: calc(88vh - 60px);
+  width: min(86vw, calc((88vh - 60px) * 1.5));
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-panel);
   overflow: visible;
 }
 
+.lightbox-spread-wrapper .lightbox-page-wrapper {
+  flex: 1 1 50%;
+  max-width: 50%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
 .lightbox-spread-wrapper .lightbox-image {
-  max-width: 42vw;
-  max-height: calc(88vh - 60px);
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
   box-shadow: none;
   border-radius: 0;
 }
@@ -871,8 +886,8 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
 }
 
 .lightbox-spread-wrapper .lightbox-blank-page {
-  max-width: 42vw;
-  height: calc(88vh - 60px);
+  width: 100%;
+  height: 100%;
   box-shadow: none;
   border-radius: 0;
 }

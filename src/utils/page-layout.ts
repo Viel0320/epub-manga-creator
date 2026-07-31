@@ -20,29 +20,32 @@ export function getPageLayoutInfo(options: PageLayoutInfoOptions): PageLayoutInf
 
   let spread: 'left' | 'right' | 'center'
 
-  const isSelfCenter = (pageIndex === 0 && (coverPosition === 'first-page' || coverPosition === 'alone')) ||
-                       (pageIndex !== 0 && customSpread === 'center')
+  const isSelfCenter = (pageIndex === 0 && coverPosition === 'first-page') ||(customSpread === 'center')
 
   if (isSelfCenter) {
     spread = 'center'
   } else {
-    let centerCountBefore = 0
+    let pairSlot = 0
+    const startIdx = coverPosition === 'first-page' ? 1 : 0
+
     if (pages && Array.isArray(pages)) {
-      for (let k = 1; k < pageIndex; k++) {
+      for (let k = startIdx; k < pageIndex; k++) {
         const item = pages[k]
         if (item && item.customSpread === 'center') {
-          centerCountBefore++
+          pairSlot = 0
+        } else {
+          pairSlot = (pairSlot + 1) % 2
         }
       }
+    } else {
+      const baseIndex = coverPosition === 'first-page' ? pageIndex - 1 : pageIndex
+      pairSlot = Math.max(0, baseIndex) % 2
     }
 
-    const baseIndex = pageIndex - 1
-    const effectivePos = baseIndex - centerCountBefore
-
     if (pageDirection === 'right') {
-      spread = effectivePos % 2 === 0 ? 'right' : 'left'
+      spread = pairSlot === 0 ? 'right' : 'left'
     } else {
-      spread = effectivePos % 2 === 0 ? 'left' : 'right'
+      spread = pairSlot === 0 ? 'left' : 'right'
     }
   }
 
