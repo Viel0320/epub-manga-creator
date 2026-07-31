@@ -117,6 +117,8 @@ const zh: Locale = {
     left: '左翻',
     firstPage: '首页',
     alone: '独立封面',
+    setCenter: '设为居中 (Spread Center)',
+    removeCenter: '取消居中 (恢复自动)',
   },
 
   lang: {

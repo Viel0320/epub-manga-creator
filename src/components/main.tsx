@@ -5,6 +5,7 @@ import storeBlobs, { StoreBlobs } from 'store/blobs'
 import Icon from './icon'
 import { useI18n } from 'i18n'
 import { db } from 'utils/db'
+import { getPageLayoutInfo } from 'utils/page-layout'
 
 const THIS_YEAR = (new Date()).getFullYear()
 
@@ -14,6 +15,7 @@ const PageCard = observer(function(props: {
   blobItem?: StoreBlobs.ImageBlob | null
   pagePosition: 'center' | 'left' | 'right'
   blank: boolean
+  onContextMenu?: (e: React.MouseEvent, pageIndex: number) => void
 }) {
   const { ui: storeUI, book: storeBook, contents: storeContent } = useStore()
   const t = useI18n()
@@ -23,6 +25,16 @@ const PageCard = observer(function(props: {
   const onClickImage = useCallback(() => {
     storeMain.ui.selectPageIndex(props.pageItemIndex)
   }, [props.pageItemIndex])
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    if (props.realPageIndex !== undefined && props.realPageIndex !== null && props.realPageIndex > 0) {
+      e.preventDefault()
+      e.stopPropagation()
+      if (props.onContextMenu) {
+        props.onContextMenu(e, props.realPageIndex)
+      }
+    }
+  }
 
   if (props.pageItemIndex === null) {
     return (
@@ -136,11 +148,17 @@ const PageCard = observer(function(props: {
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
+      onContextMenu={handleContextMenu}
     >
       {
         props.pageItemIndex in storeContent.indexMap
           ? <div className="bookmark-ribbon" title={storeContent.list[storeContent.indexMap[props.pageItemIndex]].title} />
           : null
+      }
+      {
+        props.realPageIndex !== undefined && props.realPageIndex !== null && props.realPageIndex > 0 && storeBook.pages[props.realPageIndex]?.customSpread === 'center' ? (
+          <div className="card-center-badge">Center</div>
+        ) : null
       }
       {
         props.pageItemIndex !== null && (props.blobItem || props.blank) && (
@@ -197,6 +215,7 @@ const PageCard = observer(function(props: {
 
 const DoublePageCard = observer(function(props: {
   pages: [number | null, number | null]
+  onContextMenu?: (e: React.MouseEvent, pageIndex: number) => void
 }) {
   const { book: storeBook } = useStore()
 
@@ -206,21 +225,84 @@ const DoublePageCard = observer(function(props: {
   const rightSidePage = rightSidePageIndex === null ? null : storeBook.pages[rightSidePageIndex]
   const coverPosition = storeBook.coverPosition === 'alone' ? 1 : 0
 
+  const isLeftSpreadCenter = leftSidePage?.customSpread === 'center'
+  const isRightSpreadCenter = rightSidePage?.customSpread === 'center'
+  const isSpreadCenter = (leftSidePageIndex === null && rightSidePageIndex !== null) ||
+                         (leftSidePageIndex !== null && rightSidePageIndex === null) ||
+                         isLeftSpreadCenter || isRightSpreadCenter
+
+  if (isSpreadCenter) {
+    let singleIndex: number
+    if (isLeftSpreadCenter) {
+      singleIndex = leftSidePageIndex as number
+    } else if (isRightSpreadCenter) {
+      singleIndex = rightSidePageIndex as number
+    } else {
+      singleIndex = (leftSidePageIndex !== null ? leftSidePageIndex : rightSidePageIndex) as number
+    }
+
+    const page = storeBook.pages[singleIndex]
+    const layout = getPageLayoutInfo({
+      pageIndex: singleIndex,
+      pages: storeBook.pages,
+      coverPosition: storeBook.coverPosition,
+      pageDirection: storeBook.pageDirection,
+      pagePositionSetting: storeBook.pagePosition,
+      pageFitSetting: storeBook.pageFit,
+      customSpread: page?.customSpread
+    })
+
+    return (
+      <div className="card-group is-spread-center">
+        <PageCard
+          pageItemIndex={singleIndex - coverPosition}
+          realPageIndex={singleIndex}
+          blobItem={page ? storeBlobs.blobs[page.blobID] : null}
+          pagePosition="center"
+          blank={page?.blank || false}
+          onContextMenu={props.onContextMenu}
+        />
+      </div>
+    )
+  }
+
+  const leftLayout = leftSidePageIndex !== null ? getPageLayoutInfo({
+    pageIndex: leftSidePageIndex,
+    pages: storeBook.pages,
+    coverPosition: storeBook.coverPosition,
+    pageDirection: storeBook.pageDirection,
+    pagePositionSetting: storeBook.pagePosition,
+    pageFitSetting: storeBook.pageFit,
+    customSpread: leftSidePage?.customSpread
+  }) : null
+
+  const rightLayout = rightSidePageIndex !== null ? getPageLayoutInfo({
+    pageIndex: rightSidePageIndex,
+    pages: storeBook.pages,
+    coverPosition: storeBook.coverPosition,
+    pageDirection: storeBook.pageDirection,
+    pagePositionSetting: storeBook.pagePosition,
+    pageFitSetting: storeBook.pageFit,
+    customSpread: rightSidePage?.customSpread
+  }) : null
+
   return (
     <div className="card-group">
       <PageCard
         pageItemIndex={leftSidePageIndex === null ? null : (leftSidePageIndex - coverPosition)}
         realPageIndex={leftSidePageIndex}
         blobItem={leftSidePage ? storeBlobs.blobs[leftSidePage.blobID] : null}
-        pagePosition={storeBook.pagePosition === 'between' ? 'right' : 'center'}
+        pagePosition={leftLayout ? leftLayout.align : 'center'}
         blank={leftSidePage?.blank || false}
+        onContextMenu={props.onContextMenu}
       />
       <PageCard
         pageItemIndex={rightSidePageIndex === null ? null : (rightSidePageIndex - coverPosition)}
         realPageIndex={rightSidePageIndex}
         blobItem={rightSidePage ? storeBlobs.blobs[rightSidePage.blobID] : null}
-        pagePosition={storeBook.pagePosition === 'between' ? 'left' : 'center'}
+        pagePosition={rightLayout ? rightLayout.align : 'center'}
         blank={rightSidePage?.blank || false}
+        onContextMenu={props.onContextMenu}
       />
     </div>
   )
@@ -228,22 +310,22 @@ const DoublePageCard = observer(function(props: {
 
 const SinglePageCard = observer(function(props: {
   pageIndex: number
+  onContextMenu?: (e: React.MouseEvent, pageIndex: number) => void
 }) {
   const { book: storeBook } = useStore()
   const realPageIndex = props.pageIndex
   const page = storeBook.pages[realPageIndex]
   const coverPosition = storeBook.coverPosition === 'alone' ? 1 : 0
 
-  let position: 'center' | 'left' | 'right' = 'center'
-  if (storeBook.pagePosition === 'between') {
-    const isRTL = storeBook.pageDirection === 'right'
-    const isOdd = (realPageIndex + 1) % 2 === 1
-    if (isRTL) {
-      position = isOdd ? 'left' : 'right'
-    } else {
-      position = isOdd ? 'right' : 'left'
-    }
-  }
+  const layout = getPageLayoutInfo({
+    pageIndex: realPageIndex,
+    pages: storeBook.pages,
+    coverPosition: storeBook.coverPosition,
+    pageDirection: storeBook.pageDirection,
+    pagePositionSetting: storeBook.pagePosition,
+    pageFitSetting: storeBook.pageFit,
+    customSpread: page?.customSpread
+  })
 
   return (
     <div className="card-group is-single">
@@ -251,8 +333,9 @@ const SinglePageCard = observer(function(props: {
         pageItemIndex={realPageIndex - coverPosition}
         realPageIndex={realPageIndex}
         blobItem={page ? storeBlobs.blobs[page.blobID] : null}
-        pagePosition={position}
+        pagePosition={layout.align}
         blank={page?.blank || false}
+        onContextMenu={props.onContextMenu}
       />
     </div>
   )
@@ -323,11 +406,73 @@ const RestoreBanner = observer(function() {
   )
 })
 
+interface ContextMenuState {
+  visible: boolean
+  x: number
+  y: number
+  pageIndex: number | null
+}
+
+const PageContextMenu = observer(function(props: {
+  state: ContextMenuState
+  onClose: () => void
+}) {
+  const { book: storeBook } = useStore()
+  const t = useI18n()
+
+  if (!props.state.visible || props.state.pageIndex === null || props.state.pageIndex <= 0) return null
+
+  const page = storeBook.pages[props.state.pageIndex]
+  if (!page) return null
+
+  const isCentered = page.customSpread === 'center'
+
+  const onToggleCenter = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    storeBook.togglePageCustomSpread(props.state.pageIndex as number)
+    props.onClose()
+  }
+
+  return (
+    <div
+      className="page-context-menu"
+      style={{ top: props.state.y, left: props.state.x }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <button type="button" className="context-menu-item" onClick={onToggleCenter}>
+        <Icon name={isCentered ? "cross" : "align-center"} />
+        <span>{isCentered ? (t.option.removeCenter || '取消居中 (恢复自动)') : (t.option.setCenter || '设为居中 (Spread Center)')}</span>
+      </button>
+    </div>
+  )
+})
+
 const Main = function() {
   const mainRef = useRef<HTMLElement>(null)
   const { book: storeBook } = useStore()
   const [showPages, setShowPages] = useState<any[][]>([])
+  const [contextMenu, setContextMenu] = useState<ContextMenuState>({
+    visible: false,
+    x: 0,
+    y: 0,
+    pageIndex: null,
+  })
   const t = useI18n()
+
+  const onPageContextMenu = useCallback((e: React.MouseEvent, pageIndex: number) => {
+    setContextMenu({
+      visible: true,
+      x: e.clientX,
+      y: e.clientY,
+      pageIndex,
+    })
+  }, [])
+
+  const closeContextMenu = useCallback(() => {
+    setContextMenu(prev => (prev.visible ? { ...prev, visible: false } : prev))
+  }, [])
+
+  const pagesSpreadKey = storeBook.pages.map(p => `${p.index}_${p.customSpread || 'auto'}`).join(',')
 
   const pageResizeCallback = useCallback(() => {
     const mainEl = mainRef.current
@@ -367,10 +512,44 @@ const Main = function() {
       while (x < len - 1) {
         const row: [number | null, number | null][] = []
         for (let j = 0; j < boxCountInOneRow && x < len - 1; j++) {
-          const page1 = storeBook.coverPosition === 'first-page'
-            ? (x === -1 ? null : (++x < len ? x : null))
-            : (++x < len ? x : null)
-          const page2 = ++x < len ? x : null
+          let page1: number | null = null
+          let page2: number | null = null
+
+          if (x === -1) {
+            if (storeBook.coverPosition === 'first-page') {
+              page1 = null
+              page2 = ++x < len ? x : null
+            } else {
+              page1 = ++x < len ? x : null
+              const p1 = page1 !== null ? storeBook.pages[page1] : null
+              if (p1 && p1.customSpread === 'center' && page1 !== 0) {
+                page2 = null
+              } else {
+                const nextIdx = x + 1
+                const nextP = nextIdx < len ? storeBook.pages[nextIdx] : null
+                if (nextP && nextP.customSpread === 'center' && nextIdx !== 0) {
+                  page2 = null
+                } else {
+                  page2 = ++x < len ? x : null
+                }
+              }
+            }
+          } else {
+            page1 = ++x < len ? x : null
+            const p1 = page1 !== null ? storeBook.pages[page1] : null
+            if (p1 && p1.customSpread === 'center' && page1 !== 0) {
+              page2 = null
+            } else {
+              const nextIdx = x + 1
+              const nextP = nextIdx < len ? storeBook.pages[nextIdx] : null
+              if (nextP && nextP.customSpread === 'center' && nextIdx !== 0) {
+                page2 = null
+              } else {
+                page2 = ++x < len ? x : null
+              }
+            }
+          }
+
           row.push([page1, page2])
         }
         if (row.length > 0) {
@@ -380,7 +559,7 @@ const Main = function() {
 
       setShowPages(pages)
     }
-  }, [storeBook.coverPosition, storeBook.pages.length, storeBook.pageShow])
+  }, [storeBook.coverPosition, storeBook.pages.length, storeBook.pages, storeBook.pageShow, pagesSpreadKey])
 
   const onClickImport = useCallback(() => {
     document.getElementById('input-upload')?.click()
@@ -388,7 +567,7 @@ const Main = function() {
 
   useEffect(() => {
     pageResizeCallback()
-  }, [storeBook.pages, storeBook.pageShow, pageResizeCallback])
+  }, [storeBook.pages, storeBook.pageShow, pagesSpreadKey, pageResizeCallback])
 
   useEffect(() => {
     // rAF-throttled resize handler, cleaned up on unmount
@@ -405,10 +584,15 @@ const Main = function() {
     }
 
     window.addEventListener('resize', onResize)
+    window.addEventListener('click', closeContextMenu)
+    window.addEventListener('scroll', closeContextMenu, true)
+
     return () => {
       window.removeEventListener('resize', onResize)
+      window.removeEventListener('click', closeContextMenu)
+      window.removeEventListener('scroll', closeContextMenu, true)
     }
-  }, [pageResizeCallback])
+  }, [pageResizeCallback, closeContextMenu])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -469,16 +653,17 @@ const Main = function() {
               {
                 storeBook.pageShow === 'one'
                   ? (row as number[]).map((pageIdx, j) => (
-                      <SinglePageCard key={`${i}-${j}-${pageIdx}`} pageIndex={pageIdx} />
+                      <SinglePageCard key={`${i}-${j}-${pageIdx}`} pageIndex={pageIdx} onContextMenu={onPageContextMenu} />
                     ))
                   : (row as [number | null, number | null][]).map((pages, j) => (
-                      <DoublePageCard key={`${i}-${j}-${pages[0]}-${pages[1]}`} pages={pages} />
+                      <DoublePageCard key={`${i}-${j}-${pages[0]}-${pages[1]}`} pages={pages} onContextMenu={onPageContextMenu} />
                     ))
               }
             </div>
           ))
         )
       }
+      <PageContextMenu state={contextMenu} onClose={closeContextMenu} />
       <div className="author-info">
         <div>{THIS_YEAR} Joycai@Github</div>
         <iframe

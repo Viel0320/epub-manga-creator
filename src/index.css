@@ -554,6 +554,13 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
 #main .card-group.is-single {
   width: calc(var(--card-box-width) / 2);
 }
+#main .card-group.is-spread-center {
+  justify-content: center;
+}
+#main .card-group.is-spread-center .card {
+  flex: 0 0 50%;
+  max-width: 50%;
+}
 #main .card-group:hover {
   transform: translateY(-3px);
   box-shadow: var(--shadow-panel);
@@ -1045,6 +1052,63 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
   border-radius: 3px;
   box-shadow: 0 0 10px var(--accent-ring);
   z-index: 10;
+  pointer-events: none;
+}
+
+/* Context Menu Styles */
+.page-context-menu {
+  position: fixed;
+  z-index: 1000;
+  background: var(--glass-strong);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-panel);
+  padding: 6px;
+  min-width: 180px;
+}
+
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.context-menu-item:hover {
+  background: var(--accent);
+  color: var(--text-on-accent);
+}
+
+.context-menu-item .icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* Custom Spread Center Badge on Card */
+.card-center-badge {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  background: var(--accent);
+  color: var(--text-on-accent);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 999px;
+  box-shadow: var(--shadow-soft);
+  z-index: 3;
   pointer-events: none;
 }
 

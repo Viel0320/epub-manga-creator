@@ -126,6 +126,8 @@ const en = {
     left: 'Left',
     firstPage: 'First page',
     alone: 'Alone',
+    setCenter: 'Set to Spread Center',
+    removeCenter: 'Remove Spread Center',
   },
 
   // Language switcher

@@ -3,6 +3,7 @@ import { observer } from 'mobx-react'
 import storeMain, { useStore } from 'store/main'
 import Icon from 'components/icon'
 import { useI18n } from 'i18n'
+import { getPageLayoutInfo } from 'utils/page-layout'
 
 function getSpreadPair(
   index: number,
@@ -121,6 +122,15 @@ const Lightbox = observer(function() {
     const listIdx = totalPages > 0 ? storeMain.contents.indexMap[idx] : undefined
     const bookmarkTitle = listIdx !== undefined ? storeMain.contents.list[listIdx]?.title : null
 
+    const layout = getPageLayoutInfo({
+      pageIndex: idx,
+      pages: book.pages,
+      coverPosition: book.coverPosition,
+      pageDirection: book.pageDirection,
+      pagePositionSetting: book.pagePosition,
+      pageFitSetting: book.pageFit
+    })
+
     let objectFit: React.CSSProperties['objectFit'] = 'contain'
     if (book.pageFit === 'stretch') {
       objectFit = 'fill'
@@ -128,27 +138,9 @@ const Lightbox = observer(function() {
       objectFit = 'cover'
     }
 
-    let objectPosition = 'center center'
-    if (book.pageFit !== 'stretch') {
-      if (book.pagePosition === 'between') {
-        if (side === 'left') {
-          objectPosition = 'right center'
-        } else if (side === 'right') {
-          objectPosition = 'left center'
-        } else {
-          const isOdd = (idx + 1) % 2 === 1
-          if (book.pageDirection === 'right') {
-            objectPosition = isOdd ? 'left center' : 'right center'
-          } else {
-            objectPosition = isOdd ? 'right center' : 'left center'
-          }
-        }
-      }
-    }
-
     const imageStyle: React.CSSProperties = {
       objectFit,
-      objectPosition,
+      objectPosition: layout.objectPosition,
       aspectRatio: `${book.pageSize[0]} / ${book.pageSize[1]}`,
       backgroundColor: book.pageBackgroundColor === 'white' ? '#fff' : '#000',
     }

@@ -8,6 +8,7 @@ import storeBlobs, { Store as Blobs, StoreBlobs } from 'store/blobs'
 import { db } from 'utils/db'
 import { getLocale } from 'i18n'
 import JSZip from "jszip"
+import { getPageLayoutInfo } from 'utils/page-layout'
 
 import getTemplateContainerXml from 'template/container.xml'
 import getTemplatePageXhtml from 'template/page.xhtml'
@@ -438,8 +439,16 @@ class Store {
       }
 
       if (i !== 0) {
-        itemRefStr.push(`<itemref linear="yes" idref="p_${numStr}" properties="page-spread-${spread}"></itemref>`)
-        spread = spread === 'left' ? 'right' : 'left'
+        const layout = getPageLayoutInfo({
+          pageIndex: i,
+          pages: this.book.pages,
+          coverPosition: this.book.coverPosition,
+          pageDirection: this.book.pageDirection,
+          pagePositionSetting: this.book.pagePosition,
+          pageFitSetting: this.book.pageFit,
+          customSpread: pageItem.customSpread
+        })
+        itemRefStr.push(`<itemref linear="yes" idref="p_${numStr}" properties="page-spread-${layout.spread}"></itemref>`)
       }
     })
 
@@ -485,27 +494,22 @@ class Store {
           return
         }
 
-        let par = 'none'
-        if (fitMode !== 'stretch') {
-          par = this.book.pagePosition === 'center'
-            ? 'xMidYMid '
-            : this.book.pageDirection === 'left'
-              ? (i + 1) % 2 === 1 ? 'xMaxYMid ' : 'xMinYMid '
-              : (i + 1) % 2 === 1 ? 'xMinYMid ' : 'xMaxYMid '
-
-          if (fitMode === 'fit') {
-            par += 'meet'
-          } else { // props.imageFit === 'fill'
-            par += 'slice'
-          }
-        }
+        const layout = getPageLayoutInfo({
+          pageIndex: i,
+          pages: this.book.pages,
+          coverPosition: this.book.coverPosition,
+          pageDirection: this.book.pageDirection,
+          pagePositionSetting: this.book.pagePosition,
+          pageFitSetting: this.book.pageFit,
+          customSpread: pageItem.customSpread
+        })
 
         Zip.file(
           `OEBPS/text/p_${numStr}.xhtml`,
           fillTemplate(templatePageXhtml, '{{title}}', bookTitle)
             .replace(new RegExp('{{width}}', 'gm'), viewPortWidth)
             .replace(new RegExp('{{height}}', 'gm'), viewPortHeight)
-            .replace('{{image}}', `<image width="100%" height="100%" preserveAspectRatio="${par}" xlink:href="../image/${imageFileName}" />`)
+            .replace('{{image}}', `<image width="100%" height="100%" preserveAspectRatio="${layout.par}" xlink:href="../image/${imageFileName}" />`)
         )
       })
     } else { // this.book.imgTag === 'img'
@@ -537,17 +541,19 @@ class Store {
           return
         }
 
+        const layout = getPageLayoutInfo({
+          pageIndex: i,
+          pages: this.book.pages,
+          coverPosition: this.book.coverPosition,
+          pageDirection: this.book.pageDirection,
+          pagePositionSetting: this.book.pagePosition,
+          pageFitSetting: this.book.pageFit,
+          customSpread: pageItem.customSpread
+        })
+
         let imgStyle = 'object-fit:fill'
         if (fitMode !== 'stretch') {
-          imgStyle = 'object-position:'
-
-          imgStyle += (
-            this.book.pagePosition === 'center'
-              ? 'center;'
-              : this.book.pageDirection === 'left'
-                ? (i + 1) % 2 === 1 ? 'right;' : 'left;'
-                : (i + 1) % 2 === 1 ? 'left;' : 'right;'
-          )
+          imgStyle = `object-position:${layout.objectPosition};`
 
           if (fitMode === 'fit') {
             imgStyle += 'object-fit:contain'

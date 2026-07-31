@@ -7,6 +7,7 @@ export declare namespace StoreBook {
     blobID: string
     sticky: 'auto' | 'left' | 'right',
     blank: boolean
+    customSpread?: 'center' | 'auto'
   }
 
   export interface BookInfoSet {
@@ -98,6 +99,17 @@ class Store {
     this.pages.forEach((pageItem, i) => {
       pageItem.index = i;
     });
+  }
+
+  togglePageCustomSpread(index: number) {
+    const page = this.pages[index]
+    if (page && index > 0) {
+      if (page.customSpread === 'center') {
+        page.customSpread = 'auto'
+      } else {
+        page.customSpread = 'center'
+      }
+    }
   }
 
   insertBlankPage(index: number) {
