@@ -283,6 +283,13 @@ const Header = function() {
   }, [inputType, storeMain])
 
   const onClickInsertBlankPage = useCallback(() => {
+    const selectedIndex = ui.selectedPageIndex
+    if (selectedIndex !== null && selectedIndex >= 0 && selectedIndex < book.pages.length) {
+      storeMain.insertBlankPage(selectedIndex)
+      ui.selectPageIndex(selectedIndex)
+      return
+    }
+
     const max = book.pages.length
     const inputValue = window.prompt(t.prompt.insertPageIndex(max))
     let num = parseInt(inputValue || '')
@@ -294,7 +301,8 @@ const Header = function() {
     }
 
     storeMain.insertBlankPage(num - 1)
-  }, [book, storeMain, t])
+    ui.selectPageIndex(num - 1)
+  }, [book.pages.length, ui, storeMain, t])
 
   const onClickGenerate = useCallback(() => {
     storeMain.generateBook()
