@@ -3,6 +3,7 @@ import { makeAutoObservable, toJS } from "mobx"
 interface ContentItem {
   pageIndex: number | null
   title: string
+  level: number
 }
 
 interface IndexMap { [pageIndex: string]: number }
@@ -17,7 +18,8 @@ const cloneState = function(this: Store) {
 class Store {
   list: ContentItem[] = [{
     pageIndex: 0,
-    title: '表紙'
+    title: '表紙',
+    level: 0
   }]
   indexMap: IndexMap = {
      0: 0
@@ -99,7 +101,7 @@ class Store {
   }
 
   reset() {
-    this.list = [{ pageIndex: 0, title: '表紙' }]
+    this.list = [{ pageIndex: 0, title: '表紙', level: 0 }]
     this.indexMap = { 0: 0 }
   }
 

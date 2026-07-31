@@ -8,6 +8,7 @@ const zh: Locale = {
     page: '页面',
     importImage: '图片文件',
     importZip: 'ZIP 压缩包',
+    importEpub: 'EPUB 文件',
     insertBlankPage: '空白页',
     generate: '生成',
     ruler: '原图',
@@ -56,6 +57,7 @@ const zh: Locale = {
 
   loading: {
     generating: '正在生成 EPUB…',
+    importingEpub: '正在导入 EPUB…',
   },
 
   book: {

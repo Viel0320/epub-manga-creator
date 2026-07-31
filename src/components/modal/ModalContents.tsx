@@ -10,12 +10,14 @@ import VirtualList from 'components/common/VirtualList';
 
 interface ModalContentRowProps {
   index: number;
-  contentItem: { pageIndex: number | null; title: string };
+  contentItem: { pageIndex: number | null; title: string; level: number };
   onInputPageIndex: (index: number, value: string) => void;
   onInputTitle: (index: number, value: string) => void;
   onFocusNumberInput: (e: React.FocusEvent<HTMLInputElement>) => void;
   onClickAdd: (index: number) => void;
   onClickRemove: (index: number) => void;
+  onIndent: (index: number) => void;
+  onOutdent: (index: number) => void;
 }
 
 const ModalContentRow = React.memo(function ModalContentRow({
@@ -25,10 +27,13 @@ const ModalContentRow = React.memo(function ModalContentRow({
   onInputTitle,
   onFocusNumberInput,
   onClickAdd,
-  onClickRemove
+  onClickRemove,
+  onIndent,
+  onOutdent
 }: ModalContentRowProps) {
+  const level = contentItem.level || 0;
   return (
-    <div className="row mx-0 g-2 align-items-stretch mb-4">
+    <div className="row mx-0 g-2 align-items-stretch mb-4" style={{ paddingLeft: level * 24 }}>
       <div className="col-2">
         <input
           type="number"
@@ -38,7 +43,7 @@ const ModalContentRow = React.memo(function ModalContentRow({
           onChange={(e) => onInputPageIndex(index, e.target.value)}
         />
       </div>
-      <div className="col-8">
+      <div className="col">
         <input
           type="text"
           className="form-control"
@@ -47,7 +52,25 @@ const ModalContentRow = React.memo(function ModalContentRow({
         />
       </div>
       <div className="col-auto d-flex">
-        <div className="btn-group h-100" role="group" aria-label="Basic example">
+        <div className="btn-group h-100" role="group">
+          <button
+            type="button"
+            className="btn btn-outline-secondary d-flex justify-content-center align-items-center h-100"
+            disabled={level >= 3}
+            onClick={() => onIndent(index)}
+            title="Indent"
+          >
+            <Icon name="chevron-right" />
+          </button>
+          <button
+            type="button"
+            className="btn btn-outline-secondary d-flex justify-content-center align-items-center h-100"
+            disabled={level <= 0}
+            onClick={() => onOutdent(index)}
+            title="Outdent"
+          >
+            <Icon name="chevron-left" />
+          </button>
           <button
             type="button"
             className="btn btn-secondary d-flex justify-content-center align-items-center h-100"
@@ -118,9 +141,10 @@ const ModalContents = observer(function ModalContents() {
 
     if (plainMode) {
       const textVal = generated.map(item => {
+        const indent = '  '.repeat(item.level || 0);
         return item.pageIndex === null
-          ? item.title
-          : (item.pageIndex + 1) + '. ' + item.title;
+          ? indent + item.title
+          : indent + (item.pageIndex + 1) + '. ' + item.title;
       }).join('\n');
       setTextAreaInput(textVal);
     } else {
@@ -137,17 +161,22 @@ const ModalContents = observer(function ModalContents() {
           return;
         }
 
-        const [pageIndex, ...title] = item.split('. ');
+        const leadingSpaces = item.match(/^( *)/)?.[1].length || 0;
+        const level = Math.min(3, Math.floor(leadingSpaces / 2));
+        const trimmed = item.trim();
+        const [pageIndex, ...title] = trimmed.split('. ');
 
         if (pageIndex.trim() !== '' && !isNaN(pageIndex as any) && title.length) {
           list.push({
             pageIndex: Math.max(0, +pageIndex - 1),
-            title: title.join('. ')
+            title: title.join('. '),
+            level
           });
         } else {
           list.push({
             pageIndex: null,
-            title: item.trim()
+            title: trimmed,
+            level
           });
         }
       });
@@ -155,9 +184,10 @@ const ModalContents = observer(function ModalContents() {
       setTempList(list);
     } else {
       const value = tempList.map(contentItem => {
+        const indent = '  '.repeat(contentItem.level || 0);
         return contentItem.pageIndex === null
-          ? contentItem.title
-          : (contentItem.pageIndex + 1) + '. ' + contentItem.title;
+          ? indent + contentItem.title
+          : indent + (contentItem.pageIndex + 1) + '. ' + contentItem.title;
       }).join('\n');
 
       setTextAreaInput(value);
@@ -191,7 +221,8 @@ const ModalContents = observer(function ModalContents() {
       const next = [...prev];
       next.splice(index + 1, 0, {
         pageIndex: 0,
-        title: ''
+        title: '',
+        level: 0
       });
       return next;
     });
@@ -201,6 +232,26 @@ const ModalContents = observer(function ModalContents() {
     setTempList(prev => {
       const next = [...prev];
       next.splice(index, 1);
+      return next;
+    });
+  }, []);
+
+  const onIndent = useCallback((index: number) => {
+    setTempList(prev => {
+      const item = prev[index];
+      if (!item || (item.level || 0) >= 3) return prev;
+      const next = [...prev];
+      next[index] = { ...item, level: (item.level || 0) + 1 };
+      return next;
+    });
+  }, []);
+
+  const onOutdent = useCallback((index: number) => {
+    setTempList(prev => {
+      const item = prev[index];
+      if (!item || (item.level || 0) <= 0) return prev;
+      const next = [...prev];
+      next[index] = { ...item, level: (item.level || 0) - 1 };
       return next;
     });
   }, []);
@@ -235,7 +286,7 @@ const ModalContents = observer(function ModalContents() {
         return [{ ...prev[0], pageIndex: prev[0].pageIndex ?? 0 }];
       }
 
-      return [{ pageIndex: 0, title: '封面' }];
+      return [{ pageIndex: 0, title: '封面', level: 0 }];
     });
   }, []);
 
@@ -343,6 +394,8 @@ const ModalContents = observer(function ModalContents() {
                       onFocusNumberInput={onFocusNumberInput}
                       onClickAdd={onClickAdd}
                       onClickRemove={onClickRemove}
+                      onIndent={onIndent}
+                      onOutdent={onOutdent}
                     />
                   )}
                 />

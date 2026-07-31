@@ -408,20 +408,61 @@ class Store {
       '{{startPage}}',
       coverAlone ? 'p_0000.xhtml' : 'p_cover.xhtml'
     )
+
+    // Build nested TOC HTML from contents list with level support
+    const tocItems = this.contents.list.filter(item => item.pageIndex !== null)
+      .sort((a, b) => (a.pageIndex ?? 0) - (b.pageIndex ?? 0))
+
+    const buildNestedTocHtml = (): string => {
+      if (tocItems.length === 0) return ''
+
+      const lines: string[] = []
+      let currentLevel = 0
+
+      for (const item of tocItems) {
+        const level = item.level || 0
+        const pageIndex = item.pageIndex!
+        const title = htmlToEscape(item.title)
+
+        let href: string
+        if (!coverAlone && pageIndex === 0) {
+          href = 'text/p_cover.xhtml'
+        } else {
+          href = `text/p_${getNumberStr(coverAlone ? pageIndex : pageIndex - 1, 4)}.xhtml`
+        }
+
+        while (currentLevel < level) {
+          lines.push('<ol>')
+          currentLevel++
+        }
+        while (currentLevel > level) {
+          lines.push('</ol></li>')
+          currentLevel--
+        }
+
+        lines.push(`<li><a href="${href}">${title}</a>`)
+        if (level === currentLevel) {
+          // Check if next item is deeper; if not, close <li>
+          const idx = tocItems.indexOf(item)
+          const nextItem = tocItems[idx + 1]
+          if (!nextItem || (nextItem.level || 0) <= level) {
+            lines.push('</li>')
+          }
+        }
+      }
+
+      while (currentLevel > 0) {
+        lines.push('</ol></li>')
+        currentLevel--
+      }
+
+      return lines.join('\n')
+    }
+
     templateNavigationDocumentsXhtml = fillTemplate(
       templateNavigationDocumentsXhtml,
       '<!-- navigation-list -->',
-      Object.keys(this.contents.indexMap).map((pageIndex) => {
-        const listIndex = this.contents.indexMap[pageIndex]
-        const contentItem = this.contents.list[listIndex]
-        const title = htmlToEscape(contentItem.title)
-
-        if (!coverAlone && pageIndex === '0') {
-          return `<li><a href="text/p_cover.xhtml">${title}</a></li>`
-        }
-
-        return `<li><a href="text/p_${getNumberStr(coverAlone ? +pageIndex : +pageIndex - 1, 4)}.xhtml">${title}</a></li>`
-      }).join('\n')
+      buildNestedTocHtml()
     )
 
     let imageItemStr: string[] = []

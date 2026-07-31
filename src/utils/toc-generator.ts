@@ -1,6 +1,7 @@
 export interface ContentItem {
   pageIndex: number | null
   title: string
+  level: number
 }
 
 export interface PageImageInfo {
@@ -76,16 +77,16 @@ export const generateTOC = (
   options: TOCGenerateOptions = { mode: 'smart' }
 ): ContentItem[] => {
   if (!pages || pages.length === 0) {
-    return [{ pageIndex: 0, title: '封面' }]
+    return [{ pageIndex: 0, title: '封面', level: 0 }]
   }
 
   const { mode, interval = 10 } = options
   const result: ContentItem[] = []
   const addedPages = new Set<number>()
 
-  const addEntry = (pageIndex: number, title: string) => {
+  const addEntry = (pageIndex: number, title: string, level: number = 0) => {
     if (!addedPages.has(pageIndex) && title.trim()) {
-      result.push({ pageIndex, title: title.trim() })
+      result.push({ pageIndex, title: title.trim(), level })
       addedPages.add(pageIndex)
     }
   }
@@ -169,7 +170,7 @@ export const generateTOC = (
     const page0Name = getFolderAndName(pages[0]?.fileName || '').name
     const title0 = extractChapterTitle(page0Name) || '封面'
     // Prepend or add at 0
-    result.unshift({ pageIndex: 0, title: title0 })
+    result.unshift({ pageIndex: 0, title: title0, level: 0 })
     addedPages.add(0)
   }
 

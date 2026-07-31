@@ -7,6 +7,7 @@ const en = {
     page: 'Page',
     importImage: 'Image files',
     importZip: 'ZIP archive',
+    importEpub: 'EPUB file',
     insertBlankPage: 'Blank',
     generate: 'EPUB',
     ruler: 'Fit',
@@ -61,6 +62,7 @@ const en = {
   // Loading overlay
   loading: {
     generating: 'Generating EPUB…',
+    importingEpub: 'Importing EPUB…',
   },
 
   // Modal – Book settings
