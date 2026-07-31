@@ -92,7 +92,31 @@ class Store {
     this.pages.splice(index, 1, newPageItem1, newPageItem2)
   }
 
+  reverseBoundPairs() {
+    let i = 0
+    while (i < this.pages.length - 1) {
+      const currentPage = this.pages[i]
+      const nextPage = this.pages[i + 1]
+
+      if (currentPage.customSpread === 'bind-next' && nextPage.customSpread === 'bind-prev') {
+        currentPage.customSpread = 'bind-prev'
+        nextPage.customSpread = 'bind-next'
+        this.pages[i] = nextPage
+        this.pages[i + 1] = currentPage
+        i += 2
+      } else {
+        i += 1
+      }
+    }
+    this.updatePageItemIndex()
+  }
+
   updateBookPageProperty<K extends BookPageProperty>(key: K, value: Store[K]) {
+    if (key === 'pageDirection' && this.pageDirection !== value) {
+      this.pageDirection = value as 'right' | 'left'
+      this.reverseBoundPairs()
+      return
+    }
     (this as any)[key] = value
   }
 
@@ -186,10 +210,6 @@ class Store {
     } else {
       this.unbindSpread(index)
     }
-  }
-
-  togglePageCustomSpread(index: number) {
-    this.setPageCustomSpread(index, 'center')
   }
 
   insertBlankPage(index: number) {
