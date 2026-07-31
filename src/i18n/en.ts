@@ -1,14 +1,24 @@
 const en = {
   // Nav / Toolbar
   nav: {
+    import: 'Import',
+    book: 'Book',
+    contents: 'TOC',
+    page: 'Page',
     importImage: 'Image files',
     importZip: 'ZIP archive',
-    insertBlankPage: 'Insert blank page',
-    generate: 'Generate EPUB',
+    insertBlankPage: 'Blank',
+    generate: 'EPUB',
+    ruler: 'Fit',
+    move: 'Move',
+    bookmark: 'Mark',
+    split: 'Split',
+    delete: 'Delete',
+    theme: 'Theme',
     themeLight: 'Theme: Light',
     themeDark: 'Theme: Dark',
     themeAuto: 'Theme: Auto (system)',
-    reset: 'Reset workspace',
+    reset: 'Reset',
   },
 
   // Confirm dialogs

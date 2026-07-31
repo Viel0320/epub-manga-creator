@@ -140,13 +140,29 @@ html.dark-theme body::before {
 #nav .nav-item + .nav-item { margin-top: 0; }
 
 #nav .btn {
-  width: 46px;
-  height: 46px;
-  padding: 0;
+  width: 52px;
+  height: 52px;
+  padding: 4px 2px;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
+  gap: 2px;
   border-radius: 14px;
+}
+
+#nav .btn .icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+#nav .btn .nav-label {
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 500;
+  white-space: nowrap;
+  letter-spacing: -0.2px;
 }
 
 /* Dock utility buttons (page tools, theme, reset) render as subtle ghost
@@ -231,17 +247,21 @@ html.dark-theme body::before {
 
 /* --- Dock adapts to short viewports (it always holds ~13 buttons) --- */
 @media (max-height: 820px) {
-  #nav { gap: 8px; }
-  #nav .btn { width: 42px; height: 42px; border-radius: 13px; }
+  #nav { gap: 6px; }
+  #nav .btn { width: 46px; height: 46px; border-radius: 13px; gap: 2px; }
+  #nav .btn .icon { width: 16px; height: 16px; }
+  #nav .btn .nav-label { font-size: 9px; }
 }
 @media (max-height: 720px) {
-  #nav { gap: 6px; padding: 10px 8px; }
-  #nav .btn { width: 38px; height: 38px; border-radius: 12px; }
-  #nav .icon { width: 18px; height: 18px; }
+  #nav { gap: 4px; padding: 10px 6px; }
+  #nav .btn { width: 40px; height: 40px; border-radius: 12px; gap: 1px; }
+  #nav .btn .icon { width: 15px; height: 15px; }
+  #nav .btn .nav-label { font-size: 9px; }
 }
 @media (max-height: 620px) {
-  #nav { gap: 5px; }
+  #nav { gap: 4px; }
   #nav .btn { width: 34px; height: 34px; border-radius: 11px; }
+  #nav .btn .nav-label { display: none; }
 }
 /* last resort — very short windows: let the dock scroll (dropdowns may clip here) */
 @media (max-height: 540px) {

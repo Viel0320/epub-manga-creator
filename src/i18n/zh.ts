@@ -2,14 +2,24 @@ import type { Locale } from './en'
 
 const zh: Locale = {
   nav: {
+    import: '导入',
+    book: '书籍',
+    contents: '目录',
+    page: '页面',
     importImage: '图片文件',
     importZip: 'ZIP 压缩包',
-    insertBlankPage: '插入空白页',
-    generate: '生成 EPUB',
+    insertBlankPage: '空白页',
+    generate: '生成',
+    ruler: '原图',
+    move: '移动',
+    bookmark: '书签',
+    split: '拆分',
+    delete: '删除',
+    theme: '主题',
     themeLight: '主题：浅色',
     themeDark: '主题：深色',
     themeAuto: '主题：跟随系统',
-    reset: '清空工作区',
+    reset: '清空',
   },
 
   confirm: {
