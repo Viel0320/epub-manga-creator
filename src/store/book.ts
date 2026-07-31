@@ -85,6 +85,15 @@ class Store {
     }
   }
 
+  movePage(fromIndex: number, toIndex: number) {
+    if (fromIndex === toIndex || fromIndex < 0 || fromIndex >= this.pages.length) return
+    if (toIndex < 0 || toIndex >= this.pages.length) return
+
+    const [movedPage] = this.pages.splice(fromIndex, 1)
+    this.pages.splice(toIndex, 0, movedPage)
+    this.updatePageItemIndex()
+  }
+
   updatePageItemIndex() {
     this.pages.forEach((pageItem, i) => {
       pageItem.index = i;

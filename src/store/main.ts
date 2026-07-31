@@ -274,6 +274,46 @@ class Store {
     this.contents.updateList(list)
   }
 
+  movePage(fromIndex: number, toIndex: number) {
+    if (fromIndex === toIndex || fromIndex < 0 || fromIndex >= this.book.pages.length) return
+    const targetIndex = Math.max(0, Math.min(toIndex, this.book.pages.length - 1))
+
+    this.book.movePage(fromIndex, targetIndex)
+
+    const selected = this.ui.selectedPageIndex
+    if (selected !== null) {
+      if (selected === fromIndex) {
+        this.ui.selectPageIndex(targetIndex)
+      } else if (fromIndex < selected && targetIndex >= selected) {
+        this.ui.selectPageIndex(selected - 1)
+      } else if (fromIndex > selected && targetIndex <= selected) {
+        this.ui.selectPageIndex(selected + 1)
+      }
+    }
+
+    const list = toJS(this.contents.list)
+    let updated = false
+    list.forEach((contentItem) => {
+      if (contentItem.pageIndex === null) return
+      let idx = contentItem.pageIndex
+      if (idx === fromIndex) {
+        idx = targetIndex
+        updated = true
+      } else if (fromIndex < idx && targetIndex >= idx) {
+        idx -= 1
+        updated = true
+      } else if (fromIndex > idx && targetIndex <= idx) {
+        idx += 1
+        updated = true
+      }
+      contentItem.pageIndex = idx
+    })
+
+    if (updated) {
+      this.contents.updateList(list)
+    }
+  }
+
   async generateBook() {
     this.ui.setLoading(true, getLocale(this.ui.lang).loading.generating)
     try {

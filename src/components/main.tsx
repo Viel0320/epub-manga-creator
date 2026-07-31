@@ -10,12 +10,15 @@ const THIS_YEAR = (new Date()).getFullYear()
 
 const PageCard = observer(function(props: {
   pageItemIndex: number | null
+  realPageIndex?: number | null
   blobItem?: StoreBlobs.ImageBlob | null
   pagePosition: 'center' | 'left' | 'right'
   blank: boolean
 }) {
   const { ui: storeUI, book: storeBook, contents: storeContent } = useStore()
   const t = useI18n()
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragPosition, setDragPosition] = useState<'left' | 'right' | null>(null)
 
   const onClickImage = useCallback(() => {
     storeMain.ui.selectPageIndex(props.pageItemIndex)
@@ -25,6 +28,85 @@ const PageCard = observer(function(props: {
     return (
       <div className="card"><div className="card-image"></div></div>
     )
+  }
+
+  const isDraggable = props.realPageIndex !== null && props.realPageIndex !== undefined && props.realPageIndex !== 0
+  const isDropTarget = props.realPageIndex !== null && props.realPageIndex !== undefined
+
+  const onDragStart = (e: React.DragEvent) => {
+    if (!isDraggable) {
+      e.preventDefault()
+      return
+    }
+    e.dataTransfer.setData('text/plain', String(props.realPageIndex))
+    e.dataTransfer.effectAllowed = 'move'
+    setIsDragging(true)
+  }
+
+  const onDragEnd = () => {
+    setIsDragging(false)
+    setDragPosition(null)
+  }
+
+  const onDragOver = (e: React.DragEvent) => {
+    if (!isDropTarget) return
+    e.preventDefault()
+
+    const rect = e.currentTarget.getBoundingClientRect()
+    const isAfter = (e.clientX - rect.left) > (rect.width / 2)
+    const position = isAfter ? 'right' : 'left'
+
+    const isRTL = storeBook.pageDirection === 'right'
+    let gap: number
+    if (isRTL) {
+      gap = position === 'left' ? props.realPageIndex! + 1 : props.realPageIndex!
+    } else {
+      gap = position === 'right' ? props.realPageIndex! + 1 : props.realPageIndex!
+    }
+
+    if (gap <= 0) {
+      setDragPosition(null)
+      e.dataTransfer.dropEffect = 'none'
+      return
+    }
+
+    e.dataTransfer.dropEffect = 'move'
+    setDragPosition(position)
+  }
+
+  const onDragLeave = () => {
+    if (!isDropTarget) return
+    setDragPosition(null)
+  }
+
+  const onDrop = (e: React.DragEvent) => {
+    if (!isDropTarget) return
+    e.preventDefault()
+    const position = dragPosition
+    setDragPosition(null)
+
+    const sourceIndexStr = e.dataTransfer.getData('text/plain')
+    if (!sourceIndexStr) return
+    const sourceIndex = Number(sourceIndexStr)
+    const targetIndex = props.realPageIndex as number
+
+    if (!isNaN(sourceIndex) && sourceIndex > 0 && sourceIndex < storeBook.pages.length) {
+      const isRTL = storeBook.pageDirection === 'right'
+      let gap: number
+      if (isRTL) {
+        gap = position === 'left' ? targetIndex + 1 : targetIndex
+      } else {
+        gap = position === 'right' ? targetIndex + 1 : targetIndex
+      }
+
+      if (gap <= 0) return
+
+      let insertIndex = gap
+      if (sourceIndex < gap) {
+        insertIndex = gap - 1
+      }
+      storeMain.movePage(sourceIndex, insertIndex)
+    }
   }
 
   let preserveAspectRatio = 'none'
@@ -46,7 +128,15 @@ const PageCard = observer(function(props: {
   const imageFocus = props.pageItemIndex !== null && (storeUI.selectedPageIndex === props.pageItemIndex)
 
   return (
-    <div className="card">
+    <div
+      className={`card ${isDragging ? 'is-dragging' : ''} ${dragPosition ? `drag-over-${dragPosition}` : ''}`}
+      draggable={isDraggable}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+    >
       {
         props.pageItemIndex in storeContent.indexMap
           ? <div className="bookmark-ribbon" title={storeContent.list[storeContent.indexMap[props.pageItemIndex]].title} />
@@ -60,7 +150,8 @@ const PageCard = observer(function(props: {
             title={t.main.zoomPreview}
             onClick={(e) => {
               e.stopPropagation()
-              storeMain.ui.openPreview(props.pageItemIndex as number)
+              const previewIdx = props.realPageIndex ?? props.pageItemIndex
+              storeMain.ui.openPreview(previewIdx as number)
             }}
           >
             <Icon name="zoom" />
@@ -119,12 +210,14 @@ const DoublePageCard = observer(function(props: {
     <div className="card-group">
       <PageCard
         pageItemIndex={leftSidePageIndex === null ? null : (leftSidePageIndex - coverPosition)}
+        realPageIndex={leftSidePageIndex}
         blobItem={leftSidePage ? storeBlobs.blobs[leftSidePage.blobID] : null}
         pagePosition={storeBook.pagePosition === 'between' ? 'left' : 'center'}
         blank={leftSidePage?.blank || false}
       />
       <PageCard
         pageItemIndex={rightSidePageIndex === null ? null : (rightSidePageIndex - coverPosition)}
+        realPageIndex={rightSidePageIndex}
         blobItem={rightSidePage ? storeBlobs.blobs[rightSidePage.blobID] : null}
         pagePosition={storeBook.pagePosition === 'between' ? 'right' : 'center'}
         blank={rightSidePage?.blank || false}
