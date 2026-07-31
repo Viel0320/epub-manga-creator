@@ -475,7 +475,7 @@ const PageContextMenu = observer(function(props: {
     >
       <button type="button" className="context-menu-item" onClick={onToggleCenter}>
         <Icon name={isCentered ? "cross" : "align-center"} />
-        <span>{isCentered ? (t.option.removeCenter || '取消单页 (恢复自动)') : (t.option.setCenter || '设为单页')}</span>
+        <span>{isCentered ? (t.option.removeSingle || '取消单页 (恢复自动)') : (t.option.setSingle || '设为单页')}</span>
       </button>
 
       {canBindPrev && (

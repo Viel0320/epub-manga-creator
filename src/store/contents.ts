@@ -22,7 +22,7 @@ class Store {
     level: 0
   }]
   indexMap: IndexMap = {
-     0: 0
+    0: 0
   }
   savedSets: { title: string; list: ContentItem[] }[] = []
 
