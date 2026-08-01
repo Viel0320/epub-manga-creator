@@ -1,6 +1,6 @@
 import { makeAutoObservable, toJS } from "mobx"
 
-interface ContentItem {
+export interface ContentItem {
   pageIndex: number | null
   title: string
   level: number

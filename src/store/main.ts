@@ -4,6 +4,7 @@ import uuid from 'utils/get-uuid'
 import Book, { StoreBook } from 'store/book'
 import Ui from 'store/ui'
 import Contents from 'store/contents'
+import UndoStore from 'store/undo'
 import storeBlobs, { Store as Blobs, StoreBlobs, getImageWithBlobURL, formatBlobItem } from 'store/blobs'
 import { db } from 'utils/db'
 import { getLocale } from 'i18n'
@@ -46,21 +47,13 @@ const getNumberStr = (num: number, zeroCount: number): string => {
   return str
 }
 
-export interface SplitRecord {
-  originalIndex: number
-  originalPageItem: StoreBook.PageItem
-  originalBlobItem: StoreBlobs.ImageBlob
-  newBlobIDs: string[]
-  originalContentsList: any[]
-}
-
 class Store {
   ui: Ui
   book: Book
   contents: Contents
   blobs: Blobs
+  undoStore: UndoStore
   isAutoSaveActive = false
-  lastSplitRecord: SplitRecord | null = null
 
   // blob UUIDs already persisted to IndexedDB (not part of reactive state)
   savedBlobIDs: Set<string> = new Set()
@@ -70,6 +63,7 @@ class Store {
     this.book = new Book()
     this.contents = new Contents()
     this.blobs = storeBlobs
+    this.undoStore = new UndoStore()
 
     makeAutoObservable(this)
 
@@ -84,6 +78,18 @@ class Store {
     }
   }
 
+  saveUndoSnapshot(removedBlobs: Record<string, StoreBlobs.ImageBlob> = {}, createdBlobIDs: string[] = []) {
+    this.undoStore.saveRecord({
+      pages: toJS(this.book.pages),
+      contentsList: toJS(this.contents.list),
+      pageSize: [...this.book.pageSize] as [number, number],
+      pageSizeMode: this.book.pageSizeMode,
+      selectedPageIndex: this.ui.selectedPageIndex,
+      removedBlobs,
+      createdBlobIDs,
+    })
+  }
+
   resetWorkspace() {
     this.book.reset()
     this.contents.reset()
@@ -94,7 +100,7 @@ class Store {
     this.ui.modalBookVisible = false
     this.ui.modalContentVisible = false
     this.ui.modalPageVisible = false
-    this.lastSplitRecord = null
+    this.undoStore.clearRecord()
     this.savedBlobIDs.clear()
     db.clearAll().catch(err => console.error('Failed to clear backup:', err))
   }
@@ -236,7 +242,26 @@ class Store {
     }
   }
 
+  setBookmark(listIndex: number, pageIndex: number) {
+    this.saveUndoSnapshot()
+    this.contents.setPageIndexToTitle(listIndex, pageIndex)
+  }
+
+  useImageSizeToPage(pageIndex: number) {
+    const pageItem = this.book.pages[pageIndex]
+    if (!pageItem) return
+    const blobItem = this.blobs.blobs[pageItem.blobID]
+    if (blobItem) {
+      this.saveUndoSnapshot()
+      this.book.updateBookPageProperty('pageSize', [
+        blobItem.width,
+        blobItem.height
+      ])
+    }
+  }
+
   replacePageIndex(index: number, targetIndex: number) {
+    this.saveUndoSnapshot()
     this.book.switchIndex(index, index > targetIndex ? targetIndex : targetIndex + 1)
     this.ui.selectPageIndex(targetIndex)
 
@@ -297,9 +322,10 @@ class Store {
       ),
     ])
 
-    const originalPageItem = toJS(pageItem)
-    const originalBlobItem = blobItem
-    const originalContentsList = toJS(this.contents.list)
+    const removedBlobs: Record<string, StoreBlobs.ImageBlob> = {
+      [pageItem.blobID]: blobItem
+    }
+    this.saveUndoSnapshot(removedBlobs, uuids)
 
     this.book.splitPage(index, uuids)
     this.book.updatePageItemIndex()
@@ -307,55 +333,14 @@ class Store {
     this.blobs.remove(pageItem.blobID)
 
     this.contents.shiftPageIndices(index, 1)
-
-    runInAction(() => {
-      this.lastSplitRecord = {
-        originalIndex: index,
-        originalPageItem,
-        originalBlobItem,
-        newBlobIDs: uuids,
-        originalContentsList,
-      }
-    })
   }
 
-  async undoLastSplit() {
-    if (!this.lastSplitRecord) return
-
-    const { originalIndex, originalPageItem, originalBlobItem, newBlobIDs, originalContentsList } = this.lastSplitRecord
-
-    const idx1 = this.book.pages.findIndex(p => p.blobID === newBlobIDs[0])
-    const idx2 = this.book.pages.findIndex(p => p.blobID === newBlobIDs[1])
-
-    let targetIndex = originalIndex
-    if (idx1 !== -1 && idx2 !== -1) {
-      targetIndex = Math.min(idx1, idx2)
-    }
-
-    this.blobs.remove(newBlobIDs[0])
-    this.blobs.remove(newBlobIDs[1])
-
-    try {
-      const restoredBlobItem = await formatBlobItem(originalBlobItem.blob)
-      runInAction(() => {
-        this.blobs.blobs[originalPageItem.blobID] = restoredBlobItem
-      })
-    } catch (err) {
-      console.error('Failed to restore original blob on undo:', err)
-    }
-
-    runInAction(() => {
-      this.book.pages = this.book.pages.filter(p => !newBlobIDs.includes(p.blobID))
-      this.book.pages.splice(targetIndex, 0, originalPageItem)
-      this.book.updatePageItemIndex()
-
-      this.contents.updateList(originalContentsList)
-      this.ui.selectPageIndex(targetIndex)
-      this.lastSplitRecord = null
-    })
+  async undo() {
+    await this.undoStore.restore(this)
   }
 
   insertBlankPage(index: number) {
+    this.saveUndoSnapshot()
     this.book.insertBlankPage(index)
     this.book.updatePageItemIndex()
 
@@ -369,6 +354,15 @@ class Store {
 
   removePage(index: number) {
     const pageItem = this.book.pages[index]
+    const removedBlobs: Record<string, StoreBlobs.ImageBlob> = {}
+    if (pageItem && !pageItem.blank && pageItem.blobID) {
+      const blobItem = this.blobs.blobs[pageItem.blobID]
+      if (blobItem) {
+        removedBlobs[pageItem.blobID] = blobItem
+      }
+    }
+    this.saveUndoSnapshot(removedBlobs)
+
     if (pageItem && !pageItem.blank && pageItem.blobID) {
       this.blobs.remove(pageItem.blobID)
     }
@@ -383,6 +377,7 @@ class Store {
     if (fromIndex === toIndex || fromIndex < 0 || fromIndex >= this.book.pages.length) return
     const targetIndex = Math.max(0, Math.min(toIndex, this.book.pages.length - 1))
 
+    this.saveUndoSnapshot()
     this.book.movePage(fromIndex, targetIndex)
 
     const selected = this.ui.selectedPageIndex
@@ -864,4 +859,5 @@ autorun(() => {
 
 export const StoreContext = React.createContext(store);
 export const useStore = () => React.useContext(StoreContext);
+export type StoreMain = Store;
 export default store;

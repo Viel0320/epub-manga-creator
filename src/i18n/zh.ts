@@ -21,6 +21,7 @@ const zh: Locale = {
     themeDark: '主题：深色',
     themeAuto: '主题：跟随系统',
     reset: '清空',
+    undo: '撤销',
     undoSplit: '撤销',
     previewBg: '预览背景',
     previewBgFilled: '预览背景：白色填充',

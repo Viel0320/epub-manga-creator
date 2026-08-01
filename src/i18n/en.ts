@@ -20,6 +20,7 @@ const en = {
     themeDark: 'Theme: Dark',
     themeAuto: 'Theme: Auto (system)',
     reset: 'Reset',
+    undo: 'Undo',
     undoSplit: 'Undo',
     previewBg: 'Preview Bg',
     previewBgFilled: 'Preview Bg: Solid White',

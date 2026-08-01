@@ -12,13 +12,8 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
   const storeMain = useStore();
   const t = useI18n();
   const onUseImageSizeToPage = useCallback(() => {
-    const pageItem = storeMain.book.pages[props.pageIndex as number]
-    const blobItem = storeMain.blobs.blobs[pageItem.blobID]
-    if (blobItem) {
-      storeMain.book.updateBookPageProperty('pageSize', [
-        blobItem.width,
-        blobItem.height
-      ])
+    if (props.pageIndex !== null) {
+      storeMain.useImageSizeToPage(props.pageIndex)
     }
   }, [props.pageIndex, storeMain])
 
@@ -37,7 +32,7 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
   }, [props.pageIndex, storeMain, t])
 
   const onSetContentq = useCallback((e: React.MouseEvent<HTMLSpanElement>) => {
-    storeMain.contents.setPageIndexToTitle(
+    storeMain.setBookmark(
       +(e.currentTarget.dataset.index as string),
       props.pageIndex as number
     )
@@ -49,8 +44,8 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
     }
   }, [props.pageIndex, storeMain])
 
-  const onUndoSplit = useCallback(() => {
-    storeMain.undoLastSplit()
+  const onUndo = useCallback(() => {
+    storeMain.undo()
   }, [storeMain])
 
   const onRemovePage = useCallback(() => {
@@ -58,7 +53,41 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
     res && storeMain.removePage(props.pageIndex as number)
   }, [props.pageIndex, storeMain, t])
 
-  const hasUndo = !!storeMain.lastSplitRecord
+  const onClickInsertBlankPage = useCallback(() => {
+    if (props.pageIndex !== null && props.pageIndex >= 0 && props.pageIndex < storeMain.book.pages.length) {
+      storeMain.insertBlankPage(props.pageIndex)
+      storeMain.ui.selectPageIndex(props.pageIndex)
+      return
+    }
+
+    const max = storeMain.book.pages.length
+    const inputValue = window.prompt(t.prompt.insertPageIndex(max))
+    let num = parseInt(inputValue || '')
+
+    if (isNaN(num) || num < 1) {
+      return
+    } else if (num > max) {
+      num = max
+    }
+
+    storeMain.insertBlankPage(num - 1)
+    storeMain.ui.selectPageIndex(num - 1)
+  }, [props.pageIndex, storeMain, t])
+
+  const undoButton = (
+    <div className="nav-item">
+      <button
+        type="button"
+        className={`btn ${storeMain.undoStore.canUndo ? 'btn-secondary' : 'btn-outline-secondary disabled'}`}
+        disabled={!storeMain.undoStore.canUndo}
+        onClick={onUndo}
+        title={t.nav.undo}
+      >
+        <Icon name="undo"/>
+        <span className="nav-label">{t.nav.undo}</span>
+      </button>
+    </div>
+  )
 
   if (props.pageIndex === null) {
     return (
@@ -76,30 +105,28 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
           </button>
         </div>
         <div className="nav-item">
+          <button
+            type="button"
+            className={`btn ${storeMain.book.pages.length === 0 ? 'btn-outline-secondary disabled' : 'btn-secondary'}`}
+            disabled={storeMain.book.pages.length === 0}
+            onClick={onClickInsertBlankPage}
+            title={t.nav.insertBlankPage}
+          >
+            <Icon name="notification"/>
+            <span className="nav-label">{t.nav.insertBlankPage}</span>
+          </button>
+        </div>
+        <div className="nav-item">
           <button type="button" className="btn btn-outline-secondary disabled" disabled>
             <Icon name="bookmark"/>
             <span className="nav-label">{t.nav.bookmark}</span>
           </button>
         </div>
-        <div className={`nav-item ${hasUndo ? 'dropdown' : ''}`}>
+        <div className="nav-item">
           <button type="button" className="btn btn-outline-secondary disabled" disabled>
             <Icon name="scissors"/>
             <span className="nav-label">{t.nav.split}</span>
           </button>
-          {
-            hasUndo ? (
-              <ul className="dropdown-menu" style={{top: 0, left: '100%'}}>
-                <li>
-                  <span
-                    className="dropdown-item"
-                    onClick={onUndoSplit}
-                  >
-                    {t.nav.undoSplit}
-                  </span>
-                </li>
-              </ul>
-            ) : null
-          }
         </div>
         <div className="nav-item">
           <button type="button" className="btn btn-outline-secondary disabled" disabled>
@@ -107,6 +134,7 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
             <span className="nav-label">{t.nav.delete}</span>
           </button>
         </div>
+        {undoButton}
       </>
     )
   }
@@ -125,6 +153,17 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
         <button type="button" className="btn btn-secondary" onClick={onChangePageIndex}>
           <Icon name="menu"/>
           <span className="nav-label">{t.nav.move}</span>
+        </button>
+      </div>
+      <div className="nav-item">
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={onClickInsertBlankPage}
+          title={t.nav.insertBlankPage}
+        >
+          <Icon name="notification"/>
+          <span className="nav-label">{t.nav.insertBlankPage}</span>
         </button>
       </div>
       <div className="nav-item dropdown">
@@ -148,25 +187,11 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
           }
         </ul>
       </div>
-      <div className={`nav-item ${hasUndo ? 'dropdown' : ''}`}>
+      <div className="nav-item">
         <button type="button" className="btn btn-secondary" disabled={blankPage} onClick={onSplitPage}>
           <Icon name="scissors"/>
           <span className="nav-label">{t.nav.split}</span>
         </button>
-        {
-          hasUndo ? (
-            <ul className="dropdown-menu" style={{top: 0, left: '100%'}}>
-              <li>
-                <span
-                  className="dropdown-item"
-                  onClick={onUndoSplit}
-                >
-                  {t.nav.undoSplit}
-                </span>
-              </li>
-            </ul>
-          ) : null
-        }
       </div>
       <div className="nav-item">
         <button type="button" className="btn btn-secondary" onClick={onRemovePage}>
@@ -174,6 +199,7 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
           <span className="nav-label">{t.nav.delete}</span>
         </button>
       </div>
+      {undoButton}
     </>
   )
 })
@@ -274,28 +300,6 @@ const Header = function() {
     storeMain.importPageFromImages(Array.from(input.files as FileList))
   }, [inputType, storeMain])
 
-  const onClickInsertBlankPage = useCallback(() => {
-    const selectedIndex = ui.selectedPageIndex
-    if (selectedIndex !== null && selectedIndex >= 0 && selectedIndex < book.pages.length) {
-      storeMain.insertBlankPage(selectedIndex)
-      ui.selectPageIndex(selectedIndex)
-      return
-    }
-
-    const max = book.pages.length
-    const inputValue = window.prompt(t.prompt.insertPageIndex(max))
-    let num = parseInt(inputValue || '')
-
-    if (isNaN(num) || num < 1) {
-      return
-    } else if (num > max) {
-      num = max
-    }
-
-    storeMain.insertBlankPage(num - 1)
-    ui.selectPageIndex(num - 1)
-  }, [book.pages.length, ui, storeMain, t])
-
   const onClickGenerate = useCallback(() => {
     storeMain.generateBook()
   }, [storeMain])
@@ -349,18 +353,6 @@ const Header = function() {
         <button type="button" className="btn btn-primary" onClick={onClickTogglePageVisible} title={t.nav.page}>
           <Icon name="tools"/>
           <span className="nav-label">{t.nav.page}</span>
-        </button>
-      </div>
-      <div className="nav-item">
-        <button
-          type="button"
-          className="btn btn-primary"
-          disabled={book.pages.length === 0}
-          onClick={onClickInsertBlankPage}
-          title={t.nav.insertBlankPage}
-        >
-          <Icon name="notification"/>
-          <span className="nav-label">{t.nav.insertBlankPage}</span>
         </button>
       </div>
       <div className="nav-item">
