@@ -556,8 +556,13 @@ const Main = function() {
     }
   }, [storeBook.coverPosition, storeBook.pages.length, storeBook.pageShow, pagesVersionKey, modePageSize])
 
-  const onClickImport = useCallback(() => {
-    document.getElementById('input-upload')?.click()
+  const onClickImportType = useCallback((type: 'image' | 'zip' | 'epub') => {
+    const item = document.querySelector(`#nav .dropdown-item[data-type="${type}"]`) as HTMLElement
+    if (item) {
+      item.click()
+    } else {
+      document.getElementById('input-upload')?.click()
+    }
   }, [])
 
   useEffect(() => {
@@ -636,9 +641,54 @@ const Main = function() {
       <RestoreBanner />
       {
         showPages.length === 0 ? (
-          import.meta.env.DEV
-            ? <div className="btn btn-secondary main-input-upload" onClick={onClickImport}>{t.main.import}</div>
-            : <div className="alert alert-secondary text-center" role="alert">{t.main.ready}</div>
+          <div className="main-empty-container">
+            <div className="main-app-header">
+              <h1 className="main-app-title">{t.main.appTitle}</h1>
+              <p className="main-app-subtitle">{t.main.appSubtitle}</p>
+              <div className="main-app-maintainer-row">
+                <span>{t.main.appMaintainer}</span>
+                <a
+                  href="https://github.com/Viel0320/epub-manga-creator"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="main-app-github-link"
+                  title="GitHub Repository"
+                >
+                  <Icon name="github" />
+                  <span>GitHub</span>
+                </a>
+              </div>
+            </div>
+            <div className="main-input-card">
+              <div className="main-input-title">{t.main.import}</div>
+              <div className="main-input-actions">
+                <button
+                  type="button"
+                  className="btn btn-primary main-input-btn"
+                  onClick={() => onClickImportType('image')}
+                >
+                  <Icon name="upload" />
+                  <span>{t.nav.importImage}</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary main-input-btn"
+                  onClick={() => onClickImportType('zip')}
+                >
+                  <Icon name="save" />
+                  <span>{t.nav.importZip}</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary main-input-btn"
+                  onClick={() => onClickImportType('epub')}
+                >
+                  <Icon name="book" />
+                  <span>{t.nav.importEpub}</span>
+                </button>
+              </div>
+            </div>
+          </div>
         ) : (
           showPages.map((row, i) => (
             <div

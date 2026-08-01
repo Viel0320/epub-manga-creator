@@ -371,7 +371,8 @@ const Header = function() {
       <div className="nav-item nav-bottom-group">
         <button
           type="button"
-          className={`btn ${ui.containerBgFilled ? 'btn-primary' : 'btn-secondary'}`}
+          className={`btn ${book.pages.length === 0 ? 'btn-outline-secondary disabled' : ui.containerBgFilled ? 'btn-primary' : 'btn-secondary'}`}
+          disabled={book.pages.length === 0}
           onClick={onToggleContainerBg}
           title={ui.containerBgFilled ? t.nav.previewBgFilled : t.nav.previewBgTransparent}
         >

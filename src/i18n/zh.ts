@@ -43,6 +43,9 @@ const zh: Locale = {
   },
 
   main: {
+    appTitle: 'EPUB Manga Creator',
+    appSubtitle: '轻松创建与编辑 EPUB 格式漫画电子书',
+    appMaintainer: '维护者：Viel0320',
     ready: '准备就绪 🚀',
     import: '导入',
     zoomPreview: '放大预览',

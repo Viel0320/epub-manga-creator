@@ -9,10 +9,11 @@ export type ThemeMode = 'dark' | 'light' | 'auto'
 const THEME_CYCLE: ThemeMode[] = ['light', 'dark', 'auto']
 
 function detectDefaultContainerBg(): boolean {
-  if (typeof window === 'undefined') return true
+  if (typeof window === 'undefined') return false
   const saved = localStorage.getItem(STORAGE_CONTAINER_BG_KEY)
+  if (saved === 'true') return true
   if (saved === 'false') return false
-  return true
+  return false
 }
 
 function detectDefaultLang(): LangKey {
@@ -54,7 +55,7 @@ class Store {
   previewPageIndex: number | null = null
 
   firstImport = true
-  containerBgFilled = true
+  containerBgFilled = false
 
   constructor() {
     makeAutoObservable(this)

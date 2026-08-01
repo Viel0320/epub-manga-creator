@@ -5,7 +5,7 @@ const getText = (): string => `<?xml version="1.0" encoding="UTF-8"?>
   xml:lang="ja"
   unique-identifier="unique-id"
   prefix="rendition: http://www.idpf.org/vocab/rendition/#
-          epub-bundle-tool: https://wing-kai.github.io/epub-manga-creator/
+          epub-bundle-tool: https://github.com/Viel0320/epub-manga-creator
           ebpaj: http://www.ebpaj.jp/
           fixed-layout-jp: http://www.digital-comic.jp/
           ibooks: http://vocabulary.itunes.apple.com/rdf/ibooks/vocabulary-extensions-1.0/"

@@ -46,6 +46,9 @@ const en = {
 
   // Main area
   main: {
+    appTitle: 'EPUB Manga Creator',
+    appSubtitle: 'Create & edit EPUB manga e-books easily',
+    appMaintainer: 'Maintained by Viel0320',
     ready: 'Ready 🚀',
     import: 'Import',
     zoomPreview: 'Zoom preview',
