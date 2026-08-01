@@ -187,11 +187,8 @@ const MultipleAttrMap = {
   epub: false,
 }
 
-const blobToFile = (theBlob: Blob, fileName:string): File => {
-  var b: any = theBlob
-  b.lastModifiedDate = new Date()
-  b.name = fileName
-  return theBlob as File
+const blobToFile = (theBlob: Blob, fileName: string): File => {
+  return new File([theBlob], fileName, { type: theBlob.type })
 }
 
 const Header = function() {
