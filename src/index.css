@@ -1182,6 +1182,12 @@ html.dark-theme .lightbox-menu-popover {
   outline-offset: -2px;
 }
 
+.card.drag-over {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  box-shadow: 0 0 12px var(--accent-ring);
+}
+
 .card.drag-over-left::before {
   content: '';
   position: absolute;

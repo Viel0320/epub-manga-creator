@@ -10,6 +10,8 @@ import { getPageEffectiveSize } from 'utils/page-size'
 
 const THIS_YEAR = (new Date()).getFullYear()
 
+let globalDraggedIndex: number | null = null
+
 const PageCard = observer(function(props: {
   pageItemIndex: number | null
   realPageIndex?: number | null
@@ -18,10 +20,11 @@ const PageCard = observer(function(props: {
   blank: boolean
   onContextMenu?: (e: React.MouseEvent, pageIndex: number) => void
 }) {
-  const { ui: storeUI, book: storeBook, contents: storeContent, movePage, modePageSize } = useStore()
+  const storeMain = useStore()
+  const { ui: storeUI, book: storeBook, contents: storeContent, modePageSize } = storeMain
   const t = useI18n()
   const [isDragging, setIsDragging] = useState(false)
-  const [dragPosition, setDragPosition] = useState<'left' | 'right' | null>(null)
+  const [isDragOver, setIsDragOver] = useState(false)
 
   const onClickImage = useCallback(() => {
     storeUI.selectPageIndex(props.pageItemIndex)
@@ -51,74 +54,43 @@ const PageCard = observer(function(props: {
       e.preventDefault()
       return
     }
+    globalDraggedIndex = props.realPageIndex ?? null
     e.dataTransfer.setData('text/plain', String(props.realPageIndex))
     e.dataTransfer.effectAllowed = 'move'
     setIsDragging(true)
   }
 
   const onDragEnd = () => {
+    globalDraggedIndex = null
     setIsDragging(false)
-    setDragPosition(null)
+    setIsDragOver(false)
   }
 
   const onDragOver = (e: React.DragEvent) => {
     if (!isDropTarget) return
     e.preventDefault()
-
-    const rect = e.currentTarget.getBoundingClientRect()
-    const isAfter = (e.clientX - rect.left) > (rect.width / 2)
-    const position = isAfter ? 'right' : 'left'
-
-    const isRTL = storeBook.pageDirection === 'right'
-    let gap: number
-    if (isRTL) {
-      gap = position === 'left' ? props.realPageIndex! + 1 : props.realPageIndex!
-    } else {
-      gap = position === 'right' ? props.realPageIndex! + 1 : props.realPageIndex!
-    }
-
-    if (gap <= 0) {
-      setDragPosition(null)
-      e.dataTransfer.dropEffect = 'none'
-      return
-    }
-
     e.dataTransfer.dropEffect = 'move'
-    setDragPosition(position)
+    setIsDragOver(true)
   }
 
   const onDragLeave = () => {
     if (!isDropTarget) return
-    setDragPosition(null)
+    setIsDragOver(false)
   }
 
   const onDrop = (e: React.DragEvent) => {
     if (!isDropTarget) return
     e.preventDefault()
-    const position = dragPosition
-    setDragPosition(null)
+    setIsDragOver(false)
 
-    const sourceIndexStr = e.dataTransfer.getData('text/plain')
-    if (!sourceIndexStr) return
-    const sourceIndex = Number(sourceIndexStr)
+    const rawSource = globalDraggedIndex
+    globalDraggedIndex = null
+    const fallbackSourceStr = e.dataTransfer.getData('text/plain')
+    const sourceIndex = rawSource !== null ? rawSource : (fallbackSourceStr ? Number(fallbackSourceStr) : NaN)
     const targetIndex = props.realPageIndex as number
 
-    if (!isNaN(sourceIndex) && sourceIndex > 0 && sourceIndex < storeBook.pages.length) {
-      const isRTL = storeBook.pageDirection === 'right'
-      let gap: number
-      if (isRTL) {
-        gap = position === 'left' ? targetIndex + 1 : targetIndex
-      } else {
-        gap = position === 'right' ? targetIndex + 1 : targetIndex
-      }
-
-      if (gap <= 0) return
-
-      let insertIndex = gap
-      if (sourceIndex < gap) {
-        insertIndex = gap - 1
-      }
-      movePage(sourceIndex, insertIndex)
+    if (!isNaN(sourceIndex) && sourceIndex >= 0 && sourceIndex < storeBook.pages.length && sourceIndex !== targetIndex) {
+      storeMain.replacePageIndex(sourceIndex, targetIndex)
     }
   }
 
@@ -144,7 +116,7 @@ const PageCard = observer(function(props: {
 
   return (
     <div
-      className={`card ${isDragging ? 'is-dragging' : ''} ${dragPosition ? `drag-over-${dragPosition}` : ''}`}
+      className={`card ${isDragging ? 'is-dragging' : ''} ${isDragOver ? 'drag-over' : ''}`}
       draggable={isDraggable}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
@@ -190,6 +162,7 @@ const PageCard = observer(function(props: {
                   width="100%"
                   height="100%"
                   preserveAspectRatio={preserveAspectRatio}
+                  href={props.blobItem.thumbnailURL}
                   xlinkHref={props.blobItem.thumbnailURL}
                 />
               ) : null
@@ -520,7 +493,7 @@ const Main = function() {
     setContextMenu(prev => (prev.visible ? { ...prev, visible: false } : prev))
   }, [])
 
-  const pagesSpreadKey = storeBook.pages.map(p => `${p.index}_${p.customSpread || 'auto'}`).join(',')
+  const pagesVersionKey = storeBook.pages.map(p => `${p.blobID}_${p.customSpread || 'auto'}`).join(',')
 
   const pageResizeCallback = useCallback(() => {
     const mainEl = mainRef.current
@@ -581,7 +554,7 @@ const Main = function() {
       }
       setShowPages(rows)
     }
-  }, [storeBook.coverPosition, storeBook.pages.length, storeBook.pages, storeBook.pageShow, pagesSpreadKey, modePageSize])
+  }, [storeBook.coverPosition, storeBook.pages.length, storeBook.pageShow, pagesVersionKey, modePageSize])
 
   const onClickImport = useCallback(() => {
     document.getElementById('input-upload')?.click()
@@ -589,7 +562,7 @@ const Main = function() {
 
   useEffect(() => {
     pageResizeCallback()
-  }, [storeBook.pages, storeBook.pageShow, pagesSpreadKey, pageResizeCallback])
+  }, [storeBook.pageShow, pagesVersionKey, pageResizeCallback])
 
   useEffect(() => {
     // rAF-throttled resize handler, cleaned up on unmount
@@ -674,30 +647,21 @@ const Main = function() {
             >
               {
                 storeBook.pageShow === 'one'
-                  ? (row as number[]).map((pageIdx, j) => (
-                      <SinglePageCard key={`${i}-${j}-${pageIdx}`} pageIndex={pageIdx} onContextMenu={onPageContextMenu} />
-                    ))
-                  : (row as [number | null, number | null][]).map((pages, j) => (
-                      <DoublePageCard key={`${i}-${j}-${pages[0]}-${pages[1]}`} pages={pages} onContextMenu={onPageContextMenu} />
-                    ))
+                  ? (row as number[]).map((pageIdx, j) => {
+                      const page = storeBook.pages[pageIdx]
+                      return <SinglePageCard key={`${i}-${j}-${pageIdx}-${page?.blobID}`} pageIndex={pageIdx} onContextMenu={onPageContextMenu} />
+                    })
+                  : (row as [number | null, number | null][]).map((pages, j) => {
+                      const p0 = pages[0] !== null ? storeBook.pages[pages[0]] : null
+                      const p1 = pages[1] !== null ? storeBook.pages[pages[1]] : null
+                      return <DoublePageCard key={`${i}-${j}-${pages[0]}-${pages[1]}-${p0?.blobID}-${p1?.blobID}`} pages={pages} onContextMenu={onPageContextMenu} />
+                    })
               }
             </div>
           ))
         )
       }
       <PageContextMenu state={contextMenu} onClose={closeContextMenu} />
-      <div className="author-info">
-        <div>{THIS_YEAR} Joycai@Github</div>
-        <iframe
-          title="ghbtns"
-          className="ghbtns"
-          src="https://ghbtns.com/github-btn.html?user=Joycai&amp;repo=epub-manga-creator&amp;type=star&amp;count=true"
-          frameBorder="0"
-          scrolling="0"
-          width="80px"
-          height="20px"
-        />
-      </div>
     </main>
   )
 }
