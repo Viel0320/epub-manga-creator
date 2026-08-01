@@ -778,14 +778,27 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
   transition: all 0.18s ease;
 }
 
-/* Central Floating Header: Displays Book Page Size */
-.lightbox-header {
+/* Top Bar Container — Grid layout with 3 columns for balanced centering */
+.lightbox-top-bar {
   position: absolute;
   top: -48px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 3;
+  left: 0;
+  right: 0;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  z-index: 5;
   pointer-events: none;
+}
+
+.lightbox-top-bar > * {
+  pointer-events: auto;
+}
+
+/* Central Floating Header: Displays Book Page Size */
+.lightbox-header {
+  justify-self: center;
+  z-index: 3;
 }
 .lightbox-header .icon {
   width: 16px;
@@ -804,7 +817,8 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
   justify-content: center;
   gap: 6px;
   flex-wrap: wrap;
-  max-width: 90vw;
+  width: max-content;
+  max-width: calc(100vw - 40px);
   white-space: nowrap;
   z-index: 3;
 }
@@ -939,7 +953,10 @@ html.dark-theme .lightbox-menu-popover {
   left: 50%;
   transform: translateX(-50%);
   z-index: 4;
-  pointer-events: none;
+  pointer-events: auto;
+  max-width: min(90%, 360px);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .lightbox-page-chip .chip-dim {
   opacity: 0.85;
@@ -1056,9 +1073,7 @@ html.dark-theme .lightbox-menu-popover {
 
 /* Mode Toggle Button (Top Left) */
 .lightbox-toggle-btn {
-  position: absolute;
-  top: -48px;
-  left: 0;
+  justify-self: start;
   cursor: pointer;
   z-index: 3;
 }
@@ -1078,9 +1093,7 @@ html.dark-theme .lightbox-menu-popover {
 
 /* Page Size Chip (Top Right) */
 .lightbox-size-chip {
-  position: absolute;
-  top: -48px;
-  right: 48px;
+  justify-self: end;
   z-index: 3;
   pointer-events: none;
 }
@@ -1092,9 +1105,7 @@ html.dark-theme .lightbox-menu-popover {
 
 /* Frosted glass Close Button */
 .lightbox-close-btn {
-  position: absolute;
-  top: -48px;
-  right: 0;
+  justify-self: end;
   width: 36px;
   padding: 0;
   justify-content: center;
@@ -1162,8 +1173,7 @@ html.dark-theme .lightbox-menu-popover {
 @media (max-width: 768px) {
   .lightbox-nav-btn.prev { left: 8px; }
   .lightbox-nav-btn.next { right: 8px; }
-  .lightbox-close-btn { top: -48px; right: 8px; }
-  .lightbox-toggle-btn { top: -48px; left: 8px; }
+  .lightbox-top-bar { padding: 0 8px; }
 }
 
 /* Card Drag and Drop Styles */
