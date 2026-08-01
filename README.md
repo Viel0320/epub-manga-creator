@@ -1,16 +1,18 @@
 # EPUB Manga Creator
 
+English | [简体中文](README_CN.md)
+
 A modern, fast web-based GUI utility to bundle comic and manga images into EPUB format. 
 
 The generated EPUB structure conforms to the specifications of the [Digital Comic Association](http://www.digital-comic.jp/) (デジタルコミック協議会).
 
-🚀 **[Click here to use the app](https://wing-kai.github.io/epub-manga-creator)**
+🚀 **[Click here to use the app](https://viel0320.github.io/epub-manga-creator)**
 
 ---
 
 ## Features
 
-- **Modern Build Stack**: Powered by **Vite 6**, **React 18.3**, and **MobX 6** for blazing-fast development startup, instant Hot Module Replacement (HMR), and optimized production builds.
+- **Modern Build Stack**: Powered by **Vite 8**, **React 19**, and **MobX 6** for blazing-fast development startup, instant Hot Module Replacement (HMR), and optimized production builds.
 - **PNPM Package Manager**: Dependency management migrated to **PNPM** for faster installs and efficient disk usage.
 - **SSR-Ready & Isomorphic**: Codebase audit and refactoring to eliminate top-level browser DOM references (e.g. module-level `getComputedStyle`), making the core stores and components importable and rendering-safe in Node.js / SSR environments.
 - **Localisation (L10n)**: Built-in support for **English** and **Chinese**. 
