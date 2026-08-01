@@ -83,6 +83,16 @@ const Lightbox = observer(function() {
     ? `Auto (${displaySize[0]}×${displaySize[1]})`
     : `${displaySize[0]}×${displaySize[1]}`
 
+  const settingsChips = [
+    { label: t.page.size, value: book.pageSizeMode === 'auto' ? `Auto (${displaySize[0]}×${displaySize[1]})` : `${displaySize[0]}×${displaySize[1]}` },
+    { label: t.page.position, value: book.pagePosition === 'between' ? t.option.between : t.option.center },
+    { label: t.page.show, value: book.pageShow === 'two' ? t.option.twoPages : t.option.onePage },
+    { label: t.page.fit, value: book.pageFit === 'fit' ? t.option.fit : (book.pageFit === 'stretch' ? t.option.stretch : t.option.fill) },
+    { label: t.page.direction, value: book.pageDirection === 'right' ? t.option.rightJP : t.option.left },
+    { label: t.page.cover, value: book.coverPosition === 'first-page' ? t.option.firstPage : t.option.alone },
+    { label: t.page.imageTag, value: book.imgTag === 'svg' ? '<svg />' : '<img />' },
+  ]
+
   const renderSingleImage = (idx: number, side?: 'left' | 'right') => {
     const page = book.pages[idx]
     if (!page) return null
@@ -97,11 +107,12 @@ const Lightbox = observer(function() {
       ? `${t.lightbox.page} ${idx + 1}`
       : `${t.lightbox.page} ${idx + 1} / ${totalPages}`
 
-    let sizeStr = ''
+    const viewportSizeStr = `${effectiveSize[0]}×${effectiveSize[1]}`
+    let originSizeStr = ''
     if (isBlank) {
-      sizeStr = t.lightbox.blankPage
+      originSizeStr = t.lightbox.blankPage
     } else if (blobItem && blobItem.originImage) {
-      sizeStr = `${blobItem.originImage.width}×${blobItem.originImage.height}`
+      originSizeStr = `${blobItem.originImage.width}×${blobItem.originImage.height}`
     }
 
     const listIdx = totalPages > 0 ? storeMain.contents.indexMap[idx] : undefined
@@ -122,22 +133,24 @@ const Lightbox = observer(function() {
       height: '100%',
       aspectRatio: `${effectiveSize[0]} / ${effectiveSize[1]}`,
     } : {
-      height: 'calc(88vh - 60px)',
+      height: '88vh',
       width: 'auto',
       maxWidth: '82vw',
-      maxHeight: 'calc(88vh - 60px)',
+      maxHeight: '88vh',
       aspectRatio: `${effectiveSize[0]} / ${effectiveSize[1]}`,
     }
 
     return (
       <div key={idx} className="lightbox-page-wrapper">
-        {/* Page Chip aligned strictly to this image's vertical center axis */}
+        {/* Page Chip aligned strictly to this image's vertical center axis: displays page number, viewport size & original size */}
         <div className="lightbox-page-chip" onClick={onContentClick}>
           <span>{pageStr}</span>
-          {sizeStr ? (
+          <span>•</span>
+          <span className="chip-dim">{viewportSizeStr}</span>
+          {!isBlank && originSizeStr ? (
             <>
               <span>•</span>
-              <span className="chip-dim">{sizeStr}</span>
+              <span className="chip-dim">{t.lightbox.originImage || '原图'} {originSizeStr}</span>
             </>
           ) : null}
           {bookmarkTitle ? (
@@ -243,6 +256,16 @@ const Lightbox = observer(function() {
         >
           <Icon name="chevron-right" />
         </button>
+      </div>
+
+      {/* Page Settings Chips Footer (Bottom) */}
+      <div className="lightbox-settings-footer" onClick={onContentClick}>
+        {settingsChips.map((chip, i) => (
+          <div key={i} className="lightbox-setting-chip">
+            <span className="chip-label">{chip.label}:</span>
+            <span className="chip-val">{chip.value}</span>
+          </div>
+        ))}
       </div>
     </div>
   )

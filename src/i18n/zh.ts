@@ -50,6 +50,7 @@ const zh: Locale = {
   lightbox: {
     page: '页面',
     blankPage: '空白页',
+    originImage: '原图',
     close: '关闭',
     prev: '上一页',
     next: '下一页',

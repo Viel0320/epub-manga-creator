@@ -158,8 +158,8 @@ const ModalPage = observer(function() {
           <div className="mb-2 row">
             <label htmlFor="input-page-position" className="col-3 col-form-label text-end">{t.page.position}</label>
             <div className="col-9 d-flex align-items-center">
-              <ButtonRadio current={storeBook.pagePosition} value="center" label={t.option.center} onClick={onChangePagePosition} />
               <ButtonRadio current={storeBook.pagePosition} value="between" label={t.option.between} onClick={onChangePagePosition} />
+              <ButtonRadio current={storeBook.pagePosition} value="center" label={t.option.center} onClick={onChangePagePosition} />
             </div>
           </div>
           <div className="mb-2 row">
@@ -172,8 +172,8 @@ const ModalPage = observer(function() {
           <div className="mb-2 row">
             <label className="col-3 col-form-label text-end">{t.page.fit}</label>
             <div className="col-9 d-flex align-items-center">
-              <ButtonRadio current={storeBook.pageFit} value="stretch" label={t.option.stretch} onClick={onChangePageFit} />
               <ButtonRadio current={storeBook.pageFit} value="fit" label={t.option.fit} onClick={onChangePageFit} />
+              <ButtonRadio current={storeBook.pageFit} value="stretch" label={t.option.stretch} onClick={onChangePageFit} />
               <ButtonRadio current={storeBook.pageFit} value="fill" label={t.option.fill} onClick={onChangePageFit} />
             </div>
           </div>

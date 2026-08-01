@@ -54,6 +54,7 @@ const en = {
   lightbox: {
     page: 'Page',
     blankPage: 'Blank page',
+    originImage: 'Original',
     close: 'Close',
     prev: 'Previous page',
     next: 'Next page',

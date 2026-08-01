@@ -742,22 +742,25 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
   align-items: center;
   justify-content: center;
   max-width: 90vw;
-  max-height: 92vh;
-  margin-top: 36px;
+  max-height: 88vh;
+  margin: 0;
   box-sizing: border-box;
 }
 
-/* Central Floating Header: Displays Book Page Size */
-.lightbox-header {
-  position: absolute;
-  top: -48px;
-  left: 50%;
-  transform: translateX(-50%);
-  height: 36px;
-  padding: 0 14px;
-  display: flex;
+/* ---------- Lightbox Chips style---------- */
+
+.lightbox-header,
+.lightbox-page-chip,
+.lightbox-toggle-btn,
+.lightbox-size-chip,
+.lightbox-close-btn,
+.lightbox-setting-chip,
+.lightbox-image-size-chip {
+  display: inline-flex;
   align-items: center;
   gap: 6px;
+  height: 36px;
+  padding: 0 14px;
   font-size: 13px;
   font-weight: 500;
   color: var(--text);
@@ -767,6 +770,17 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
   border: 1px solid var(--glass-border);
   border-radius: 999px;
   box-shadow: var(--shadow-soft);
+  box-sizing: border-box;
+  white-space: nowrap;
+  transition: all 0.18s ease;
+}
+
+/* Central Floating Header: Displays Book Page Size */
+.lightbox-header {
+  position: absolute;
+  top: -48px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 3;
   pointer-events: none;
 }
@@ -774,6 +788,32 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
   width: 16px;
   height: 16px;
   opacity: 0.85;
+}
+
+/* Bottom Chips Footer for Page Settings Options — positioned independently at screen bottom */
+.lightbox-settings-footer {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  max-width: 90vw;
+  white-space: nowrap;
+  z-index: 3;
+}
+
+.lightbox-setting-chip .chip-label {
+  color: var(--text-subtle);
+  font-size: 11px;
+}
+
+.lightbox-setting-chip .chip-val {
+  color: var(--primary);
+  font-weight: 600;
 }
 
 /* Page wrapper for relative positioning */
@@ -790,21 +830,6 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
   top: -48px;
   left: 50%;
   transform: translateX(-50%);
-  height: 36px;
-  padding: 0 14px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text);
-  background: var(--glass-strong);
-  backdrop-filter: var(--blur-light);
-  -webkit-backdrop-filter: var(--blur-light);
-  border: 1px solid var(--glass-border);
-  border-radius: 999px;
-  box-shadow: var(--shadow-soft);
-  white-space: nowrap;
   z-index: 4;
   pointer-events: none;
 }
@@ -820,9 +845,28 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
   text-overflow: ellipsis;
 }
 
+/* Image original size chip below each image */
+.lightbox-image-size-chip {
+  position: absolute;
+  bottom: -46px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+}
+
+.lightbox-image-size-chip .chip-label {
+  color: var(--text-subtle);
+  font-size: 11px;
+}
+
+.lightbox-image-size-chip .chip-val {
+  color: var(--text);
+  font-weight: 600;
+}
+
 /* Image & Blank Canvas display — constrained strictly by screen height */
 .lightbox-image {
-  max-height: calc(88vh - 60px);
+  max-height: 88vh;
   max-width: 82vw;
   width: auto;
   height: auto;
@@ -834,14 +878,12 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
 }
 
 .lightbox-blank-page {
-  height: calc(88vh - 60px);
+  height: 88vh;
   width: auto;
   max-width: 82vw;
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-panel);
 }
-
-
 
 /* Double-page spread container & spine */
 .lightbox-spread-wrapper {
@@ -849,9 +891,9 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
   align-items: center;
   justify-content: center;
   max-width: 86vw;
-  max-height: calc(88vh - 60px);
-  height: calc(88vh - 60px);
-  width: min(86vw, calc((88vh - 60px) * 1.5));
+  max-height: 88vh;
+  height: 88vh;
+  width: min(86vw, calc(88vh * 1.5));
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-panel);
   overflow: visible;
@@ -899,23 +941,8 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
   position: absolute;
   top: -48px;
   left: 0;
-  height: 36px;
-  padding: 0 14px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text);
-  background: var(--glass-strong);
-  backdrop-filter: var(--blur-light);
-  -webkit-backdrop-filter: var(--blur-light);
-  border: 1px solid var(--glass-border);
-  border-radius: 999px;
-  box-shadow: var(--shadow-soft);
   cursor: pointer;
   z-index: 3;
-  transition: all 0.18s ease;
 }
 .lightbox-toggle-btn:hover {
   background: var(--control-bg-hover);
@@ -936,20 +963,6 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
   position: absolute;
   top: -48px;
   right: 48px;
-  height: 36px;
-  padding: 0 14px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text);
-  background: var(--glass-strong);
-  backdrop-filter: var(--blur-light);
-  -webkit-backdrop-filter: var(--blur-light);
-  border: 1px solid var(--glass-border);
-  border-radius: 999px;
-  box-shadow: var(--shadow-soft);
   z-index: 3;
   pointer-events: none;
 }
@@ -965,21 +978,11 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
   top: -48px;
   right: 0;
   width: 36px;
-  height: 36px;
   padding: 0;
-  display: flex;
-  align-items: center;
   justify-content: center;
-  color: var(--text);
-  background: var(--glass-strong);
-  backdrop-filter: var(--blur-light);
-  -webkit-backdrop-filter: var(--blur-light);
-  border: 1px solid var(--glass-border);
-  border-radius: 50%;
-  box-shadow: var(--shadow-soft);
+  border-radius: 999px;
   cursor: pointer;
   z-index: 3;
-  transition: all 0.18s ease;
 }
 .lightbox-close-btn:hover {
   background: var(--danger);

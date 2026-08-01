@@ -52,7 +52,7 @@ class Store {
   pageSizeMode: ('manual' | 'auto') = 'auto'
   pagePosition: ('center' | 'between') = 'between'
   pageShow: ('two' | 'one') = 'two'
-  pageFit: ('stretch' | 'fit' | 'fill') = 'stretch'
+  pageFit: ('stretch' | 'fit' | 'fill') = 'fit'
   pageBackgroundColor: ('white' | 'black') = 'white'
   pageDirection: ('right' | 'left') = 'right'
   coverPosition: ('first-page' | 'alone') = 'first-page'
