@@ -72,9 +72,8 @@ class Store {
     try {
       formatBlobs = await Promise.all(blobs.map(formatBlobItem))
     } catch (err) {
-      console.error(err)
-      alert('错误\nError')
-      return
+      console.error('Failed to format blob items:', err)
+      throw err
     }
 
     runInAction(() => {

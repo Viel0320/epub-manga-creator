@@ -20,12 +20,16 @@ import getTemplateStandardOpf from 'template/standard.opf'
 import getTemplateNavigationDocumentsXhtml from 'template/navigation-documents.xhtml'
 
 const htmlToEscape = (str: string): string => {
+  if (!str) return ''
   // strip control chars that are invalid in XML 1.0 even when escaped
   // eslint-disable-next-line no-control-regex
-  const cleaned = str.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
-  const reg = /"|&|'|<|>|\\|[\x80-\xFF]|[\u0100-\u2700]/g
-
-  return cleaned.replace(reg, ($0) => '&#' + $0.charCodeAt(0) + ';')
+  const cleaned = str.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x84\x86-\x9F]/g, '')
+  return cleaned
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
 }
 
 // Safe template interpolation: a plain-string replacement would interpret
@@ -108,7 +112,7 @@ class Store {
   }
 
   async restoreWorkspace() {
-    const backup = await db.getMetadata('active_book')
+    const backup = (await db.getMetadata('active_book')) as WorkspaceSnapshot | null
     if (!backup || !Array.isArray(backup.pages) || backup.pages.length === 0) {
       return
     }
@@ -116,7 +120,7 @@ class Store {
     const blobIDs: string[] = []
     const blobList: Blob[] = []
 
-    for (const page of backup.pages as StoreBook.PageItem[]) {
+    for (const page of backup.pages) {
       if (page.blank || !page.blobID) {
         continue
       }
@@ -131,23 +135,24 @@ class Store {
 
     runInAction(() => {
       const available = new Set(blobIDs)
-      this.book.pages = (backup.pages as StoreBook.PageItem[])
+      this.book.pages = backup.pages
         .filter(page => page.blank || available.has(page.blobID))
         .map((page, i) => ({ ...page, index: i }))
 
       if (backup.bookInfo) {
-        this.book.bookID = backup.bookInfo.bookID || this.book.bookID
-        this.book.bookTitle = backup.bookInfo.bookTitle || ''
-        this.book.bookAuthors = backup.bookInfo.bookAuthors?.length ? backup.bookInfo.bookAuthors : ['']
-        this.book.bookSubject = backup.bookInfo.bookSubject || ''
-        this.book.bookPublisher = backup.bookInfo.bookPublisher || ''
-        this.book.bookLanguage = (backup.bookInfo as any).bookLanguage || 'ja'
-        this.book.bookSeriesName = (backup.bookInfo as any).bookSeriesName || ''
-        this.book.bookSeriesVolume = (backup.bookInfo as any).bookSeriesVolume || ''
-        this.book.bookDescription = (backup.bookInfo as any).bookDescription || ''
-        this.book.bookDate = (backup.bookInfo as any).bookDate || ''
-        this.book.bookContributors = Array.isArray((backup.bookInfo as any).bookContributors) ? (backup.bookInfo as any).bookContributors : []
-        this.book.bookISBN = (backup.bookInfo as any).bookISBN || ''
+        const info = backup.bookInfo
+        this.book.bookID = info.bookID || this.book.bookID
+        this.book.bookTitle = info.bookTitle || ''
+        this.book.bookAuthors = info.bookAuthors?.length ? info.bookAuthors : ['']
+        this.book.bookSubject = info.bookSubject || ''
+        this.book.bookPublisher = info.bookPublisher || ''
+        this.book.bookLanguage = info.bookLanguage || 'ja'
+        this.book.bookSeriesName = info.bookSeriesName || ''
+        this.book.bookSeriesVolume = info.bookSeriesVolume || ''
+        this.book.bookDescription = info.bookDescription || ''
+        this.book.bookDate = info.bookDate || ''
+        this.book.bookContributors = Array.isArray(info.bookContributors) ? info.bookContributors : []
+        this.book.bookISBN = info.bookISBN || ''
       }
 
       if (backup.pageSettings) {
