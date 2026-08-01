@@ -14,8 +14,8 @@ export function getModePageSize(
     for (const p of pages) {
       if (!p || p.blank || !p.blobID) continue
       const blobItem = blobs[p.blobID]
-      if (blobItem && blobItem.originImage && blobItem.originImage.width > 0 && blobItem.originImage.height > 0) {
-        const key = `${blobItem.originImage.width}x${blobItem.originImage.height}`
+      if (blobItem && blobItem.width > 0 && blobItem.height > 0) {
+        const key = `${blobItem.width}x${blobItem.height}`
         counts[key] = (counts[key] || 0) + 1
         if (counts[key] > maxCount) {
           maxCount = counts[key]
@@ -43,8 +43,8 @@ export function getPageEffectiveSize(
   modeSize?: [number, number]
 ): [number, number] {
   if (pageSizeMode === 'auto') {
-    if (blobItem && blobItem.originImage && blobItem.originImage.width > 0 && blobItem.originImage.height > 0) {
-      return [blobItem.originImage.width, blobItem.originImage.height]
+    if (blobItem && blobItem.width > 0 && blobItem.height > 0) {
+      return [blobItem.width, blobItem.height]
     }
     if (modeSize && modeSize[0] > 0 && modeSize[1] > 0) {
       return modeSize

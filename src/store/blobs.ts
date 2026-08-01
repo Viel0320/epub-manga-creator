@@ -6,11 +6,12 @@ export declare namespace StoreBlobs {
     name: string
     blobURL: string
     thumbnailURL: string
-    originImage: HTMLImageElement
+    width: number
+    height: number
   }
 }
 
-const getImageWithBlobURL = (blobURL: string): Promise<HTMLImageElement> => new Promise<HTMLImageElement>((resolve, reject) => {
+export const getImageWithBlobURL = (blobURL: string): Promise<HTMLImageElement> => new Promise<HTMLImageElement>((resolve, reject) => {
   const image = new Image()
   image.onerror = (e) => reject(e)
   image.onload = (e) => {
@@ -19,18 +20,20 @@ const getImageWithBlobURL = (blobURL: string): Promise<HTMLImageElement> => new 
   image.src = blobURL
 })
 
-const formatBlobItem = async (blob: Blob) => {
+export const formatBlobItem = async (blob: Blob): Promise<StoreBlobs.ImageBlob> => {
   const blobURL = URL.createObjectURL(blob)
 
   const originImage = await getImageWithBlobURL(blobURL)
+  const width = originImage.width
+  const height = originImage.height
 
   const canvas = document.createElement("canvas")
-  if (originImage.width < originImage.height) {
-    canvas.width = originImage.width / originImage.height * 200
+  if (width < height) {
+    canvas.width = width / height * 200
     canvas.height = 200
-  } else if (originImage.width > originImage.height) {
+  } else if (width > height) {
     canvas.width = 200
-    canvas.height = originImage.height / originImage.width * 200
+    canvas.height = height / width * 200
   } else {
     canvas.width = 200
     canvas.height = 200
@@ -53,7 +56,8 @@ const formatBlobItem = async (blob: Blob) => {
     name,
     blobURL,
     thumbnailURL: URL.createObjectURL(thumbnailBlob),
-    originImage
+    width,
+    height
   }
 
   return item

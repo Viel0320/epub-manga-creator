@@ -13,11 +13,13 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
   const t = useI18n();
   const onUseImageSizeToPage = useCallback(() => {
     const pageItem = storeMain.book.pages[props.pageIndex as number]
-    const image = storeMain.blobs.blobs[pageItem.blobID].originImage
-    storeMain.book.updateBookPageProperty('pageSize', [
-      image.width,
-      image.height
-    ])
+    const blobItem = storeMain.blobs.blobs[pageItem.blobID]
+    if (blobItem) {
+      storeMain.book.updateBookPageProperty('pageSize', [
+        blobItem.width,
+        blobItem.height
+      ])
+    }
   }, [props.pageIndex, storeMain])
 
   const onChangePageIndex = useCallback(() => {

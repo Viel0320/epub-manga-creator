@@ -4,7 +4,7 @@ import uuid from 'utils/get-uuid'
 import Book, { StoreBook } from 'store/book'
 import Ui from 'store/ui'
 import Contents from 'store/contents'
-import storeBlobs, { Store as Blobs, StoreBlobs } from 'store/blobs'
+import storeBlobs, { Store as Blobs, StoreBlobs, getImageWithBlobURL, formatBlobItem } from 'store/blobs'
 import { db } from 'utils/db'
 import { getLocale } from 'i18n'
 import JSZip from "jszip"
@@ -263,23 +263,24 @@ class Store {
     const uuids = [uuid(), uuid()]
     const mime = blobItem.blob.type
 
-    const w1 = blobItem.originImage.width >> 1
-    const w2 = blobItem.originImage.width - w1
+    const originImage = await getImageWithBlobURL(blobItem.blobURL)
+    const w1 = originImage.width >> 1
+    const w2 = originImage.width - w1
 
     const canvas1 = document.createElement('canvas')
     const canvas2 = document.createElement('canvas')
 
     canvas1.width = w1
-    canvas1.height = blobItem.originImage.height
+    canvas1.height = originImage.height
 
     canvas2.width = w2
-    canvas2.height = blobItem.originImage.height
+    canvas2.height = originImage.height
 
     const ctx1 = canvas1.getContext('2d')
     const ctx2 = canvas2.getContext('2d')
 
-    ctx1?.drawImage(blobItem.originImage, 0, 0)
-    ctx2?.drawImage(blobItem.originImage, 0 - w1, 0)
+    ctx1?.drawImage(originImage, 0, 0)
+    ctx2?.drawImage(originImage, 0 - w1, 0)
 
     const blobs = await Promise.all([
       new Promise<Blob>((resolve, reject) =>
@@ -302,7 +303,7 @@ class Store {
 
     this.book.splitPage(index, uuids)
     this.book.updatePageItemIndex()
-    this.blobs.push(blobs, this.book.pageDirection === 'left' ? uuids : [...uuids].reverse())
+    await this.blobs.push(blobs, this.book.pageDirection === 'left' ? uuids : [...uuids].reverse())
     this.blobs.remove(pageItem.blobID)
 
     this.contents.shiftPageIndices(index, 1)
@@ -318,7 +319,7 @@ class Store {
     })
   }
 
-  undoLastSplit() {
+  async undoLastSplit() {
     if (!this.lastSplitRecord) return
 
     const { originalIndex, originalPageItem, originalBlobItem, newBlobIDs, originalContentsList } = this.lastSplitRecord
@@ -333,15 +334,25 @@ class Store {
 
     this.blobs.remove(newBlobIDs[0])
     this.blobs.remove(newBlobIDs[1])
-    this.blobs.blobs[originalPageItem.blobID] = originalBlobItem
 
-    this.book.pages = this.book.pages.filter(p => !newBlobIDs.includes(p.blobID))
-    this.book.pages.splice(targetIndex, 0, originalPageItem)
-    this.book.updatePageItemIndex()
+    try {
+      const restoredBlobItem = await formatBlobItem(originalBlobItem.blob)
+      runInAction(() => {
+        this.blobs.blobs[originalPageItem.blobID] = restoredBlobItem
+      })
+    } catch (err) {
+      console.error('Failed to restore original blob on undo:', err)
+    }
 
-    this.contents.updateList(originalContentsList)
-    this.ui.selectPageIndex(targetIndex)
-    this.lastSplitRecord = null
+    runInAction(() => {
+      this.book.pages = this.book.pages.filter(p => !newBlobIDs.includes(p.blobID))
+      this.book.pages.splice(targetIndex, 0, originalPageItem)
+      this.book.updatePageItemIndex()
+
+      this.contents.updateList(originalContentsList)
+      this.ui.selectPageIndex(targetIndex)
+      this.lastSplitRecord = null
+    })
   }
 
   insertBlankPage(index: number) {

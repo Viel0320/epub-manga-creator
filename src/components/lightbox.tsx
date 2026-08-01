@@ -271,8 +271,8 @@ const Lightbox = observer(function() {
     let originSizeStr = ''
     if (isBlank) {
       originSizeStr = t.lightbox.blankPage
-    } else if (blobItem && blobItem.originImage) {
-      originSizeStr = `${blobItem.originImage.width}×${blobItem.originImage.height}`
+    } else if (blobItem && blobItem.width && blobItem.height) {
+      originSizeStr = `${blobItem.width}×${blobItem.height}`
     }
 
     const listIdx = totalPages > 0 ? contents.indexMap[idx] : undefined
