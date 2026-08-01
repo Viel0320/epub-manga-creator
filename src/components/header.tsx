@@ -312,6 +312,10 @@ const Header = function() {
     ui.toggleContainerBgFilled()
   }, [ui])
 
+  const onToggleLang = useCallback(() => {
+    ui.toggleLang()
+  }, [ui])
+
   const onClickReset = useCallback(() => {
     if (typeof window !== 'undefined' && window.confirm(t.confirm.reset)) {
       storeMain.resetWorkspace()
@@ -405,6 +409,17 @@ const Header = function() {
         >
           <span className="nav-icon-box"><Icon name="trash"/></span>
           <span className="nav-label">{t.nav.reset}</span>
+        </button>
+      </div>
+      <div className="nav-item">
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={onToggleLang}
+          title={{ zh: t.nav.langZh, en: t.nav.langEn }[ui.lang]}
+        >
+          <span className="nav-icon-box"><Icon name="lang"/></span>
+          <span className="nav-label">{{ zh: t.nav.langZh, en: t.nav.langEn }[ui.lang]}</span>
         </button>
       </div>
       <input

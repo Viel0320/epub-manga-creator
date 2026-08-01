@@ -134,13 +134,6 @@ class Store {
     }
   }
 
-  setLang(lang: LangKey) {
-    this.lang = lang
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(STORAGE_LANG_KEY, lang)
-    }
-  }
-
   setLoading(val: boolean, text: string = '') {
     this.isLoading = val
     this.loadingText = text
@@ -172,6 +165,18 @@ class Store {
   cycleTheme() {
     const next = THEME_CYCLE[(THEME_CYCLE.indexOf(this.theme) + 1) % THEME_CYCLE.length]
     this.setTheme(next)
+  }
+
+  setLang(lang: LangKey) {
+    this.lang = lang
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_LANG_KEY, lang)
+    }
+  }
+
+  toggleLang() {
+    const next: LangKey = this.lang === 'zh' ? 'en' : 'zh'
+    this.setLang(next)
   }
 
   openPreview(index: number) {

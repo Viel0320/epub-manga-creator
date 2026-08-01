@@ -121,45 +121,54 @@ html.dark-theme body::before {
   position: relative;
   z-index: 20; /* lift above #main so hover dropdowns aren't covered */
   margin: 14px;
-  padding: 12px 10px;
+  padding: clamp(8px, 1vh, 14px) 8px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   flex-wrap: nowrap;
   align-items: center;
   justify-content: flex-start;
-  gap: 10px;
-  overflow: visible; /* let hover dropdowns escape the dock (must not clip) */
+  gap: clamp(2px, 0.5vh, 8px);
+  overflow: visible; /* let hover dropdowns escape the dock */
   background: var(--glass) !important;
   -webkit-backdrop-filter: var(--blur);
   backdrop-filter: var(--blur);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-panel);
+  max-height: calc(100vh - 28px);
+}
+
+#nav .nav-item {
+  flex: 0 0 auto;
+  width: 100%;
+  display: flex;
+  justify-content: center;
 }
 
 #nav .nav-item + .nav-item { margin-top: 0; }
 
 #nav .btn {
-  width: 56px;
+  width: clamp(34px, 4vw, 56px);
   height: auto;
-  padding: 2px 0;
+  padding: 1px 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 4px;
+  gap: clamp(1px, 0.3vh, 4px);
   border-radius: 14px;
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
   color: var(--text-secondary);
+  flex-shrink: 0;
 }
 
 #nav .btn .nav-icon-box {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
+  width: clamp(26px, 3.2vh, 40px);
+  height: clamp(26px, 3.2vh, 40px);
+  border-radius: clamp(8px, 0.9vh, 12px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -170,14 +179,14 @@ html.dark-theme body::before {
 }
 
 #nav .btn .icon {
-  width: 18px;
-  height: 18px;
+  width: clamp(14px, 1.7vh, 18px);
+  height: clamp(14px, 1.7vh, 18px);
   flex-shrink: 0;
 }
 
 #nav .btn .nav-label {
-  font-size: 10px;
-  line-height: 1.2;
+  font-size: clamp(8px, 0.9vh, 10px);
+  line-height: 1.1;
   font-weight: 500;
   white-space: nowrap;
   letter-spacing: -0.1px;
@@ -241,9 +250,7 @@ html.dark-theme body::before {
 
 #nav .nav-item.dropdown { cursor: pointer; position: relative; }
 
-/* invisible bridge over the 10px gap between the button and the flyout, so
-   the parent keeps :hover while the pointer crosses it (lives on the parent —
-   a ::before on the menu itself would be clipped by its overflow-y: auto) */
+/* invisible bridge over the gap between the button and flyout */
 #nav .nav-item.dropdown::after {
   content: '';
   position: absolute;
@@ -253,9 +260,7 @@ html.dark-theme body::before {
   height: 100%;
 }
 
-/* keep the menu mounted and toggle via visibility/opacity: the 0.25s
-   visibility delay is a grace period, so briefly leaving the hover area
-   (e.g. moving diagonally toward a lower menu item) doesn't dismiss it */
+/* keep the menu mounted and toggle via visibility/opacity */
 #nav .nav-item.dropdown > .dropdown-menu {
   display: block;
   visibility: hidden;
@@ -274,12 +279,11 @@ html.dark-theme body::before {
   transition-delay: 0s;
 }
 
-/* pin the theme + reset controls to the bottom of the dock, set apart from
-   the function buttons above by a hairline separator */
+/* pin the bottom controls group */
 #nav .nav-bottom-group {
   margin-top: auto;
   position: relative;
-  padding-top: 13px;
+  padding-top: clamp(4px, 0.8vh, 10px);
 }
 #nav .nav-bottom-group::before {
   content: '';
@@ -299,35 +303,18 @@ html.dark-theme body::before {
   color: var(--danger);
 }
 
-/* --- Dock adapts to short viewports (it always holds ~13 buttons) --- */
-@media (max-height: 820px) {
-  #nav { gap: 6px; }
-  #nav .btn { width: 48px; gap: 3px; }
-  #nav .btn .nav-icon-box { width: 36px; height: 36px; border-radius: 11px; }
-  #nav .btn .icon { width: 16px; height: 16px; }
-  #nav .btn .nav-label { font-size: 9px; }
-}
-@media (max-height: 720px) {
-  #nav { gap: 4px; padding: 10px 6px; }
-  #nav .btn { width: 42px; gap: 2px; }
-  #nav .btn .nav-icon-box { width: 32px; height: 32px; border-radius: 10px; }
-  #nav .btn .icon { width: 15px; height: 15px; }
-  #nav .btn .nav-label { font-size: 9px; }
-}
-@media (max-height: 620px) {
-  #nav { gap: 4px; }
-  #nav .btn { width: 34px; height: 34px; border-radius: 11px; }
+/* --- Fluid breakpoint refinements for compact viewports --- */
+@media (max-height: 840px) {
   #nav .btn .nav-label { display: none; }
 }
-/* last resort — very short windows: let the dock scroll (dropdowns may clip here) */
-@media (max-height: 540px) {
+
+@media (max-height: 560px) {
   #nav {
     overflow-y: auto;
     overflow-x: clip;
     scrollbar-width: none;
   }
   #nav::-webkit-scrollbar { width: 0; height: 0; }
-  #nav .nav-bottom-group { margin-top: 8px; }
 }
 
 /* ---------- Buttons --------------------------------------- */
