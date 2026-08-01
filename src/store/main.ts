@@ -500,7 +500,7 @@ class Store {
         : 'left'
 
     const refPairs = getSpreadPairs(this.book.pages, this.book.coverPosition)
-    const layoutPairs = getSpreadPairs(this.book.pages, this.book.coverPosition, this.book.pageShow)
+    const layoutPairs = this.book.spreadPairs
     const refPairMap = new Map<number, boolean | undefined>()
     for (const pair of refPairs) {
       if (pair.length === 1) { refPairMap.set(pair[0], undefined) }

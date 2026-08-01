@@ -21,12 +21,13 @@ function getSpreadPair(
   pages: Array<{ customSpread?: CustomSpreadType }>,
   coverPosition: 'first-page' | 'alone',
   pageDirection: 'left' | 'right',
-  pageShow: 'two' | 'one' = 'two'
+  pageShow: 'two' | 'one' = 'two',
+  cachedPairs?: number[][]
 ): [number | null, number | null] {
   const totalPages = pages.length
   if (totalPages <= 0 || index < 0 || index >= totalPages) return [null, null]
 
-  const pairs = getSpreadPairs(pages, coverPosition, pageShow)
+  const pairs = cachedPairs || getSpreadPairs(pages, coverPosition, pageShow)
   const pair = pairs.find(p => p.includes(index))
 
   if (!pair || pair.length === 1) {
@@ -69,7 +70,7 @@ const Lightbox = observer(function() {
   const pageIndex = Math.max(0, Math.min(totalPages - 1, ui.previewPageIndex))
   const isTwoPages = book.pageShow === 'two'
 
-  const pair = getSpreadPair(pageIndex, book.pages, book.coverPosition, book.pageDirection, book.pageShow)
+  const pair = getSpreadPair(pageIndex, book.pages, book.coverPosition, book.pageDirection, book.pageShow, book.spreadPairs)
   const leftIndex = pair[0]
   const rightIndex = pair[1]
   const isSpreadPair = leftIndex !== null && rightIndex !== null

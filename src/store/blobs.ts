@@ -22,18 +22,29 @@ export const getImageWithBlobURL = (blobURL: string): Promise<HTMLImageElement> 
 
 export const formatBlobItem = async (blob: Blob): Promise<StoreBlobs.ImageBlob> => {
   const blobURL = URL.createObjectURL(blob)
+  let width: number
+  let height: number
+  let imgSource: CanvasImageSource
 
-  const originImage = await getImageWithBlobURL(blobURL)
-  const width = originImage.width
-  const height = originImage.height
+  if (typeof createImageBitmap === 'function') {
+    const bitmap = await createImageBitmap(blob)
+    width = bitmap.width
+    height = bitmap.height
+    imgSource = bitmap
+  } else {
+    const originImage = await getImageWithBlobURL(blobURL)
+    width = originImage.width
+    height = originImage.height
+    imgSource = originImage
+  }
 
   const canvas = document.createElement("canvas")
   if (width < height) {
-    canvas.width = width / height * 200
+    canvas.width = (width / height) * 200
     canvas.height = 200
   } else if (width > height) {
     canvas.width = 200
-    canvas.height = height / width * 200
+    canvas.height = (height / width) * 200
   } else {
     canvas.width = 200
     canvas.height = 200
@@ -41,17 +52,21 @@ export const formatBlobItem = async (blob: Blob): Promise<StoreBlobs.ImageBlob> 
 
   const context = canvas.getContext('2d') as CanvasRenderingContext2D
   context.imageSmoothingQuality = 'high'
-  context.drawImage(originImage, 0, 0, canvas.width, canvas.height)
+  context.drawImage(imgSource, 0, 0, canvas.width, canvas.height)
+
+  if (typeof ImageBitmap !== 'undefined' && imgSource instanceof ImageBitmap) {
+    imgSource.close()
+  }
 
   const thumbnailBlob = await new Promise<Blob>(
     (resolve, reject) => canvas.toBlob(
-      blob => blob ? resolve(blob) : reject()
+      resultBlob => resultBlob ? resolve(resultBlob) : reject()
     )
   )
 
   const name = (blob as File).name || ''
 
-  const item: StoreBlobs.ImageBlob = {
+  return {
     blob,
     name,
     blobURL,
@@ -59,8 +74,6 @@ export const formatBlobItem = async (blob: Blob): Promise<StoreBlobs.ImageBlob> 
     width,
     height
   }
-
-  return item
 }
 
 class Store {

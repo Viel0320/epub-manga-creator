@@ -1,5 +1,6 @@
 import { makeAutoObservable, toJS } from "mobx"
 import uuid from 'utils/get-uuid'
+import { getSpreadPairs } from 'utils/page-layout'
 
 export declare namespace StoreBook {
   export type CustomSpreadType = 'center' | 'bind-prev' | 'bind-next' | 'auto'
@@ -63,6 +64,10 @@ class Store {
 
   constructor() {
     makeAutoObservable(this)
+  }
+
+  get spreadPairs(): Array<number[]> {
+    return getSpreadPairs(this.pages, this.coverPosition, this.pageShow)
   }
 
   pushNewPage(blobUUIDs: string[]) {

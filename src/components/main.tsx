@@ -554,7 +554,7 @@ const Main = function() {
       }
       setShowPages(pages)
     } else {
-      const pairs = getSpreadPairs(storeBook.pages, storeBook.coverPosition)
+      const pairs = storeBook.spreadPairs
       const rows: [number | null, number | null][][] = []
       let currentRow: [number | null, number | null][] = []
 
