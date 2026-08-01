@@ -806,14 +806,119 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
   z-index: 3;
 }
 
+.lightbox-setting-chip {
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+}
+
+.lightbox-setting-chip:hover,
+.lightbox-setting-chip.active {
+  background: var(--glass-surface);
+  border-color: var(--primary);
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.25);
+}
+
 .lightbox-setting-chip .chip-label {
   color: var(--text-subtle);
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .lightbox-setting-chip .chip-val {
   color: var(--primary);
   font-weight: 600;
+  font-size: 13px;
+}
+
+.lightbox-setting-chip .chip-arrow {
+  font-size: 10px;
+  color: var(--text-subtle);
+  margin-left: 2px;
+  transition: transform 0.2s ease;
+}
+
+.lightbox-setting-chip.active .chip-arrow {
+  transform: rotate(180deg);
+  color: var(--primary);
+}
+
+/* Dropup popover menu for chips */
+.lightbox-menu-popover {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 140px;
+  max-height: none;
+  overflow: visible;
+  padding: 6px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md, 12px);
+  box-shadow: var(--shadow-panel, 0 10px 30px rgba(0, 0, 0, 0.4));
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  animation: popoverFadeIn 0.15s ease-out;
+}
+
+html.dark-theme .lightbox-menu-popover {
+  background: rgba(28, 30, 38, 0.92);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+@keyframes popoverFadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 6px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.lightbox-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+  color: var(--text);
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+}
+
+.lightbox-menu-item:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.lightbox-menu-item.active {
+  color: var(--primary);
+  font-weight: 600;
+  background: rgba(99, 102, 241, 0.15);
+}
+
+.lightbox-menu-item.action {
+  color: var(--accent, var(--primary));
+  font-weight: 500;
+}
+
+.lightbox-menu-item .menu-item-check {
+  width: 14px;
+  font-size: 12px;
+  font-weight: bold;
+  text-align: center;
+  color: var(--primary);
+}
+
+.lightbox-menu-divider {
+  height: 1px;
+  background: var(--glass-border);
+  margin: 4px 0;
 }
 
 /* Page wrapper for relative positioning */

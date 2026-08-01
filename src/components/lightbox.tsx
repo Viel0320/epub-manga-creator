@@ -1,10 +1,20 @@
-import React, { useCallback } from 'react'
+import React, { useCallback, useState, useEffect } from 'react'
 import { observer } from 'mobx-react'
 import storeMain, { useStore } from 'store/main'
 import Icon from 'components/icon'
 import { useI18n } from 'i18n'
 import { getPageLayoutInfo, getSpreadPairs, CustomSpreadType } from 'utils/page-layout'
 import { getPageEffectiveSize } from 'utils/page-size'
+
+const PAGE_SIZE_PRESETS: { name: string; size: [number, number] }[] = [
+  { name: 'Kindle', size: [1200, 1600] },
+  { name: 'B4', size: [1250, 1765] },
+  { name: 'B5', size: [880, 1250] },
+  { name: 'A4', size: [1050, 1485] },
+  { name: 'A5', size: [1480, 2100] },
+  { name: 'CG 16:9', size: [1600, 900] },
+  { name: 'CG 16:10', size: [1600, 1000] },
+]
 
 function getSpreadPair(
   index: number,
@@ -31,6 +41,19 @@ function getSpreadPair(
 const Lightbox = observer(function() {
   const { ui, book, blobs } = useStore()
   const t = useI18n()
+
+  const [activeMenuKey, setActiveMenuKey] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!activeMenuKey) return
+    const handleGlobalClick = () => {
+      setActiveMenuKey(null)
+    }
+    window.addEventListener('click', handleGlobalClick)
+    return () => {
+      window.removeEventListener('click', handleGlobalClick)
+    }
+  }, [activeMenuKey])
 
   const onClose = useCallback(() => {
     ui.closePreview()
@@ -83,14 +106,151 @@ const Lightbox = observer(function() {
     ? `Auto (${displaySize[0]}×${displaySize[1]})`
     : `${displaySize[0]}×${displaySize[1]}`
 
+  const sizeOptions = [
+    {
+      key: 'auto',
+      label: `Auto (${modeSize[0]}×${modeSize[1]})`,
+      active: book.pageSizeMode === 'auto',
+      onClick: () => book.updateBookPageProperty('pageSizeMode', 'auto')
+    },
+    ...PAGE_SIZE_PRESETS.map((preset) => ({
+      key: preset.name,
+      label: `${preset.name} (${preset.size[0]}×${preset.size[1]})`,
+      active: book.pageSizeMode === 'manual' && book.pageSize[0] === preset.size[0] && book.pageSize[1] === preset.size[1],
+      onClick: () => {
+        book.updateBookPageProperty('pageSizeMode', 'manual')
+        book.updateBookPageProperty('pageSize', preset.size)
+      }
+    }))
+  ]
+
   const settingsChips = [
-    { label: t.page.size, value: book.pageSizeMode === 'auto' ? `Auto (${displaySize[0]}×${displaySize[1]})` : `${displaySize[0]}×${displaySize[1]}` },
-    { label: t.page.position, value: book.pagePosition === 'between' ? t.option.between : t.option.center },
-    { label: t.page.show, value: book.pageShow === 'two' ? t.option.twoPages : t.option.onePage },
-    { label: t.page.fit, value: book.pageFit === 'fit' ? t.option.fit : (book.pageFit === 'stretch' ? t.option.stretch : t.option.fill) },
-    { label: t.page.direction, value: book.pageDirection === 'right' ? t.option.rightJP : t.option.left },
-    { label: t.page.cover, value: book.coverPosition === 'first-page' ? t.option.firstPage : t.option.alone },
-    { label: t.page.imageTag, value: book.imgTag === 'svg' ? '<svg />' : '<img />' },
+    {
+      key: 'size',
+      label: t.page.size,
+      value: book.pageSizeMode === 'auto' ? `Auto (${displaySize[0]}×${displaySize[1]})` : `${displaySize[0]}×${displaySize[1]}`,
+      options: sizeOptions
+    },
+    {
+      key: 'position',
+      label: t.page.position,
+      value: book.pagePosition === 'between' ? t.option.between : t.option.center,
+      options: [
+        {
+          key: 'between',
+          label: t.option.between,
+          active: book.pagePosition === 'between',
+          onClick: () => book.updateBookPageProperty('pagePosition', 'between')
+        },
+        {
+          key: 'center',
+          label: t.option.center,
+          active: book.pagePosition === 'center',
+          onClick: () => book.updateBookPageProperty('pagePosition', 'center')
+        }
+      ]
+    },
+    {
+      key: 'show',
+      label: t.page.show,
+      value: book.pageShow === 'two' ? t.option.twoPages : t.option.onePage,
+      options: [
+        {
+          key: 'two',
+          label: t.option.twoPages,
+          active: book.pageShow === 'two',
+          onClick: () => book.updateBookPageProperty('pageShow', 'two')
+        },
+        {
+          key: 'one',
+          label: t.option.onePage,
+          active: book.pageShow === 'one',
+          onClick: () => book.updateBookPageProperty('pageShow', 'one')
+        }
+      ]
+    },
+    {
+      key: 'fit',
+      label: t.page.fit,
+      value: book.pageFit === 'fit' ? t.option.fit : (book.pageFit === 'stretch' ? t.option.stretch : t.option.fill),
+      options: [
+        {
+          key: 'fit',
+          label: t.option.fit,
+          active: book.pageFit === 'fit',
+          onClick: () => book.updateBookPageProperty('pageFit', 'fit')
+        },
+        {
+          key: 'stretch',
+          label: t.option.stretch,
+          active: book.pageFit === 'stretch',
+          onClick: () => book.updateBookPageProperty('pageFit', 'stretch')
+        },
+        {
+          key: 'fill',
+          label: t.option.fill,
+          active: book.pageFit === 'fill',
+          onClick: () => book.updateBookPageProperty('pageFit', 'fill')
+        }
+      ]
+    },
+    {
+      key: 'direction',
+      label: t.page.direction,
+      value: book.pageDirection === 'right' ? t.option.rightJP : t.option.left,
+      options: [
+        {
+          key: 'right',
+          label: t.option.rightJP,
+          active: book.pageDirection === 'right',
+          onClick: () => book.updateBookPageProperty('pageDirection', 'right')
+        },
+        {
+          key: 'left',
+          label: t.option.left,
+          active: book.pageDirection === 'left',
+          onClick: () => book.updateBookPageProperty('pageDirection', 'left')
+        }
+      ]
+    },
+    {
+      key: 'cover',
+      label: t.page.cover,
+      value: book.coverPosition === 'first-page' ? t.option.firstPage : t.option.alone,
+      options: [
+        {
+          key: 'first-page',
+          label: t.option.firstPage,
+          active: book.coverPosition === 'first-page',
+          onClick: () => book.updateBookPageProperty('coverPosition', 'first-page')
+        },
+        {
+          key: 'alone',
+          label: t.option.alone,
+          active: book.coverPosition === 'alone',
+          onClick: () => book.updateBookPageProperty('coverPosition', 'alone')
+        }
+      ]
+    },
+    {
+      key: 'imageTag',
+      label: t.page.imageTag,
+      value: book.imgTag === 'svg' ? '<svg />' : '<img />',
+      options: [
+        {
+          key: 'svg',
+          label: '<svg />',
+          active: book.imgTag === 'svg',
+          onClick: () => book.updateBookPageProperty('imgTag', 'svg')
+        },
+        {
+          key: 'img',
+          label: '<img />',
+          active: book.imgTag === 'img',
+          onClick: () => book.updateBookPageProperty('imgTag', 'img')
+        }
+      ]
+    }
   ]
 
   const renderSingleImage = (idx: number, side?: 'left' | 'right') => {
@@ -260,12 +420,45 @@ const Lightbox = observer(function() {
 
       {/* Page Settings Chips Footer (Bottom) */}
       <div className="lightbox-settings-footer" onClick={onContentClick}>
-        {settingsChips.map((chip, i) => (
-          <div key={i} className="lightbox-setting-chip">
-            <span className="chip-label">{chip.label}:</span>
-            <span className="chip-val">{chip.value}</span>
-          </div>
-        ))}
+        {settingsChips.map((chip) => {
+          const isOpen = activeMenuKey === chip.key
+          return (
+            <div
+              key={chip.key}
+              className={`lightbox-setting-chip ${isOpen ? 'active' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation()
+                setActiveMenuKey(isOpen ? null : chip.key)
+              }}
+            >
+              <span className="chip-label">{chip.label}:</span>
+              <span className="chip-val">{chip.value}</span>
+              <span className="chip-arrow">▾</span>
+
+              {isOpen && (
+                <div
+                  className="lightbox-menu-popover"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {chip.options.map((opt, idx) => (
+                    <div
+                      key={opt.key || idx}
+                      className={`lightbox-menu-item ${opt.active ? 'active' : ''}`}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        opt.onClick()
+                        setActiveMenuKey(null)
+                      }}
+                    >
+                      <span className="menu-item-check">{opt.active ? '✓' : ''}</span>
+                      <span className="menu-item-label">{opt.label}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        })}
       </div>
     </div>
   )
