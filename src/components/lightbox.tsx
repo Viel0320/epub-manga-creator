@@ -380,27 +380,27 @@ const Lightbox = observer(function() {
   return (
     <div className="lightbox-container" onClick={onClose}>
       <div className="lightbox-content">
-        {/* Top Control Bar */}
-        <div className="lightbox-top-bar" onClick={onContentClick}>
-          <button
-            type="button"
-            className="lightbox-toggle-btn"
-            onClick={onTogglePageShow}
-            title={isTwoPages ? t.option.twoPages : t.option.onePage}
-          >
-            <Icon name={isTwoPages ? 'book' : 'document'} />
-            <span className="toggle-text">{isTwoPages ? t.option.twoPages : t.option.onePage}</span>
-          </button>
+        {/* Page Mode Toggle Button (Top Left) */}
+        <button
+          type="button"
+          className="lightbox-toggle-btn"
+          onClick={onTogglePageShow}
+          title={isTwoPages ? t.option.twoPages : t.option.onePage}
+        >
+          <Icon name={isTwoPages ? 'book' : 'document'} />
+          <span className="toggle-text">{isTwoPages ? t.option.twoPages : t.option.onePage}</span>
+        </button>
 
-          <div className="lightbox-header">
-            <Icon name="ruler" />
-            <span>{pageDimensionsText}</span>
-          </div>
-
-          <button type="button" className="lightbox-close-btn" onClick={onClose} title={t.lightbox.close}>
-            <Icon name="cross" />
-          </button>
+        {/* Central Floating Header: Displays Book Page Size */}
+        <div className="lightbox-header">
+          <Icon name="ruler" />
+          <span>{pageDimensionsText}</span>
         </div>
+
+        {/* Close Button */}
+        <button type="button" className="lightbox-close-btn" onClick={onClose} title={t.lightbox.close}>
+          <Icon name="cross" />
+        </button>
 
         {/* Navigation Arrows */}
         <button

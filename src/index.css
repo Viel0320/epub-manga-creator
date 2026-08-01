@@ -131,6 +131,7 @@ html.dark-theme body::before {
   gap: 10px;
   overflow: visible; /* let hover dropdowns escape the dock (must not clip) */
   background: var(--glass) !important;
+  -webkit-backdrop-filter: var(--blur);
   backdrop-filter: var(--blur);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
@@ -360,6 +361,7 @@ html.dark-theme body::before {
 .btn-secondary {
   background: var(--control-bg);
   color: var(--text);
+  -webkit-backdrop-filter: var(--blur-light);
   backdrop-filter: var(--blur-light);
   border: 1px solid var(--glass-hairline);
 }
@@ -440,6 +442,7 @@ html.dark-theme body::before {
 .form-control,
 .form-select {
   background: var(--control-bg);
+  -webkit-backdrop-filter: var(--blur-light);
   backdrop-filter: var(--blur-light);
   border: 1px solid var(--glass-hairline);
   border-radius: var(--radius-sm);
@@ -480,6 +483,7 @@ html.dark-theme select option:checked {
 
 .modal-backdrop {
   background: rgba(20, 24, 33, 0.28);
+  -webkit-backdrop-filter: blur(6px) saturate(120%);
   backdrop-filter: blur(6px) saturate(120%);
 }
 .modal-backdrop.show { opacity: 1; }
@@ -488,6 +492,7 @@ html.dark-theme select option:checked {
 
 .modal-content {
   background: var(--glass-strong);
+  -webkit-backdrop-filter: var(--blur);
   backdrop-filter: var(--blur);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
@@ -530,6 +535,7 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
 
 .dropdown-menu {
   background: var(--glass-strong);
+  -webkit-backdrop-filter: var(--blur);
   backdrop-filter: var(--blur);
   border: 1px solid var(--glass-border);
   border-radius: 14px;
@@ -570,6 +576,7 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
 
 .alert {
   background: var(--glass-strong);
+  -webkit-backdrop-filter: var(--blur-light);
   backdrop-filter: var(--blur-light);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
@@ -662,6 +669,7 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
   align-items: center;
   gap: 28px;
   background: var(--glass);
+  -webkit-backdrop-filter: var(--blur);
   backdrop-filter: var(--blur);
   border: 1.5px dashed var(--glass-hairline);
   border-radius: var(--radius-lg);
@@ -811,6 +819,7 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
   justify-content: center;
   color: var(--text);
   background: var(--glass-strong);
+  -webkit-backdrop-filter: var(--blur-light);
   backdrop-filter: var(--blur-light);
   border: 1px solid var(--glass-border);
   border-radius: 10px;
@@ -828,6 +837,7 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
   transform: translateX(-50%);
   padding: 3px 9px;
   background: rgba(0, 0, 0, 0.55);
+  -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   color: #fff;
   font-size: 13px;
@@ -899,8 +909,10 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
   align-items: center;
   justify-content: center;
   background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: var(--blur);
-  -webkit-backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  backdrop-filter: blur(28px) saturate(180%);
+  will-change: transform, backdrop-filter;
+  transform: translateZ(0);
   animation: lightboxFadeIn 0.2s ease-out forwards;
 }
 
@@ -950,27 +962,14 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
   transition: all 0.18s ease;
 }
 
-/* Top Bar Container — Grid layout with 3 columns for balanced centering */
-.lightbox-top-bar {
-  position: absolute;
-  top: -48px;
-  left: 0;
-  right: 0;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  z-index: 5;
-  pointer-events: none;
-}
-
-.lightbox-top-bar > * {
-  pointer-events: auto;
-}
-
 /* Central Floating Header: Displays Book Page Size */
 .lightbox-header {
-  justify-self: center;
+  position: absolute;
+  top: -48px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 3;
+  pointer-events: none;
 }
 .lightbox-header .icon {
   width: 16px;
@@ -1126,10 +1125,7 @@ html.dark-theme .lightbox-menu-popover {
   left: 50%;
   transform: translateX(-50%);
   z-index: 4;
-  pointer-events: auto;
-  max-width: min(90%, 360px);
-  overflow: hidden;
-  text-overflow: ellipsis;
+  pointer-events: none;
 }
 .lightbox-page-chip .chip-dim {
   opacity: 0.85;
@@ -1246,7 +1242,9 @@ html.dark-theme .lightbox-menu-popover {
 
 /* Mode Toggle Button (Top Left) */
 .lightbox-toggle-btn {
-  justify-self: start;
+  position: absolute;
+  top: -48px;
+  left: 0;
   cursor: pointer;
   z-index: 3;
 }
@@ -1266,7 +1264,9 @@ html.dark-theme .lightbox-menu-popover {
 
 /* Page Size Chip (Top Right) */
 .lightbox-size-chip {
-  justify-self: end;
+  position: absolute;
+  top: -48px;
+  right: 48px;
   z-index: 3;
   pointer-events: none;
 }
@@ -1278,7 +1278,9 @@ html.dark-theme .lightbox-menu-popover {
 
 /* Frosted glass Close Button */
 .lightbox-close-btn {
-  justify-self: end;
+  position: absolute;
+  top: -48px;
+  right: 0;
   width: 36px;
   padding: 0;
   justify-content: center;
@@ -1346,7 +1348,8 @@ html.dark-theme .lightbox-menu-popover {
 @media (max-width: 768px) {
   .lightbox-nav-btn.prev { left: 8px; }
   .lightbox-nav-btn.next { right: 8px; }
-  .lightbox-top-bar { padding: 0 8px; }
+  .lightbox-close-btn { top: -48px; right: 8px; }
+  .lightbox-toggle-btn { top: -48px; left: 8px; }
 }
 
 /* Card Drag and Drop Styles */
