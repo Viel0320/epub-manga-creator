@@ -768,7 +768,6 @@ class Store {
       .replace('<!-- date -->', () => dateStr)
       .replace('<!-- collection-info -->', () => collectionStr)
       .replace('{{primaryWritingMode}}', primaryWritingMode)
-      .replace('{{spread}}', this.book.pageShow === 'one' ? 'none' : 'landscape')
       .replace('{{createTime}}', new Date().toISOString())
       .replace(new RegExp('{{width}}', 'gm'), opfWidth)
       .replace(new RegExp('{{height}}', 'gm'), opfHeight)
