@@ -48,7 +48,7 @@ class Store {
   bookDate: string = ''
   bookContributors: StoreBook.ContributorItem[] = []
 
-  pageSize: [number, number] = [250, 353]
+  pageSize: [number, number] = [1200, 1600]
   pageSizeMode: ('manual' | 'auto') = 'auto'
   pagePosition: ('center' | 'between') = 'between'
   pageShow: ('two' | 'one') = 'two'

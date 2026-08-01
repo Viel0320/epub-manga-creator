@@ -4,7 +4,7 @@ import { StoreBlobs } from 'store/blobs'
 export function getModePageSize(
   pages: StoreBook.PageItem[],
   blobs: Record<string, StoreBlobs.ImageBlob>,
-  fallbackSize: [number, number] = [250, 353]
+  fallbackSize: [number, number] = [1200, 1600]
 ): [number, number] {
   const counts: Record<string, number> = {}
   let maxCount = 0
