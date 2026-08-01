@@ -57,9 +57,22 @@ const resolveRelativePath = (base: string, relative: string): string => {
 const getTextContent = (el: Element | null): string =>
   el?.textContent?.trim() || ''
 
+const safeDecode = (str: string): string => {
+  try {
+    return decodeURIComponent(str)
+  } catch {
+    return str
+  }
+}
+
 const findZipEntry = (zip: JSZip, path: string): JSZip.JSZipObject | null => {
   const normalized = path.replace(/^\//, '')
-  return zip.file(normalized) || zip.file(normalized.replace(/\//g, '\\')) || null
+  const decoded = safeDecode(normalized)
+  return zip.file(normalized) ||
+    zip.file(normalized.replace(/\//g, '\\')) ||
+    zip.file(decoded) ||
+    zip.file(decoded.replace(/\//g, '\\')) ||
+    null
 }
 
 const isImageMimeType = (mime: string): boolean =>
@@ -139,7 +152,6 @@ export async function parseEpub(file: File): Promise<EpubParseResult> {
 
     const xhtmlText = await xhtmlEntry.async('text')
     const imgPaths = extractImagePathsFromXhtml(xhtmlText)
-    const xhtmlDir = xhtmlPath.includes('/') ? xhtmlPath.substring(0, xhtmlPath.lastIndexOf('/')) : ''
 
     for (const imgPath of imgPaths) {
       const fullImgPath = resolveRelativePath(xhtmlPath, imgPath)
@@ -150,20 +162,10 @@ export async function parseEpub(file: File): Promise<EpubParseResult> {
     }
   }
 
-  // Step 6: Also collect cover image from manifest if not in spine
-  const coverMeta = opfDoc.querySelector('meta[name="cover"]')
-  const coverId = coverMeta?.getAttribute('content')
-  if (coverId) {
-    const coverItem = manifestMap.get(coverId)
-    if (coverItem && isImageMimeType(coverItem.mediaType)) {
-      const fullPath = opfDir ? `${opfDir}/${coverItem.href}` : coverItem.href
-      if (!seenImagePaths.has(fullPath)) {
-        imagePathsInOrder.unshift(fullPath)
-        seenImagePaths.add(fullPath)
-      }
-    }
-  }
-  // Also check for cover-image property
+  // Step 6: Collect cover image (EPUB 3 properties="cover-image" first, then EPUB 2 fallbacks)
+  let foundCover = false
+
+  // 1. EPUB 3 standard: properties="cover-image"
   manifestItems.forEach(item => {
     const props = item.getAttribute('properties') || ''
     if (props.includes('cover-image')) {
@@ -172,9 +174,58 @@ export async function parseEpub(file: File): Promise<EpubParseResult> {
       if (!seenImagePaths.has(fullPath)) {
         imagePathsInOrder.unshift(fullPath)
         seenImagePaths.add(fullPath)
+        foundCover = true
       }
     }
   })
+
+  // 2. EPUB 2 fallback: meta name="cover"
+  if (!foundCover) {
+    const coverMeta = opfDoc.querySelector('meta[name="cover"]')
+    const coverId = coverMeta?.getAttribute('content')
+    if (coverId) {
+      const coverItem = manifestMap.get(coverId)
+      if (coverItem && isImageMimeType(coverItem.mediaType)) {
+        const fullPath = opfDir ? `${opfDir}/${coverItem.href}` : coverItem.href
+        if (!seenImagePaths.has(fullPath)) {
+          imagePathsInOrder.unshift(fullPath)
+          seenImagePaths.add(fullPath)
+          foundCover = true
+        }
+      }
+    }
+  }
+
+  // 3. EPUB 2 legacy fallback: guide reference type="cover"
+  if (!foundCover) {
+    const guideCoverRef = opfDoc.querySelector('guide > reference[type="cover"], guide > reference[type*="cover"]')
+    if (guideCoverRef) {
+      const href = guideCoverRef.getAttribute('href') || ''
+      if (href) {
+        const fullPath = opfDir ? `${opfDir}/${href}` : href
+        const manifestItem = Array.from(manifestMap.values()).find(item => safeDecode(item.href) === safeDecode(href))
+        if (manifestItem && isImageMimeType(manifestItem.mediaType)) {
+          if (!seenImagePaths.has(fullPath)) {
+            imagePathsInOrder.unshift(fullPath)
+            seenImagePaths.add(fullPath)
+          }
+        } else {
+          const coverXhtmlEntry = findZipEntry(zip, fullPath)
+          if (coverXhtmlEntry) {
+            const text = await coverXhtmlEntry.async('text')
+            const coverImgs = extractImagePathsFromXhtml(text)
+            for (const imgP of coverImgs) {
+              const fullImgP = resolveRelativePath(fullPath, imgP)
+              if (!seenImagePaths.has(fullImgP)) {
+                imagePathsInOrder.unshift(fullImgP)
+                seenImagePaths.add(fullImgP)
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 
   // Step 7: Load image blobs
   const images: Blob[] = []
@@ -264,12 +315,16 @@ function extractMetadata(opfDoc: Document): EpubMetadata {
   const bookDescription = getTextContent(opfDoc.querySelector('metadata description') || opfDoc.getElementsByTagNameNS(ns, 'description')[0])
   const bookDate = getTextContent(opfDoc.querySelector('metadata date') || opfDoc.getElementsByTagNameNS(ns, 'date')[0])
 
-  // Authors (dc:creator)
+  // Authors (dc:creator) - 保持原样字符串导入
   const creatorEls = opfDoc.getElementsByTagNameNS(ns, 'creator')
   const bookAuthors: string[] = []
   for (let i = 0; i < creatorEls.length; i++) {
     const name = getTextContent(creatorEls[i])
     if (name) bookAuthors.push(name)
+  }
+  if (bookAuthors.length === 0) {
+    const creatorQuery = getTextContent(opfDoc.querySelector('metadata creator'))
+    if (creatorQuery) bookAuthors.push(creatorQuery)
   }
   if (bookAuthors.length === 0) bookAuthors.push('')
 
@@ -303,7 +358,7 @@ function extractMetadata(opfDoc: Document): EpubMetadata {
     }
   }
 
-  // Series info (belongs-to-collection)
+  // Series info (belongs-to-collection / dc:series)
   let bookSeriesName = ''
   let bookSeriesVolume = ''
   const collectionMeta = opfDoc.querySelector('meta[property="belongs-to-collection"]')
@@ -314,6 +369,18 @@ function extractMetadata(opfDoc: Document): EpubMetadata {
       const volumeMeta = opfDoc.querySelector(`meta[refines="#${collectionId}"][property="group-position"]`)
       bookSeriesVolume = getTextContent(volumeMeta)
     }
+  }
+
+  // 回退检查 dc:series
+  if (!bookSeriesName) {
+    const seriesEl = opfDoc.getElementsByTagNameNS(ns, 'series')[0] || opfDoc.querySelector('metadata series')
+    if (seriesEl) bookSeriesName = getTextContent(seriesEl)
+  }
+
+  // 回退检查 dc:number 充当卷号 (直接以原始 string 导入，不做转换)
+  if (!bookSeriesVolume) {
+    const numberEl = opfDoc.getElementsByTagNameNS(ns, 'number')[0] || opfDoc.querySelector('metadata number')
+    if (numberEl) bookSeriesVolume = getTextContent(numberEl)
   }
 
   return {
@@ -392,6 +459,8 @@ async function buildSpineToImageIndexMap(
 ): Promise<Map<string, number>> {
   const map = new Map<string, number>()
 
+  const decodedImagePathsInOrder = imagePathsInOrder.map(safeDecode)
+
   for (let si = 0; si < spineItems.length; si++) {
     const itemId = spineItems[si]
     const manifestItem = manifestMap.get(itemId)
@@ -399,10 +468,9 @@ async function buildSpineToImageIndexMap(
 
     const href = manifestItem.href
     // Map by the xhtml href (relative to OPF dir)
-    // We need to figure out which image index this spine page corresponds to
     if (isImageMimeType(manifestItem.mediaType)) {
-      const fullPath = opfDir ? `${opfDir}/${href}` : href
-      const idx = imagePathsInOrder.indexOf(fullPath)
+      const fullPath = safeDecode(opfDir ? `${opfDir}/${href}` : href)
+      const idx = decodedImagePathsInOrder.indexOf(fullPath)
       if (idx !== -1) map.set(href, idx)
       continue
     }
@@ -415,8 +483,8 @@ async function buildSpineToImageIndexMap(
     const imgPaths = extractImagePathsFromXhtml(xhtmlText)
 
     if (imgPaths.length > 0) {
-      const fullImgPath = resolveRelativePath(xhtmlPath, imgPaths[0])
-      const idx = imagePathsInOrder.indexOf(fullImgPath)
+      const fullImgPath = safeDecode(resolveRelativePath(xhtmlPath, imgPaths[0]))
+      const idx = decodedImagePathsInOrder.indexOf(fullImgPath)
       if (idx !== -1) map.set(href, idx)
     }
   }
@@ -433,17 +501,38 @@ async function extractToc(
   manifestMap: Map<string, { href: string; mediaType: string }>,
   spineHrefToImageIndex: Map<string, number>
 ): Promise<EpubTocItem[]> {
-  // Find nav document (EPUB 3)
   let navHref: string | null = null
-  manifestMap.forEach((item, _id) => {
-    // The nav item has properties="nav"
-  })
+
+  // 1. Check properties="nav" (EPUB 3)
   const manifestItems = opfDoc.querySelectorAll('manifest > item')
   for (let i = 0; i < manifestItems.length; i++) {
     const props = manifestItems[i].getAttribute('properties') || ''
     if (props.includes('nav')) {
       navHref = manifestItems[i].getAttribute('href')
       break
+    }
+  }
+
+  // 2. Fallback: Check <spine toc="..."> attribute (NCX ID)
+  if (!navHref) {
+    const spineEl = opfDoc.querySelector('spine')
+    const tocId = spineEl?.getAttribute('toc')
+    if (tocId) {
+      const item = manifestMap.get(tocId)
+      if (item) navHref = item.href
+    }
+  }
+
+  // 3. Fallback: Find item by media-type containing ncx or id="ncx" or href containing nav/ncx
+  if (!navHref) {
+    for (let i = 0; i < manifestItems.length; i++) {
+      const id = manifestItems[i].getAttribute('id') || ''
+      const mediaType = manifestItems[i].getAttribute('media-type') || ''
+      const href = manifestItems[i].getAttribute('href') || ''
+      if (mediaType.includes('ncx') || id.toLowerCase() === 'ncx' || /\b(nav|ncx)\b/i.test(href)) {
+        navHref = href
+        break
+      }
     }
   }
 
@@ -454,9 +543,58 @@ async function extractToc(
   if (!navEntry) return []
 
   const navText = await navEntry.async('text')
-  const navDoc = new DOMParser().parseFromString(navText, 'application/xhtml+xml')
+  const xmlDoc = new DOMParser().parseFromString(navText, 'application/xml')
 
-  // Find <nav epub:type="toc">
+  const resolveHrefToImageIndex = (href: string): number => {
+    const fullPath = safeDecode(resolveRelativePath(navPath, href))
+
+    for (const [spineHref, imgIdx] of spineHrefToImageIndex.entries()) {
+      const spineFullPath = safeDecode(opfDir ? `${opfDir}/${spineHref}` : spineHref)
+      if (spineFullPath === fullPath) return imgIdx
+    }
+
+    const fileName = fullPath.split('/').pop() || ''
+    for (const [spineHref, imgIdx] of spineHrefToImageIndex.entries()) {
+      const spineFileName = safeDecode(spineHref).split('/').pop() || ''
+      if (spineFileName === fileName) return imgIdx
+    }
+
+    return -1
+  }
+
+  // Check if it's NCX format (<ncx> or <navMap>)
+  const isNcx = xmlDoc.querySelector('ncx, navMap') !== null
+  if (isNcx) {
+    const result: EpubTocItem[] = []
+    const walkNavPoint = (el: Element, level: number) => {
+      const children = el.children
+      for (let i = 0; i < children.length; i++) {
+        const child = children[i]
+        if (child.tagName.toLowerCase() === 'navpoint') {
+          const labelEl = child.querySelector('navLabel > text')
+          const contentEl = child.querySelector('content')
+          const title = labelEl?.textContent?.trim() || ''
+          const src = contentEl?.getAttribute('src') || ''
+          const srcBase = src.split('#')[0]
+          const pageIndex = resolveHrefToImageIndex(srcBase)
+
+          if (title && pageIndex >= 0) {
+            result.push({ pageIndex, title, level })
+          }
+          walkNavPoint(child, level + 1)
+        }
+      }
+    }
+
+    const navMap = xmlDoc.querySelector('navMap')
+    if (navMap) {
+      walkNavPoint(navMap, 0)
+    }
+    return result
+  }
+
+  // Parse HTML/XHTML Nav format
+  const navDoc = new DOMParser().parseFromString(navText, 'application/xhtml+xml')
   const navEls = navDoc.querySelectorAll('nav')
   let tocNav: Element | null = null
   for (let i = 0; i < navEls.length; i++) {
@@ -469,7 +607,6 @@ async function extractToc(
   }
 
   if (!tocNav) {
-    // Fallback: use first nav with an ol
     for (let i = 0; i < navEls.length; i++) {
       if (navEls[i].querySelector('ol')) {
         tocNav = navEls[i]
@@ -483,32 +620,7 @@ async function extractToc(
   const topOl = tocNav.querySelector('ol')
   if (!topOl) return []
 
-  // Build a lookup: xhtml filename (without directory) -> image index
-  // The TOC hrefs are relative to the nav document
-  const navDir = navPath.includes('/') ? navPath.substring(0, navPath.lastIndexOf('/')) : ''
-
   const result: EpubTocItem[] = []
-
-  const resolveHrefToImageIndex = (href: string): number => {
-    // href is relative to nav document, e.g. "text/p_cover.xhtml"
-    // We need to resolve it relative to OPF dir to match spineHrefToImageIndex keys
-    const fullPath = resolveRelativePath(navPath, href)
-
-    // Try matching against spine href map (which uses OPF-relative paths)
-    for (const [spineHref, imgIdx] of spineHrefToImageIndex.entries()) {
-      const spineFullPath = opfDir ? `${opfDir}/${spineHref}` : spineHref
-      if (spineFullPath === fullPath) return imgIdx
-    }
-
-    // Fallback: try matching by filename
-    const fileName = fullPath.split('/').pop() || ''
-    for (const [spineHref, imgIdx] of spineHrefToImageIndex.entries()) {
-      const spineFileName = spineHref.split('/').pop() || ''
-      if (spineFileName === fileName) return imgIdx
-    }
-
-    return -1
-  }
 
   const walkOl = (ol: Element, level: number) => {
     const children = ol.children
@@ -520,7 +632,6 @@ async function extractToc(
       if (anchor) {
         const href = anchor.getAttribute('href') || ''
         const title = anchor.textContent?.trim() || ''
-        // Strip fragment identifier
         const hrefBase = href.split('#')[0]
         const pageIndex = resolveHrefToImageIndex(hrefBase)
 
@@ -529,7 +640,6 @@ async function extractToc(
         }
       }
 
-      // Recurse into nested <ol>
       const nestedOl = li.querySelector(':scope > ol')
       if (nestedOl) {
         walkOl(nestedOl, level + 1)
