@@ -1,6 +1,6 @@
 import React, { useCallback, useState, useEffect } from 'react'
 import { observer } from 'mobx-react'
-import storeMain, { useStore } from 'store/main'
+import { useStore } from 'store/main'
 import Icon from 'components/icon'
 import { useI18n } from 'i18n'
 import { getPageLayoutInfo, getSpreadPairs, CustomSpreadType } from 'utils/page-layout'
@@ -39,7 +39,7 @@ function getSpreadPair(
 }
 
 const Lightbox = observer(function() {
-  const { ui, book, blobs } = useStore()
+  const { ui, book, blobs, contents, modePageSize, displayPageSize } = useStore()
   const t = useI18n()
 
   const [activeMenuKey, setActiveMenuKey] = useState<string | null>(null)
@@ -100,8 +100,8 @@ const Lightbox = observer(function() {
     book.updateBookPageProperty('pageShow', isTwoPages ? 'one' : 'two')
   }
 
-  const modeSize = storeMain.modePageSize
-  const displaySize = storeMain.displayPageSize
+  const modeSize = modePageSize
+  const displaySize = displayPageSize
   const pageDimensionsText = book.pageSizeMode === 'auto'
     ? `Auto (${displaySize[0]}×${displaySize[1]})`
     : `${displaySize[0]}×${displaySize[1]}`
@@ -275,8 +275,8 @@ const Lightbox = observer(function() {
       originSizeStr = `${blobItem.originImage.width}×${blobItem.originImage.height}`
     }
 
-    const listIdx = totalPages > 0 ? storeMain.contents.indexMap[idx] : undefined
-    const bookmarkTitle = listIdx !== undefined ? storeMain.contents.list[listIdx]?.title : null
+    const listIdx = totalPages > 0 ? contents.indexMap[idx] : undefined
+    const bookmarkTitle = listIdx !== undefined ? contents.list[listIdx]?.title : null
 
     const layout = getPageLayoutInfo({
       pageIndex: idx,

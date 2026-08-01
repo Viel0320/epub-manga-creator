@@ -1,15 +1,15 @@
 import JSZip from 'jszip'
 import { observer } from 'mobx-react'
-import React, { useCallback, useContext, useLayoutEffect, useRef, useState } from 'react'
+import React, { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import Icon from 'components/icon'
-import { StoreContext } from 'store/main'
+import { useStore } from 'store/main'
 import { useI18n } from 'i18n'
 import { detectImageMime } from 'utils/epub-parser'
 
 type SupportType = 'image' | 'zip' | 'epub'
 
 const PageControl = observer(function(props: { pageIndex: number | null }) {
-  const storeMain = useContext(StoreContext);
+  const storeMain = useStore();
   const t = useI18n();
   const onUseImageSizeToPage = useCallback(() => {
     const pageItem = storeMain.book.pages[props.pageIndex as number]
@@ -193,7 +193,7 @@ const blobToFile = (theBlob: Blob, fileName: string): File => {
 }
 
 const Header = function() {
-  const storeMain = useContext(StoreContext);
+  const storeMain = useStore();
   const { ui, book } = storeMain;
   const t = useI18n()
   const inputRef = useRef<HTMLInputElement>(null)

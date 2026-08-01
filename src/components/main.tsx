@@ -1,7 +1,7 @@
 import { observer } from 'mobx-react'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import storeMain, { useStore } from 'store/main'
-import storeBlobs, { StoreBlobs } from 'store/blobs'
+import { useStore } from 'store/main'
+import type { StoreBlobs } from 'store/blobs'
 import Icon from './icon'
 import { useI18n } from 'i18n'
 import { db } from 'utils/db'
@@ -18,14 +18,14 @@ const PageCard = observer(function(props: {
   blank: boolean
   onContextMenu?: (e: React.MouseEvent, pageIndex: number) => void
 }) {
-  const { ui: storeUI, book: storeBook, contents: storeContent } = useStore()
+  const { ui: storeUI, book: storeBook, contents: storeContent, movePage, modePageSize } = useStore()
   const t = useI18n()
   const [isDragging, setIsDragging] = useState(false)
   const [dragPosition, setDragPosition] = useState<'left' | 'right' | null>(null)
 
   const onClickImage = useCallback(() => {
-    storeMain.ui.selectPageIndex(props.pageItemIndex)
-  }, [props.pageItemIndex])
+    storeUI.selectPageIndex(props.pageItemIndex)
+  }, [props.pageItemIndex, storeUI])
 
   const handleContextMenu = (e: React.MouseEvent) => {
     if (props.realPageIndex !== undefined && props.realPageIndex !== null && props.realPageIndex > 0) {
@@ -118,7 +118,7 @@ const PageCard = observer(function(props: {
       if (sourceIndex < gap) {
         insertIndex = gap - 1
       }
-      storeMain.movePage(sourceIndex, insertIndex)
+      movePage(sourceIndex, insertIndex)
     }
   }
 
@@ -140,7 +140,7 @@ const PageCard = observer(function(props: {
 
   const imageFocus = props.pageItemIndex !== null && (storeUI.selectedPageIndex === props.pageItemIndex)
   const pageItem = props.realPageIndex !== undefined && props.realPageIndex !== null ? storeBook.pages[props.realPageIndex] : null
-  const effectiveSize = getPageEffectiveSize(pageItem, props.blobItem, storeBook.pageSizeMode, storeBook.pageSize, storeMain.modePageSize)
+  const effectiveSize = getPageEffectiveSize(pageItem, props.blobItem, storeBook.pageSizeMode, storeBook.pageSize, modePageSize)
 
   return (
     <div
@@ -169,7 +169,7 @@ const PageCard = observer(function(props: {
             onClick={(e) => {
               e.stopPropagation()
               const previewIdx = props.realPageIndex ?? props.pageItemIndex
-              storeMain.ui.openPreview(previewIdx as number)
+              storeUI.openPreview(previewIdx as number)
             }}
           >
             <Icon name="zoom" />
@@ -219,7 +219,7 @@ const DoublePageCard = observer(function(props: {
   pages: [number | null, number | null]
   onContextMenu?: (e: React.MouseEvent, pageIndex: number) => void
 }) {
-  const { book: storeBook } = useStore()
+  const { book: storeBook, blobs } = useStore()
   const t = useI18n()
 
   const leftSidePageIndex = storeBook.pageDirection === 'right' ? props.pages[1] : props.pages[0]
@@ -252,7 +252,7 @@ const DoublePageCard = observer(function(props: {
         <PageCard
           pageItemIndex={singleIndex - coverPosition}
           realPageIndex={singleIndex}
-          blobItem={page ? storeBlobs.blobs[page.blobID] : null}
+          blobItem={page ? blobs.blobs[page.blobID] : null}
           pagePosition="center"
           blank={page?.blank || false}
           onContextMenu={props.onContextMenu}
@@ -294,7 +294,7 @@ const DoublePageCard = observer(function(props: {
       <PageCard
         pageItemIndex={leftSidePageIndex === null ? null : (leftSidePageIndex - coverPosition)}
         realPageIndex={leftSidePageIndex}
-        blobItem={leftSidePage ? storeBlobs.blobs[leftSidePage.blobID] : null}
+        blobItem={leftSidePage ? blobs.blobs[leftSidePage.blobID] : null}
         pagePosition={leftLayout ? leftLayout.align : 'center'}
         blank={leftSidePage?.blank || false}
         onContextMenu={props.onContextMenu}
@@ -302,7 +302,7 @@ const DoublePageCard = observer(function(props: {
       <PageCard
         pageItemIndex={rightSidePageIndex === null ? null : (rightSidePageIndex - coverPosition)}
         realPageIndex={rightSidePageIndex}
-        blobItem={rightSidePage ? storeBlobs.blobs[rightSidePage.blobID] : null}
+        blobItem={rightSidePage ? blobs.blobs[rightSidePage.blobID] : null}
         pagePosition={rightLayout ? rightLayout.align : 'center'}
         blank={rightSidePage?.blank || false}
         onContextMenu={props.onContextMenu}
@@ -318,7 +318,7 @@ const SinglePageCard = observer(function(props: {
   pageIndex: number
   onContextMenu?: (e: React.MouseEvent, pageIndex: number) => void
 }) {
-  const { book: storeBook } = useStore()
+  const { book: storeBook, blobs } = useStore()
   const t = useI18n()
   const realPageIndex = props.pageIndex
   const page = storeBook.pages[realPageIndex]
@@ -342,7 +342,7 @@ const SinglePageCard = observer(function(props: {
       <PageCard
         pageItemIndex={realPageIndex - coverPosition}
         realPageIndex={realPageIndex}
-        blobItem={page ? storeBlobs.blobs[page.blobID] : null}
+        blobItem={page ? blobs.blobs[page.blobID] : null}
         pagePosition={layout.align}
         blank={page?.blank || false}
         onContextMenu={props.onContextMenu}
@@ -371,6 +371,7 @@ if (typeof window !== 'undefined') {
 }
 
 const RestoreBanner = observer(function() {
+  const { setAutoSaveActive, restoreWorkspace, isAutoSaveActive } = useStore()
   const t = useI18n()
   const [hasBackup, setHasBackup] = useState(false)
 
@@ -379,33 +380,33 @@ const RestoreBanner = observer(function() {
       if (backup && backup.pages && backup.pages.length > 0) {
         setHasBackup(true)
       } else {
-        storeMain.setAutoSaveActive(true)
+        setAutoSaveActive(true)
       }
     }).catch(err => {
       console.error('Failed to read backup from DB:', err)
-      storeMain.setAutoSaveActive(true)
+      setAutoSaveActive(true)
     })
-  }, [])
+  }, [setAutoSaveActive])
 
   const onRestore = useCallback(() => {
-    storeMain.restoreWorkspace().then(() => {
+    restoreWorkspace().then(() => {
       setHasBackup(false)
-      storeMain.setAutoSaveActive(true)
+      setAutoSaveActive(true)
     })
-  }, [])
+  }, [restoreWorkspace, setAutoSaveActive])
 
   const onDismiss = useCallback(() => {
     db.clearAll().then(() => {
       setHasBackup(false)
-      storeMain.setAutoSaveActive(true)
+      setAutoSaveActive(true)
     }).catch(err => {
       console.error('Failed to clear backup:', err)
       setHasBackup(false)
-      storeMain.setAutoSaveActive(true)
+      setAutoSaveActive(true)
     })
-  }, [])
+  }, [setAutoSaveActive])
 
-  if (!hasBackup || storeMain.isAutoSaveActive) return null
+  if (!hasBackup || isAutoSaveActive) return null
 
   return (
     <div className="alert alert-info restore-alert-banner d-flex justify-content-between align-items-center" role="alert">
@@ -497,7 +498,7 @@ const PageContextMenu = observer(function(props: {
 
 const Main = function() {
   const mainRef = useRef<HTMLElement>(null)
-  const { book: storeBook } = useStore()
+  const { book: storeBook, ui } = useStore()
   const [showPages, setShowPages] = useState<any[][]>([])
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
     visible: false,
@@ -618,10 +619,10 @@ const Main = function() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (storeMain.ui.isPreviewOpen) {
+      if (ui.isPreviewOpen) {
         if (e.code === 'ArrowLeft') {
           e.preventDefault()
-          storeMain.ui.navigatePreview(
+          ui.navigatePreview(
             'left',
             storeBook.pageDirection,
             storeBook.pageShow,
@@ -630,7 +631,7 @@ const Main = function() {
           )
         } else if (e.code === 'ArrowRight') {
           e.preventDefault()
-          storeMain.ui.navigatePreview(
+          ui.navigatePreview(
             'right',
             storeBook.pageDirection,
             storeBook.pageShow,
@@ -639,15 +640,15 @@ const Main = function() {
           )
         } else if (e.code === 'Escape' || e.code === 'Space') {
           e.preventDefault()
-          storeMain.ui.closePreview()
+          ui.closePreview()
         }
         return
       }
 
-      if (storeMain.ui.selectedPageIndex !== null) {
+      if (ui.selectedPageIndex !== null) {
         if (e.code === 'Space' || e.code === 'Enter') {
           e.preventDefault()
-          storeMain.ui.openPreview(storeMain.ui.selectedPageIndex)
+          ui.openPreview(ui.selectedPageIndex)
         }
       }
     }
