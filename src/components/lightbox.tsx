@@ -56,6 +56,56 @@ const Lightbox = observer(function() {
     }
   }, [activeMenuKey])
 
+  useEffect(() => {
+    if (!ui.isPreviewOpen) return
+
+    let lastWheelTime = 0
+    const WHEEL_COOLDOWN = 180
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault()
+
+      const now = Date.now()
+      if (now - lastWheelTime < WHEEL_COOLDOWN) return
+
+      const { deltaX, deltaY } = e
+      const absX = Math.abs(deltaX)
+      const absY = Math.abs(deltaY)
+
+      if (absX < 5 && absY < 5) return
+
+      let direction: 'left' | 'right' | null = null
+
+      if (absY >= absX) {
+        const isForward = deltaY > 0
+        const isRTL = book.pageDirection === 'right'
+        if (isForward) {
+          direction = isRTL ? 'left' : 'right'
+        } else {
+          direction = isRTL ? 'right' : 'left'
+        }
+      } else {
+        direction = deltaX > 0 ? 'right' : 'left'
+      }
+
+      if (direction) {
+        lastWheelTime = now
+        ui.navigatePreview(
+          direction,
+          book.pageDirection,
+          book.pageShow,
+          book.coverPosition,
+          book.pages.length
+        )
+      }
+    }
+
+    window.addEventListener('wheel', handleWheel, { passive: false })
+    return () => {
+      window.removeEventListener('wheel', handleWheel)
+    }
+  }, [ui.isPreviewOpen, book.pageDirection, book.pageShow, book.coverPosition, book.pages.length, ui])
+
   const onClose = useCallback(() => {
     ui.closePreview()
   }, [ui])
