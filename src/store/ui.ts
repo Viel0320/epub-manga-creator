@@ -190,16 +190,10 @@ class Store {
     let maxIndex = pageIndex
 
     if (isTwoPages) {
-      if (coverPosition === 'first-page') {
-        if (pageIndex > 0) {
-          const offset = pageIndex - 1
-          const group = Math.floor(offset / 2)
-          minIndex = 1 + group * 2
-          maxIndex = Math.min(totalPages - 1, minIndex + 1)
-        }
-      } else {
-        const group = Math.floor(pageIndex / 2)
-        minIndex = group * 2
+      if (pageIndex > 0) {
+        const offset = pageIndex - 1
+        const group = Math.floor(offset / 2)
+        minIndex = 1 + group * 2
         maxIndex = Math.min(totalPages - 1, minIndex + 1)
       }
     }
@@ -207,7 +201,7 @@ class Store {
     if (isForward) {
       if (maxIndex >= totalPages - 1) return
       if (isTwoPages) {
-        if (coverPosition === 'first-page' && minIndex === 0) {
+        if (minIndex === 0) {
           this.openPreview(1)
         } else {
           this.openPreview(Math.min(totalPages - 1, maxIndex + 1))
@@ -218,7 +212,7 @@ class Store {
     } else {
       if (minIndex <= 0) return
       if (isTwoPages) {
-        if (coverPosition === 'first-page' && minIndex === 1) {
+        if (minIndex === 1) {
           this.openPreview(0)
         } else {
           this.openPreview(Math.max(0, minIndex - 2))

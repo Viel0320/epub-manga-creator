@@ -30,11 +30,8 @@ export function getSpreadPairs(
   const result: Array<number[]> = []
   if (!pages || pages.length === 0) return result
 
-  let i = 0
-  if (coverPosition === 'first-page') {
-    result.push([0])
-    i = 1
-  }
+  result.push([0])
+  let i = 1
 
   while (i < pages.length) {
     const p1 = pages[i]
@@ -101,7 +98,7 @@ export function getPageLayoutInfo(options: PageLayoutInfoOptions): PageLayoutInf
 
   let spread: 'left' | 'right' | 'center'
 
-  if (isSingle || customSpread === 'center' || (pageIndex === 0 && coverPosition === 'first-page')) {
+  if (isSingle || customSpread === 'center' || pageIndex === 0) {
     spread = 'center'
   } else if (isFirstInPair !== undefined) {
     if (pageDirection === 'right') {
@@ -124,11 +121,11 @@ export function getPageLayoutInfo(options: PageLayoutInfoOptions): PageLayoutInf
       }
     }
   } else {
-    const isSelfCenter = (pageIndex === 0 && coverPosition === 'first-page') || ((customSpread as string) === 'center')
+    const isSelfCenter = pageIndex === 0 || ((customSpread as string) === 'center')
     if (isSelfCenter) {
       spread = 'center'
     } else {
-      const baseIndex = coverPosition === 'first-page' ? pageIndex - 1 : pageIndex
+      const baseIndex = pageIndex - 1
       const pairSlot = Math.max(0, baseIndex) % 2
       if (pageDirection === 'right') {
         spread = pairSlot === 0 ? 'right' : 'left'

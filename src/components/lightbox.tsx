@@ -264,9 +264,15 @@ const Lightbox = observer(function() {
 
     const effectiveSize = getPageEffectiveSize(page, blobItem, book.pageSizeMode, book.pageSize, modeSize)
 
-    const pageStr = isTwoPages
-      ? `${t.lightbox.page} ${idx + 1}`
-      : `${t.lightbox.page} ${idx + 1} / ${totalPages}`
+    const isCoverAlone = idx === 0 && book.coverPosition === 'alone'
+    const pageNum = book.coverPosition === 'alone' ? idx : idx + 1
+    const totalCount = book.coverPosition === 'alone' ? totalPages - 1 : totalPages
+
+    const pageStr = isCoverAlone
+      ? t.page.cover
+      : isTwoPages
+        ? `${t.lightbox.page} ${pageNum}`
+        : `${t.lightbox.page} ${pageNum} / ${totalCount}`
 
     const viewportSizeStr = `${effectiveSize[0]}×${effectiveSize[1]}`
     let originSizeStr = ''

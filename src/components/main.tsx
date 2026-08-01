@@ -206,9 +206,9 @@ const PageCard = observer(function(props: {
         )
       }
       {
-        props.pageItemIndex === null
+        props.pageItemIndex === null && !(props.realPageIndex === 0 && storeBook.coverPosition === 'alone')
           ? null
-          : <div className="page-num">{props.pageItemIndex + 1}</div>
+          : <div className="page-num">{props.realPageIndex === 0 && storeBook.coverPosition === 'alone' ? t.page.cover : props.pageItemIndex! + 1}</div>
       }
     </div>
   )
@@ -464,7 +464,7 @@ const PageContextMenu = observer(function(props: {
     props.onClose()
   }
 
-  const canBindPrev = pageIdx > 1 || (storeBook.coverPosition === 'alone' && pageIdx > 0)
+  const canBindPrev = pageIdx > 1
   const canBindNext = pageIdx < storeBook.pages.length - 1
 
   return (
@@ -561,7 +561,7 @@ const Main = function() {
       for (const pair of pairs) {
         let pageItemPair: [number | null, number | null]
         if (pair.length === 1) {
-          if (pair[0] === 0 && storeBook.coverPosition === 'first-page') {
+          if (pair[0] === 0) {
             pageItemPair = [null, 0]
           } else {
             pageItemPair = [pair[0], null]
