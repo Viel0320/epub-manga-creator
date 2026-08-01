@@ -206,7 +206,7 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
 
 const AcceptMap = {
   image: 'image/jpeg,image/png,image/webp,image/avif,.jpg,.jpeg,.png,.webp,.avif',
-  zip: 'application/zip,.zip',
+  zip: 'application/zip,.zip,.cbz,application/x-cbz',
   epub: 'application/epub+zip,.epub',
 }
 

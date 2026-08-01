@@ -1,5 +1,5 @@
 import { observer } from 'mobx-react'
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useStore } from 'store/main'
 import type { StoreBlobs } from 'store/blobs'
 import Icon from './icon'
@@ -408,6 +408,36 @@ const PageContextMenu = observer(function(props: {
 }) {
   const { book: storeBook } = useStore()
   const t = useI18n()
+  const menuRef = useRef<HTMLDivElement>(null)
+  const [pos, setPos] = useState<{ top: number; left: number }>({ top: props.state.y, left: props.state.x })
+
+  useLayoutEffect(() => {
+    if (props.state.visible && menuRef.current) {
+      const rect = menuRef.current.getBoundingClientRect()
+      const vw = window.innerWidth
+      const vh = window.innerHeight
+      const margin = 12
+
+      let left = props.state.x
+      let top = props.state.y
+
+      if (left + rect.width > vw - margin) {
+        left = Math.max(margin, vw - rect.width - margin)
+      }
+      if (left < margin) {
+        left = margin
+      }
+
+      if (top + rect.height > vh - margin) {
+        top = Math.max(margin, vh - rect.height - margin)
+      }
+      if (top < margin) {
+        top = margin
+      }
+
+      setPos({ top, left })
+    }
+  }, [props.state.visible, props.state.x, props.state.y])
 
   if (!props.state.visible || props.state.pageIndex === null || props.state.pageIndex <= 0) return null
 
@@ -442,25 +472,23 @@ const PageContextMenu = observer(function(props: {
 
   return (
     <div
+      ref={menuRef}
       className="page-context-menu"
-      style={{ top: props.state.y, left: props.state.x }}
+      style={{ top: pos.top, left: pos.left }}
       onClick={(e) => e.stopPropagation()}
     >
       <button type="button" className="context-menu-item" onClick={onToggleCenter}>
-        <Icon name={isCentered ? "cross" : "align-center"} />
         <span>{isCentered ? (t.option.removeSingle || '取消单页 (恢复自动)') : (t.option.setSingle || '设为单页')}</span>
       </button>
 
       {canBindPrev && (
         <button type="button" className="context-menu-item" onClick={onToggleBindPrev}>
-          <Icon name={isBoundPrev ? "cross" : "align-left"} />
           <span>{isBoundPrev ? (t.option.removeBindPrev || '取消跨页绑定') : (t.option.bindPrev || '绑定跨页（前一张）')}</span>
         </button>
       )}
 
       {canBindNext && (
         <button type="button" className="context-menu-item" onClick={onToggleBindNext}>
-          <Icon name={isBoundNext ? "cross" : "align-right"} />
           <span>{isBoundNext ? (t.option.removeBindNext || '取消跨页绑定') : (t.option.bindNext || '绑定跨页（后一张）')}</span>
         </button>
       )}

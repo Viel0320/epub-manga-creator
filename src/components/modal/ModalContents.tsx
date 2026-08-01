@@ -101,6 +101,7 @@ const ModalContents = observer(function ModalContents() {
   const [textAreaInput, setTextAreaInput] = useState('');
   const [selectedSetIndex, setSelectedSetIndex] = useState(-1);
   const [autoDropdownOpen, setAutoDropdownOpen] = useState(false);
+  const [autoGenSuccessCount, setAutoGenSuccessCount] = useState<number | null>(null);
 
   const onClickModal = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -150,6 +151,8 @@ const ModalContents = observer(function ModalContents() {
     } else {
       setTempList(generated);
     }
+
+    setAutoGenSuccessCount(generated.length);
   }, [storeBook, plainMode, t]);
 
   const togglePlainMode = useCallback(() => {
@@ -348,6 +351,7 @@ const ModalContents = observer(function ModalContents() {
   useEffect(() => {
     if (store.modalContentVisible) {
       setTempList(toJS(storeContents.list));
+      setAutoGenSuccessCount(null);
     }
   }, [store.modalContentVisible, storeContents.list]);
 
@@ -501,6 +505,11 @@ const ModalContents = observer(function ModalContents() {
           <button type="button" disabled={plainMode || tempList.length <= 1} className="btn btn-outline-danger me-auto" onClick={onRemoveExceptCover}>
             {t.contents.removeExceptCover}
           </button>
+          {autoGenSuccessCount !== null && (
+            <span className="text-success small fw-medium align-self-center me-1">
+              {t.contents.autoSuccess(autoGenSuccessCount)}
+            </span>
+          )}
           <button type="button" disabled={plainMode} className="btn btn-primary" onClick={onSave}>
             {t.contents.save}
           </button>

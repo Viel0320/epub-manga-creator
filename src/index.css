@@ -595,7 +595,7 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
   flex-direction: column;
   align-items: center;
   gap: 32px;
-  width: min(560px, 90%);
+  width: min(660px, 92%);
 }
 
 #main .main-app-header {
@@ -609,6 +609,7 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
   letter-spacing: -0.5px;
   background: linear-gradient(135deg, var(--text) 0%, var(--accent) 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   margin: 0 0 8px 0;
 }
@@ -936,6 +937,7 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
   padding: 0 14px;
   font-size: 13px;
   font-weight: 500;
+  line-height: 1;
   color: var(--text);
   background: var(--glass-strong);
   backdrop-filter: var(--blur-light);
@@ -1072,6 +1074,7 @@ html.dark-theme .lightbox-menu-popover {
   gap: 6px;
   padding: 6px 10px;
   font-size: 13px;
+  line-height: 1.2;
   color: var(--text);
   border-radius: var(--radius-sm, 6px);
   cursor: pointer;
@@ -1399,29 +1402,32 @@ html.dark-theme .lightbox-menu-popover {
 /* Context Menu Styles */
 .page-context-menu {
   position: fixed;
-  z-index: 1000;
+  z-index: 3000;
   background: var(--glass-strong);
   backdrop-filter: var(--blur);
   -webkit-backdrop-filter: var(--blur);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-panel);
-  padding: 6px;
-  min-width: 180px;
+  padding: 4px;
+  min-width: 140px;
+  white-space: nowrap;
 }
 
 .context-menu-item {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 8px;
   width: 100%;
-  padding: 8px 12px;
+  padding: 6px 10px;
   background: transparent;
   border: none;
   border-radius: var(--radius-sm);
   color: var(--text);
   font-size: 13px;
   font-weight: 500;
+  line-height: 1.2;
   text-align: left;
   cursor: pointer;
   transition: background-color 0.15s ease, color 0.15s ease;
@@ -1444,11 +1450,15 @@ html.dark-theme .lightbox-menu-popover {
   bottom: 6px;
   left: 50%;
   transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: var(--accent);
   color: var(--text-on-accent);
   font-size: 10px;
   font-weight: 600;
-  padding: 2px 8px;
+  line-height: 1.2;
+  padding: 3px 8px;
   border-radius: 999px;
   box-shadow: var(--shadow-soft);
   z-index: 5;
