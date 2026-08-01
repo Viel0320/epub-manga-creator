@@ -83,7 +83,7 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
         onClick={onUndo}
         title={t.nav.undo}
       >
-        <Icon name="undo"/>
+        <span className="nav-icon-box"><Icon name="undo"/></span>
         <span className="nav-label">{t.nav.undo}</span>
       </button>
     </div>
@@ -94,13 +94,13 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
       <>
         <div className="nav-item">
           <button type="button" className="btn btn-outline-secondary disabled" disabled>
-            <Icon name="ruler"/>
+            <span className="nav-icon-box"><Icon name="ruler"/></span>
             <span className="nav-label">{t.nav.ruler}</span>
           </button>
         </div>
         <div className="nav-item">
           <button type="button" className="btn btn-outline-secondary disabled" disabled>
-            <Icon name="menu"/>
+            <span className="nav-icon-box"><Icon name="menu"/></span>
             <span className="nav-label">{t.nav.move}</span>
           </button>
         </div>
@@ -112,25 +112,25 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
             onClick={onClickInsertBlankPage}
             title={t.nav.insertBlankPage}
           >
-            <Icon name="notification"/>
+            <span className="nav-icon-box"><Icon name="notification"/></span>
             <span className="nav-label">{t.nav.insertBlankPage}</span>
           </button>
         </div>
         <div className="nav-item">
           <button type="button" className="btn btn-outline-secondary disabled" disabled>
-            <Icon name="bookmark"/>
+            <span className="nav-icon-box"><Icon name="bookmark"/></span>
             <span className="nav-label">{t.nav.bookmark}</span>
           </button>
         </div>
         <div className="nav-item">
           <button type="button" className="btn btn-outline-secondary disabled" disabled>
-            <Icon name="scissors"/>
+            <span className="nav-icon-box"><Icon name="scissors"/></span>
             <span className="nav-label">{t.nav.split}</span>
           </button>
         </div>
         <div className="nav-item">
           <button type="button" className="btn btn-outline-secondary disabled" disabled>
-            <Icon name="cross"/>
+            <span className="nav-icon-box"><Icon name="cross"/></span>
             <span className="nav-label">{t.nav.delete}</span>
           </button>
         </div>
@@ -145,13 +145,13 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
     <>
       <div className="nav-item">
         <button type="button" className="btn btn-secondary" disabled={blankPage} onClick={onUseImageSizeToPage}>
-          <Icon name="ruler"/>
+          <span className="nav-icon-box"><Icon name="ruler"/></span>
           <span className="nav-label">{t.nav.ruler}</span>
         </button>
       </div>
       <div className="nav-item">
         <button type="button" className="btn btn-secondary" onClick={onChangePageIndex}>
-          <Icon name="menu"/>
+          <span className="nav-icon-box"><Icon name="menu"/></span>
           <span className="nav-label">{t.nav.move}</span>
         </button>
       </div>
@@ -162,13 +162,13 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
           onClick={onClickInsertBlankPage}
           title={t.nav.insertBlankPage}
         >
-          <Icon name="notification"/>
+          <span className="nav-icon-box"><Icon name="notification"/></span>
           <span className="nav-label">{t.nav.insertBlankPage}</span>
         </button>
       </div>
       <div className="nav-item dropdown">
         <button type="button" className="btn btn-secondary">
-          <Icon name="bookmark"/>
+          <span className="nav-icon-box"><Icon name="bookmark"/></span>
           <span className="nav-label">{t.nav.bookmark}</span>
         </button>
         <ul className="dropdown-menu" style={{top: 0,left:'100%'}}>
@@ -189,13 +189,13 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
       </div>
       <div className="nav-item">
         <button type="button" className="btn btn-secondary" disabled={blankPage} onClick={onSplitPage}>
-          <Icon name="scissors"/>
+          <span className="nav-icon-box"><Icon name="scissors"/></span>
           <span className="nav-label">{t.nav.split}</span>
         </button>
       </div>
       <div className="nav-item">
         <button type="button" className="btn btn-secondary" onClick={onRemovePage}>
-          <Icon name="cross"/>
+          <span className="nav-icon-box"><Icon name="cross"/></span>
           <span className="nav-label">{t.nav.delete}</span>
         </button>
       </div>
@@ -328,7 +328,7 @@ const Header = function() {
     <nav id="nav" className="navbar bg-dark">
       <div className="nav-item dropdown">
         <button type="button" className="btn btn-primary" title={t.nav.import}>
-          <Icon name="upload"/>
+          <span className="nav-icon-box"><Icon name="upload"/></span>
           <span className="nav-label">{t.nav.import}</span>
         </button>
         <ul className="dropdown-menu" style={{top: 0,left:'100%'}}>
@@ -339,19 +339,19 @@ const Header = function() {
       </div>
       <div className="nav-item">
         <button type="button" className="btn btn-primary" onClick={onClickToggleBookVisible} title={t.nav.book}>
-          <Icon name="book"/>
+          <span className="nav-icon-box"><Icon name="book"/></span>
           <span className="nav-label">{t.nav.book}</span>
         </button>
       </div>
       <div className="nav-item">
         <button type="button" className="btn btn-primary" onClick={onClickToggleContentVisible} title={t.nav.contents}>
-          <Icon name="list"/>
+          <span className="nav-icon-box"><Icon name="list"/></span>
           <span className="nav-label">{t.nav.contents}</span>
         </button>
       </div>
       <div className="nav-item">
         <button type="button" className="btn btn-primary" onClick={onClickTogglePageVisible} title={t.nav.page}>
-          <Icon name="tools"/>
+          <span className="nav-icon-box"><Icon name="tools"/></span>
           <span className="nav-label">{t.nav.page}</span>
         </button>
       </div>
@@ -363,7 +363,7 @@ const Header = function() {
           onClick={onClickGenerate}
           title={t.nav.generate}
         >
-          <Icon name="install"/>
+          <span className="nav-icon-box"><Icon name="install"/></span>
           <span className="nav-label">{t.nav.generate}</span>
         </button>
       </div>
@@ -376,7 +376,7 @@ const Header = function() {
           onClick={onToggleContainerBg}
           title={ui.containerBgFilled ? t.nav.previewBgFilled : t.nav.previewBgTransparent}
         >
-          <Icon name="document"/>
+          <span className="nav-icon-box"><Icon name="document"/></span>
           <span className="nav-label">{t.nav.previewBg}</span>
         </button>
       </div>
@@ -389,7 +389,9 @@ const Header = function() {
             { light: t.nav.themeLight, dark: t.nav.themeDark, auto: t.nav.themeAuto }[ui.theme]
           }
         >
-          <Icon name={ui.theme === 'light' ? 'sun' : ui.theme === 'dark' ? 'moon' : 'theme-auto'}/>
+          <span className="nav-icon-box">
+            <Icon name={ui.theme === 'light' ? 'sun' : ui.theme === 'dark' ? 'moon' : 'theme-auto'}/>
+          </span>
           <span className="nav-label">{t.nav.theme}</span>
         </button>
       </div>
@@ -401,7 +403,7 @@ const Header = function() {
           onClick={onClickReset}
           title={t.nav.reset}
         >
-          <Icon name="trash"/>
+          <span className="nav-icon-box"><Icon name="trash"/></span>
           <span className="nav-label">{t.nav.reset}</span>
         </button>
       </div>

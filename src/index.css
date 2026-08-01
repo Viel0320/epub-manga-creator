@@ -140,15 +140,32 @@ html.dark-theme body::before {
 #nav .nav-item + .nav-item { margin-top: 0; }
 
 #nav .btn {
-  width: 52px;
-  height: 52px;
-  padding: 4px 2px;
+  width: 56px;
+  height: auto;
+  padding: 2px 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   border-radius: 14px;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: var(--text-secondary);
+}
+
+#nav .btn .nav-icon-box {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
+  background: var(--control-bg);
+  color: var(--text);
 }
 
 #nav .btn .icon {
@@ -159,30 +176,66 @@ html.dark-theme body::before {
 
 #nav .btn .nav-label {
   font-size: 10px;
-  line-height: 1;
+  line-height: 1.2;
   font-weight: 500;
   white-space: nowrap;
-  letter-spacing: -0.2px;
+  letter-spacing: -0.1px;
+  color: var(--text-secondary);
+  transition: color 0.16s ease;
 }
 
-/* Dock utility buttons (page tools, theme, reset) render as subtle ghost
-   icons so they blend into the dock instead of competing with the solid
-   primary (blue) actions above. */
-#nav .btn-secondary,
-#nav .btn-outline-secondary {
-  background: transparent;
-  backdrop-filter: none;
-  border: none;
-  box-shadow: none;
-  color: var(--text-secondary);
+/* Primary actions: prominent accent icon box */
+#nav .btn-primary .nav-icon-box {
+  background: var(--accent);
+  color: var(--text-on-accent);
+  box-shadow: var(--shadow-btn);
 }
-#nav .btn-secondary:not(:disabled):hover,
-#nav .btn-secondary:not(:disabled):focus,
-#nav .btn-outline-secondary:not(:disabled):hover,
-#nav .btn-outline-secondary:not(:disabled):focus {
-  background: var(--hover-veil);
+
+#nav .btn-primary .nav-label {
   color: var(--text);
+  font-weight: 600;
+}
+
+#nav .btn-primary:not(:disabled):hover .nav-icon-box,
+#nav .btn-primary:not(:disabled):focus .nav-icon-box {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+/* Secondary ghost actions: subtle hover on icon box */
+#nav .btn-secondary .nav-icon-box,
+#nav .btn-outline-secondary .nav-icon-box {
+  background: var(--control-bg);
+  color: var(--text);
+}
+
+#nav .btn-secondary:not(:disabled):hover .nav-icon-box,
+#nav .btn-secondary:not(:disabled):focus .nav-icon-box,
+#nav .btn-outline-secondary:not(:disabled):hover .nav-icon-box,
+#nav .btn-outline-secondary:not(:disabled):focus .nav-icon-box {
+  background: var(--control-bg-hover);
+  color: var(--text);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+#nav .btn:not(:disabled):hover .nav-label {
+  color: var(--text);
+}
+
+/* Disabled state */
+#nav .btn:disabled .nav-icon-box,
+#nav .btn.disabled .nav-icon-box {
+  background: rgba(120, 120, 128, 0.08);
+  color: var(--text-secondary);
+  opacity: 0.4;
+  box-shadow: none;
   transform: none;
+}
+
+#nav .btn:disabled .nav-label,
+#nav .btn.disabled .nav-label {
+  opacity: 0.4;
 }
 
 #nav .nav-item.dropdown { cursor: pointer; position: relative; }
@@ -239,22 +292,24 @@ html.dark-theme body::before {
 }
 
 /* reset is destructive — hint with a red tint on hover */
-#nav .nav-reset-btn:not(:disabled):hover,
-#nav .nav-reset-btn:not(:disabled):focus {
-  background: color-mix(in srgb, var(--danger) 16%, transparent);
+#nav .nav-reset-btn:not(:disabled):hover .nav-icon-box,
+#nav .nav-reset-btn:not(:disabled):focus .nav-icon-box {
+  background: color-mix(in srgb, var(--danger) 18%, transparent);
   color: var(--danger);
 }
 
 /* --- Dock adapts to short viewports (it always holds ~13 buttons) --- */
 @media (max-height: 820px) {
   #nav { gap: 6px; }
-  #nav .btn { width: 46px; height: 46px; border-radius: 13px; gap: 2px; }
+  #nav .btn { width: 48px; gap: 3px; }
+  #nav .btn .nav-icon-box { width: 36px; height: 36px; border-radius: 11px; }
   #nav .btn .icon { width: 16px; height: 16px; }
   #nav .btn .nav-label { font-size: 9px; }
 }
 @media (max-height: 720px) {
   #nav { gap: 4px; padding: 10px 6px; }
-  #nav .btn { width: 40px; height: 40px; border-radius: 12px; gap: 1px; }
+  #nav .btn { width: 42px; gap: 2px; }
+  #nav .btn .nav-icon-box { width: 32px; height: 32px; border-radius: 10px; }
   #nav .btn .icon { width: 15px; height: 15px; }
   #nav .btn .nav-label { font-size: 9px; }
 }
@@ -354,6 +409,30 @@ html.dark-theme body::before {
   opacity: 0.4;
   box-shadow: none;
   transform: none;
+}
+
+/* Ensure outer sidebar buttons under #nav are strictly transparent (overriding global .btn styles) */
+#nav .btn,
+#nav .btn-primary,
+#nav .btn-secondary,
+#nav .btn-outline-secondary,
+#nav .btn:hover,
+#nav .btn:focus,
+#nav .btn:active,
+#nav .btn-primary:hover,
+#nav .btn-primary:focus,
+#nav .btn-primary:active,
+#nav .btn-secondary:hover,
+#nav .btn-secondary:focus,
+#nav .btn-secondary:active,
+#nav .btn-outline-secondary:hover,
+#nav .btn-outline-secondary:focus,
+#nav .btn-outline-secondary:active {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
 }
 
 /* ---------- Form controls --------------------------------- */
