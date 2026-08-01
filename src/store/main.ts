@@ -300,17 +300,7 @@ class Store {
     this.blobs.push(blobs, this.book.pageDirection === 'left' ? uuids : [...uuids].reverse())
     this.blobs.remove(pageItem.blobID)
 
-    const list = toJS(this.contents.list)
-    list.forEach(contentItem => {
-      if (contentItem.pageIndex === null) {
-        return
-      }
-      if (contentItem.pageIndex > index) {
-        contentItem.pageIndex++
-      }
-    })
-
-    this.contents.updateList(list)
+    this.contents.shiftPageIndices(index, 1)
 
     runInAction(() => {
       this.lastSplitRecord = {
@@ -358,17 +348,7 @@ class Store {
       this.ui.selectPageIndex(selectedPageIndex + 1)
     }
 
-    const list = toJS(this.contents.list)
-    list.forEach(contentItem => {
-      if (contentItem.pageIndex === null) {
-        return
-      }
-      if (contentItem.pageIndex > index) {
-        contentItem.pageIndex++
-      }
-    })
-
-    this.contents.updateList(list)
+    this.contents.shiftPageIndices(index, 1)
   }
 
   removePage(index: number) {
@@ -380,21 +360,7 @@ class Store {
     this.book.updatePageItemIndex()
     this.ui.selectPageIndex(null)
 
-    const list = toJS(this.contents.list)
-    list.forEach((contentItem) => {
-      if (contentItem.pageIndex === null) {
-        return
-      }
-      if (contentItem.pageIndex === index) {
-        contentItem.pageIndex = null
-        return
-      }
-      if (contentItem.pageIndex > index) {
-        contentItem.pageIndex--
-      }
-    })
-
-    this.contents.updateList(list)
+    this.contents.onPageRemoved(index)
   }
 
   movePage(fromIndex: number, toIndex: number) {
@@ -414,27 +380,7 @@ class Store {
       }
     }
 
-    const list = toJS(this.contents.list)
-    let updated = false
-    list.forEach((contentItem) => {
-      if (contentItem.pageIndex === null) return
-      let idx = contentItem.pageIndex
-      if (idx === fromIndex) {
-        idx = targetIndex
-        updated = true
-      } else if (fromIndex < idx && targetIndex >= idx) {
-        idx -= 1
-        updated = true
-      } else if (fromIndex > idx && targetIndex <= idx) {
-        idx += 1
-        updated = true
-      }
-      contentItem.pageIndex = idx
-    })
-
-    if (updated) {
-      this.contents.updateList(list)
-    }
+    this.contents.onPageMoved(fromIndex, targetIndex)
   }
 
   async generateBook() {

@@ -61,6 +61,57 @@ class Store {
     this.indexMap = indexMap
   }
 
+  shiftPageIndices(afterIndex: number, delta: number = 1) {
+    const list = toJS(this.list)
+    let updated = false
+    list.forEach(contentItem => {
+      if (contentItem.pageIndex !== null && contentItem.pageIndex > afterIndex) {
+        contentItem.pageIndex += delta
+        updated = true
+      }
+    })
+    if (updated) {
+      this.updateList(list)
+    }
+  }
+
+  onPageRemoved(removedIndex: number) {
+    const list = toJS(this.list)
+    list.forEach(contentItem => {
+      if (contentItem.pageIndex === null) return
+      if (contentItem.pageIndex === removedIndex) {
+        contentItem.pageIndex = null
+      } else if (contentItem.pageIndex > removedIndex) {
+        contentItem.pageIndex--
+      }
+    })
+    this.updateList(list)
+  }
+
+  onPageMoved(fromIndex: number, toIndex: number) {
+    if (fromIndex === toIndex) return
+    const list = toJS(this.list)
+    let updated = false
+    list.forEach(contentItem => {
+      if (contentItem.pageIndex === null) return
+      let idx = contentItem.pageIndex
+      if (idx === fromIndex) {
+        idx = toIndex
+        updated = true
+      } else if (fromIndex < idx && toIndex >= idx) {
+        idx -= 1
+        updated = true
+      } else if (fromIndex > idx && toIndex <= idx) {
+        idx += 1
+        updated = true
+      }
+      contentItem.pageIndex = idx
+    })
+    if (updated) {
+      this.updateList(list)
+    }
+  }
+
   setPageIndexToTitle(listIndex: number, pageIndex: number) {
     const { list, indexMap } = cloneState.call(this)
 
