@@ -278,6 +278,16 @@ const Lightbox = observer(function() {
     const listIdx = totalPages > 0 ? contents.indexMap[idx] : undefined
     const bookmarkTitle = listIdx !== undefined ? contents.list[listIdx]?.title : null
 
+    const isRightJP = book.pageDirection === 'right'
+    let isFirstInPair: boolean | undefined = undefined
+    if (isTwoPages && side) {
+      if (side === 'left') {
+        isFirstInPair = isRightJP ? false : true
+      } else if (side === 'right') {
+        isFirstInPair = isRightJP ? true : false
+      }
+    }
+
     const layout = getPageLayoutInfo({
       pageIndex: idx,
       pages: book.pages,
@@ -285,7 +295,9 @@ const Lightbox = observer(function() {
       pageDirection: book.pageDirection,
       pagePositionSetting: book.pagePosition,
       pageFitSetting: book.pageFit,
-      customSpread: page?.customSpread
+      customSpread: page?.customSpread,
+      isFirstInPair,
+      isSingle: !isTwoPages || !side
     })
 
     const svgStyle: React.CSSProperties = isTwoPages && side ? {
@@ -337,7 +349,7 @@ const Lightbox = observer(function() {
           </div>
         ) : imageURL ? (
           <svg
-            className="lightbox-image"
+            className={`lightbox-image ${ui.containerBgFilled ? 'has-bg-filled' : ''}`}
             viewBox={'0 0 ' + effectiveSize.join(' ')}
             preserveAspectRatio={layout.par}
             style={svgStyle}
@@ -397,7 +409,7 @@ const Lightbox = observer(function() {
         {/* Display Content */}
         {isSpreadPair ? (
           <div
-            className="lightbox-spread-wrapper"
+            className={`lightbox-spread-wrapper ${ui.containerBgFilled ? 'has-bg-filled' : ''}`}
             onClick={onContentClick}
           >
             {leftIndex !== null && renderSingleImage(leftIndex, 'left')}

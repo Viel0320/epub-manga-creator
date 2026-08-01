@@ -570,6 +570,10 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
   box-shadow: var(--shadow-soft);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
+#main .card-group.has-bg-filled,
+#main .card-group.has-bg-filled .card {
+  background: #ffffff;
+}
 #main .card-group.is-single {
   width: calc(var(--card-box-width) / 2);
 }
@@ -588,13 +592,12 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
 
 #main .card {
   overflow: hidden;
-  height: auto;
+  height: 200px;
   position: relative;
   flex: 1;
   border: none;
   border-radius: 0;
-  background: var(--glass);
-  backdrop-filter: var(--blur-light);
+  background: transparent;
   box-shadow: none;
 }
 #main .card:hover {
@@ -976,10 +979,15 @@ html.dark-theme .lightbox-menu-popover {
   width: auto;
   height: auto;
   object-fit: contain;
+  background: transparent;
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-panel);
   user-select: none;
   -webkit-user-drag: none;
+}
+
+.lightbox-image.has-bg-filled {
+  background: #ffffff;
 }
 
 .lightbox-blank-page {
@@ -998,10 +1006,15 @@ html.dark-theme .lightbox-menu-popover {
   max-width: 86vw;
   max-height: 88vh;
   height: 88vh;
-  width: min(86vw, calc(88vh * 1.5));
+  width: min(86vw, calc(88vh * 1.41));
+  background: transparent;
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-panel);
   overflow: visible;
+}
+
+.lightbox-spread-wrapper.has-bg-filled {
+  background: #ffffff;
 }
 
 .lightbox-spread-wrapper .lightbox-page-wrapper {

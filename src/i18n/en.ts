@@ -21,6 +21,9 @@ const en = {
     themeAuto: 'Theme: Auto (system)',
     reset: 'Reset',
     undoSplit: 'Undo',
+    previewBg: 'Preview Bg',
+    previewBgFilled: 'Preview Bg: Solid White',
+    previewBgTransparent: 'Preview Bg: Transparent',
   },
 
   // Confirm dialogs

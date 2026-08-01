@@ -22,6 +22,9 @@ const zh: Locale = {
     themeAuto: '主题：跟随系统',
     reset: '清空',
     undoSplit: '撤销',
+    previewBg: '预览背景',
+    previewBgFilled: '预览背景：白色填充',
+    previewBgTransparent: '预览背景：透明',
   },
 
   confirm: {

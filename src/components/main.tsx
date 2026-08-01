@@ -145,7 +145,6 @@ const PageCard = observer(function(props: {
   return (
     <div
       className={`card ${isDragging ? 'is-dragging' : ''} ${dragPosition ? `drag-over-${dragPosition}` : ''}`}
-      style={{ aspectRatio: `${effectiveSize[0]} / ${effectiveSize[1]}` }}
       draggable={isDraggable}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
@@ -219,7 +218,7 @@ const DoublePageCard = observer(function(props: {
   pages: [number | null, number | null]
   onContextMenu?: (e: React.MouseEvent, pageIndex: number) => void
 }) {
-  const { book: storeBook, blobs } = useStore()
+  const { book: storeBook, blobs, ui } = useStore()
   const t = useI18n()
 
   const leftSidePageIndex = storeBook.pageDirection === 'right' ? props.pages[1] : props.pages[0]
@@ -248,7 +247,7 @@ const DoublePageCard = observer(function(props: {
     const isSingleSpecified = page?.customSpread === 'center'
 
     return (
-      <div className="card-group is-spread-center">
+      <div className={`card-group is-spread-center ${ui.containerBgFilled ? 'has-bg-filled' : ''}`}>
         <PageCard
           pageItemIndex={singleIndex - coverPosition}
           realPageIndex={singleIndex}
@@ -290,7 +289,7 @@ const DoublePageCard = observer(function(props: {
                           (leftSidePage?.customSpread === 'bind-prev' && rightSidePage?.customSpread === 'bind-next')
 
   return (
-    <div className="card-group">
+    <div className={`card-group ${ui.containerBgFilled ? 'has-bg-filled' : ''}`}>
       <PageCard
         pageItemIndex={leftSidePageIndex === null ? null : (leftSidePageIndex - coverPosition)}
         realPageIndex={leftSidePageIndex}
@@ -318,7 +317,7 @@ const SinglePageCard = observer(function(props: {
   pageIndex: number
   onContextMenu?: (e: React.MouseEvent, pageIndex: number) => void
 }) {
-  const { book: storeBook, blobs } = useStore()
+  const { book: storeBook, blobs, ui } = useStore()
   const t = useI18n()
   const realPageIndex = props.pageIndex
   const page = storeBook.pages[realPageIndex]
@@ -338,7 +337,7 @@ const SinglePageCard = observer(function(props: {
   })
 
   return (
-    <div className="card-group is-single">
+    <div className={`card-group is-single ${ui.containerBgFilled ? 'has-bg-filled' : ''}`}>
       <PageCard
         pageItemIndex={realPageIndex - coverPosition}
         realPageIndex={realPageIndex}
@@ -357,14 +356,14 @@ const SinglePageCard = observer(function(props: {
   )
 })
 
-let CARD_BOX_WIDTH = 120;
-let CARD_BOX_MARGIN = 8;
+let CARD_BOX_WIDTH = 282;
+let CARD_BOX_MARGIN = 7;
 
 if (typeof window !== 'undefined') {
   try {
     const computedStyle = getComputedStyle(document.documentElement);
-    CARD_BOX_WIDTH = +computedStyle.getPropertyValue('--card-box-width').slice(0, -2) || 120;
-    CARD_BOX_MARGIN = +computedStyle.getPropertyValue('--card-box-margin').slice(0, -2) || 8;
+    CARD_BOX_WIDTH = +computedStyle.getPropertyValue('--card-box-width').slice(0, -2) || 282;
+    CARD_BOX_MARGIN = +computedStyle.getPropertyValue('--card-box-margin').slice(0, -2) || 7;
   } catch (e) {
     // SSR Fallback
   }
@@ -498,7 +497,7 @@ const PageContextMenu = observer(function(props: {
 
 const Main = function() {
   const mainRef = useRef<HTMLElement>(null)
-  const { book: storeBook, ui } = useStore()
+  const { book: storeBook, ui, modePageSize } = useStore()
   const [showPages, setShowPages] = useState<any[][]>([])
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
     visible: false,
@@ -582,7 +581,7 @@ const Main = function() {
       }
       setShowPages(rows)
     }
-  }, [storeBook.coverPosition, storeBook.pages.length, storeBook.pages, storeBook.pageShow, pagesSpreadKey])
+  }, [storeBook.coverPosition, storeBook.pages.length, storeBook.pages, storeBook.pageShow, pagesSpreadKey, modePageSize])
 
   const onClickImport = useCallback(() => {
     document.getElementById('input-upload')?.click()

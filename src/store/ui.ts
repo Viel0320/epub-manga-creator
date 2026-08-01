@@ -3,9 +3,17 @@ import type { LangKey } from 'i18n'
 
 const STORAGE_LANG_KEY = 'EPUB_CREATOR_LANG'
 const STORAGE_THEME_KEY = 'EPUB_CREATOR_THEME'
+const STORAGE_CONTAINER_BG_KEY = 'EPUB_CREATOR_CONTAINER_BG'
 
 export type ThemeMode = 'dark' | 'light' | 'auto'
 const THEME_CYCLE: ThemeMode[] = ['light', 'dark', 'auto']
+
+function detectDefaultContainerBg(): boolean {
+  if (typeof window === 'undefined') return true
+  const saved = localStorage.getItem(STORAGE_CONTAINER_BG_KEY)
+  if (saved === 'false') return false
+  return true
+}
 
 function detectDefaultLang(): LangKey {
   if (typeof window === 'undefined') return 'en'
@@ -46,11 +54,13 @@ class Store {
   previewPageIndex: number | null = null
 
   firstImport = true
+  containerBgFilled = true
 
   constructor() {
     makeAutoObservable(this)
     this.lang = detectDefaultLang()
     this.theme = detectDefaultTheme()
+    this.containerBgFilled = detectDefaultContainerBg()
     this.applyTheme(this.theme)
 
     // keep "auto" in sync with the OS appearance while it's active
@@ -216,6 +226,13 @@ class Store {
       } else {
         this.prevPreviewPage(1)
       }
+    }
+  }
+
+  toggleContainerBgFilled() {
+    this.containerBgFilled = !this.containerBgFilled
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_CONTAINER_BG_KEY, String(this.containerBgFilled))
     }
   }
 }

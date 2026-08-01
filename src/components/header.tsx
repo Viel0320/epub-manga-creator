@@ -304,6 +304,10 @@ const Header = function() {
     ui.cycleTheme()
   }, [ui])
 
+  const onToggleContainerBg = useCallback(() => {
+    ui.toggleContainerBgFilled()
+  }, [ui])
+
   const onClickReset = useCallback(() => {
     if (window.confirm(t.confirm.reset)) {
       storeMain.resetWorkspace()
@@ -373,6 +377,17 @@ const Header = function() {
       </div>
       <PageControl pageIndex={ui.selectedPageIndex}/>
       <div className="nav-item nav-bottom-group">
+        <button
+          type="button"
+          className={`btn ${ui.containerBgFilled ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={onToggleContainerBg}
+          title={ui.containerBgFilled ? t.nav.previewBgFilled : t.nav.previewBgTransparent}
+        >
+          <Icon name="document"/>
+          <span className="nav-label">{t.nav.previewBg}</span>
+        </button>
+      </div>
+      <div className="nav-item">
         <button
           type="button"
           className="btn btn-secondary"
