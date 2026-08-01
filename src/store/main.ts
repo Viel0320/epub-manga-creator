@@ -297,7 +297,7 @@ class Store {
 
     this.book.splitPage(index, uuids)
     this.book.updatePageItemIndex()
-    this.blobs.push(blobs, this.book.pageDirection === 'left' ? uuids : uuids.reverse())
+    this.blobs.push(blobs, this.book.pageDirection === 'left' ? uuids : [...uuids].reverse())
     this.blobs.remove(pageItem.blobID)
 
     const list = toJS(this.contents.list)
