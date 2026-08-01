@@ -7,6 +7,7 @@ import { useI18n } from 'i18n'
 import { db } from 'utils/db'
 import { getPageLayoutInfo, getSpreadPairs } from 'utils/page-layout'
 import { getPageEffectiveSize } from 'utils/page-size'
+import ToastContainer from './toast'
 
 const THIS_YEAR = (new Date()).getFullYear()
 
@@ -361,10 +362,16 @@ const RestoreBanner = observer(function() {
   }, [setAutoSaveActive])
 
   const onRestore = useCallback(() => {
-    restoreWorkspace().then(() => {
-      setHasBackup(false)
-      setAutoSaveActive(true)
-    })
+    restoreWorkspace()
+      .then(() => {
+        setHasBackup(false)
+        setAutoSaveActive(true)
+      })
+      .catch(err => {
+        console.error('Failed to restore workspace:', err)
+        setHasBackup(false)
+        setAutoSaveActive(true)
+      })
   }, [restoreWorkspace, setAutoSaveActive])
 
   const onDismiss = useCallback(() => {
@@ -740,6 +747,7 @@ const Main = function() {
         )
       }
       <PageContextMenu state={contextMenu} onClose={closeContextMenu} />
+      <ToastContainer />
     </main>
   )
 }

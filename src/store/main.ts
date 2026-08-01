@@ -12,6 +12,7 @@ import JSZip from "jszip"
 import { getPageLayoutInfo, getSpreadPairs } from 'utils/page-layout'
 import { parseEpub } from 'utils/epub-parser'
 import { getModePageSize, getPageEffectiveSize } from 'utils/page-size'
+import { restoreWorkspaceFromDB, initWorkspaceAutoSave } from 'services/workspace-persistence'
 
 import getTemplateContainerXml from 'template/container.xml'
 import getTemplatePageXhtml from 'template/page.xhtml'
@@ -90,7 +91,7 @@ class Store {
     })
   }
 
-  resetWorkspace() {
+  resetWorkspace = () => {
     this.book.reset()
     this.contents.reset()
     this.blobs.clear()
@@ -105,7 +106,7 @@ class Store {
     db.clearAll().catch(err => console.error('Failed to clear backup:', err))
   }
 
-  setAutoSaveActive(value: boolean) {
+  setAutoSaveActive = (value: boolean) => {
     this.isAutoSaveActive = value
   }
 
@@ -117,72 +118,12 @@ class Store {
     return this.book.pageSizeMode === 'auto' ? this.modePageSize : this.book.pageSize
   }
 
-  async restoreWorkspace() {
-    const backup = (await db.getMetadata('active_book')) as WorkspaceSnapshot | null
-    if (!backup || !Array.isArray(backup.pages) || backup.pages.length === 0) {
-      return
-    }
-
-    const blobIDs: string[] = []
-    const blobList: Blob[] = []
-
-    for (const page of backup.pages) {
-      if (page.blank || !page.blobID) {
-        continue
-      }
-      const blob = await db.getBlob(page.blobID)
-      if (blob) {
-        blobIDs.push(page.blobID)
-        blobList.push(blob)
-      }
-    }
-
-    await this.blobs.push(blobList, blobIDs)
-
-    runInAction(() => {
-      const available = new Set(blobIDs)
-      this.book.pages = backup.pages
-        .filter(page => page.blank || available.has(page.blobID))
-        .map((page, i) => ({ ...page, index: i }))
-
-      if (backup.bookInfo) {
-        const info = backup.bookInfo
-        this.book.bookID = info.bookID || this.book.bookID
-        this.book.bookTitle = info.bookTitle || ''
-        this.book.bookAuthors = info.bookAuthors?.length ? info.bookAuthors : ['']
-        this.book.bookSubject = info.bookSubject || ''
-        this.book.bookPublisher = info.bookPublisher || ''
-        this.book.bookLanguage = info.bookLanguage || 'ja'
-        this.book.bookSeriesName = info.bookSeriesName || ''
-        this.book.bookSeriesVolume = info.bookSeriesVolume || ''
-        this.book.bookDescription = info.bookDescription || ''
-        this.book.bookDate = info.bookDate || ''
-        this.book.bookContributors = Array.isArray(info.bookContributors) ? info.bookContributors : []
-        this.book.bookISBN = info.bookISBN || ''
-      }
-
-      if (backup.pageSettings) {
-        const s = backup.pageSettings
-        if (Array.isArray(s.pageSize)) this.book.pageSize = s.pageSize
-        if (s.pagePosition) this.book.pagePosition = s.pagePosition
-        if (s.pageShow) this.book.pageShow = s.pageShow
-        if (s.pageFit) this.book.pageFit = s.pageFit
-        if (s.pageBackgroundColor) this.book.pageBackgroundColor = s.pageBackgroundColor
-        if (s.pageDirection) this.book.pageDirection = s.pageDirection
-        if (s.coverPosition) this.book.coverPosition = s.coverPosition
-        if (s.imgTag) this.book.imgTag = s.imgTag
-      }
-
-      if (backup.contents && Array.isArray(backup.contents.list)) {
-        this.contents.updateList(backup.contents.list)
-      }
-
-      this.ui.firstImport = false
-      blobIDs.forEach(id => this.savedBlobIDs.add(id))
-    })
+  restoreWorkspace = async () => {
+    await restoreWorkspaceFromDB(this)
   }
 
   importPageFromImages(fileList: File[]) {
+    this.setAutoSaveActive(true)
     const uuids = fileList.map(() => uuid())
 
     this.book.pushNewPage(uuids)
@@ -233,6 +174,7 @@ class Store {
         }
 
         this.ui.firstImport = false
+        this.setAutoSaveActive(true)
       })
     } catch (err) {
       console.error('Failed to import EPUB:', err)
@@ -761,101 +703,7 @@ autorun(() => {
 })
 
 // ---- workspace auto-save (IndexedDB) ----
-
-interface WorkspaceSnapshot {
-  pages: StoreBook.PageItem[]
-  bookInfo: StoreBook.BookInfoSet & { bookID: string }
-  pageSettings: {
-    pageSize: [number, number]
-    pagePosition: Book['pagePosition']
-    pageShow: Book['pageShow']
-    pageFit: Book['pageFit']
-    pageBackgroundColor: Book['pageBackgroundColor']
-    pageDirection: Book['pageDirection']
-    coverPosition: Book['coverPosition']
-    imgTag: Book['imgTag']
-  }
-  contents: { list: Contents['list'] }
-  savedAt: number
-}
-
-const syncWorkspaceToDB = async (snapshot: WorkspaceSnapshot) => {
-  try {
-    await db.saveMetadata('active_book', snapshot)
-
-    const referenced = new Set(
-      snapshot.pages.filter(page => !page.blank && page.blobID).map(page => page.blobID)
-    )
-
-    // persist blobs that aren't saved yet
-    for (const id of Array.from(referenced)) {
-      if (!store.savedBlobIDs.has(id)) {
-        const item = store.blobs.blobs[id]
-        if (item) {
-          await db.saveBlob(id, item.blob)
-          store.savedBlobIDs.add(id)
-        }
-      }
-    }
-
-    // drop blobs that are no longer referenced by any page
-    for (const id of Array.from(store.savedBlobIDs)) {
-      if (!referenced.has(id)) {
-        await db.deleteBlob(id)
-        store.savedBlobIDs.delete(id)
-      }
-    }
-  } catch (err) {
-    console.error('Auto-save failed:', err)
-  }
-}
-
-let autoSaveTimer: ReturnType<typeof setTimeout> | null = null
-
-autorun(() => {
-  if (!store.isAutoSaveActive) {
-    return
-  }
-
-  // subscribe to blob additions too, so blobs finished formatting after the
-  // pages were pushed still get persisted
-  void Object.keys(store.blobs.blobs).length
-
-  const snapshot: WorkspaceSnapshot = {
-    pages: toJS(store.book.pages),
-    bookInfo: {
-      bookID: store.book.bookID,
-      bookTitle: store.book.bookTitle,
-      bookAuthors: toJS(store.book.bookAuthors),
-      bookSubject: store.book.bookSubject,
-      bookPublisher: store.book.bookPublisher,
-      bookLanguage: store.book.bookLanguage,
-      bookSeriesName: store.book.bookSeriesName,
-      bookSeriesVolume: store.book.bookSeriesVolume,
-      bookDescription: store.book.bookDescription,
-      bookDate: store.book.bookDate,
-      bookContributors: toJS(store.book.bookContributors),
-      bookISBN: store.book.bookISBN,
-    },
-    pageSettings: {
-      pageSize: toJS(store.book.pageSize),
-      pagePosition: store.book.pagePosition,
-      pageShow: store.book.pageShow,
-      pageFit: store.book.pageFit,
-      pageBackgroundColor: store.book.pageBackgroundColor,
-      pageDirection: store.book.pageDirection,
-      coverPosition: store.book.coverPosition,
-      imgTag: store.book.imgTag,
-    },
-    contents: { list: toJS(store.contents.list) },
-    savedAt: Date.now(),
-  }
-
-  if (autoSaveTimer !== null) {
-    clearTimeout(autoSaveTimer)
-  }
-  autoSaveTimer = setTimeout(() => syncWorkspaceToDB(snapshot), 800)
-})
+initWorkspaceAutoSave(store)
 
 export const StoreContext = React.createContext(store);
 export const useStore = () => React.useContext(StoreContext);

@@ -40,6 +40,12 @@ function resolveTheme(theme: ThemeMode): 'dark' | 'light' {
   return 'light'
 }
 
+export interface ToastMessage {
+  id: number
+  type: 'info' | 'success' | 'warning' | 'error'
+  text: string
+}
+
 class Store {
   modalBookVisible = false
   modalContentVisible = false
@@ -53,6 +59,9 @@ class Store {
   loadingText = ''
   isPreviewOpen = false
   previewPageIndex: number | null = null
+
+  toastList: ToastMessage[] = []
+  private toastId = 0
 
   firstImport = true
   containerBgFilled = false
@@ -72,6 +81,20 @@ class Store {
         }
       })
     }
+  }
+
+  showToast = (text: string, type: ToastMessage['type'] = 'info', duration = 5000) => {
+    const id = ++this.toastId
+    this.toastList.push({ id, type, text })
+    if (duration > 0) {
+      setTimeout(() => {
+        this.removeToast(id)
+      }, duration)
+    }
+  }
+
+  removeToast = (id: number) => {
+    this.toastList = this.toastList.filter(item => item.id !== id)
   }
 
   toggleBookVisible(fileName?: string) {

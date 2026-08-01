@@ -313,7 +313,7 @@ const Header = function() {
   }, [ui])
 
   const onClickReset = useCallback(() => {
-    if (window.confirm(t.confirm.reset)) {
+    if (typeof window !== 'undefined' && window.confirm(t.confirm.reset)) {
       storeMain.resetWorkspace()
     }
   }, [storeMain, t])
