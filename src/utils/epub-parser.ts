@@ -287,7 +287,7 @@ function extractImagePathsFromXhtml(xhtmlText: string): string[] {
 
 // ---- MIME detection via magic bytes ----
 
-function detectImageMime(data: Uint8Array): string | null {
+export function detectImageMime(data: Uint8Array): string | null {
   if (data.length < 12) return null
 
   const hexOf = (start: number, end: number) =>

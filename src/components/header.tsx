@@ -4,6 +4,7 @@ import React, { useCallback, useContext, useLayoutEffect, useRef, useState } fro
 import Icon from 'components/icon'
 import { StoreContext } from 'store/main'
 import { useI18n } from 'i18n'
+import { detectImageMime } from 'utils/epub-parser'
 
 type SupportType = 'image' | 'zip' | 'epub'
 
@@ -241,22 +242,7 @@ const Header = function() {
           return new Promise(resolve => {
             zipItem.async('uint8array').then(uint8Array => {
               const bytes = new Uint8Array(uint8Array)
-              const hexOf = (start: number, end: number) =>
-                Array.from(bytes.subarray(start, end)).map(b => b.toString(16).padStart(2, '0')).join('')
-              const asciiOf = (start: number, end: number) =>
-                String.fromCharCode(...Array.from(bytes.subarray(start, end)))
-
-              let mimeType: string | null = null
-
-              if (hexOf(0, 4) === '89504e47') {
-                mimeType = 'image/png'
-              } else if (hexOf(0, 3) === 'ffd8ff') { // any JPEG marker (E0-EF, DB, EE...)
-                mimeType = 'image/jpeg'
-              } else if (asciiOf(0, 4) === 'RIFF' && asciiOf(8, 12) === 'WEBP') {
-                mimeType = 'image/webp'
-              } else if (asciiOf(4, 8) === 'ftyp' && ['avif', 'avis'].includes(asciiOf(8, 12))) {
-                mimeType = 'image/avif'
-              }
+              const mimeType = detectImageMime(bytes)
 
               if (mimeType) {
                 const b = new Blob([new Uint8Array(uint8Array)], { type: mimeType })
