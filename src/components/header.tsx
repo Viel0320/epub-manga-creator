@@ -419,7 +419,7 @@ const Header = function() {
           title={{ zh: t.nav.langZh, en: t.nav.langEn }[ui.lang]}
         >
           <span className="nav-icon-box"><Icon name="lang"/></span>
-          <span className="nav-label">{{ zh: t.nav.langZh, en: t.nav.langEn }[ui.lang]}</span>
+          <span className="nav-label">{{ zh: t.nav.langEn, en: t.nav.langZh }[ui.lang]}</span>
         </button>
       </div>
       <input
