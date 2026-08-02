@@ -766,6 +766,9 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
   background: transparent;
   box-shadow: none;
 }
+#main .card-group .card:first-child {
+  margin-right: -0.5px; /* 消除奇数宽度浮点数缝隙 */
+}
 #main .card:hover {
   transform: none;
   box-shadow: none;
@@ -1199,6 +1202,10 @@ html.dark-theme .lightbox-menu-popover {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+}
+
+.lightbox-spread-wrapper .lightbox-page-wrapper:first-child {
+  margin-right: -0.5px; /* 消除奇数宽度浮点数缝隙 */
 }
 
 .lightbox-spread-wrapper .lightbox-image {
