@@ -8,7 +8,7 @@ export interface PageLayoutInfoOptions {
   coverPosition: 'first-page' | 'alone'
   pageDirection: 'left' | 'right'
   pagePositionSetting: 'center' | 'between'
-  pageFitSetting?: 'stretch' | 'fit' | 'fill'
+  pageFitSetting?: 'contain' | 'cover' | 'fill'
   customSpread?: CustomSpreadType
   pageShow?: 'two' | 'one'
   isFirstInPair?: boolean
@@ -17,9 +17,7 @@ export interface PageLayoutInfoOptions {
 
 export interface PageLayoutInfo {
   spread: 'left' | 'right' | 'center'
-  align: 'left' | 'right' | 'center'
   par: string
-  objectPosition: string
 }
 
 export function getSpreadPairs(
@@ -135,41 +133,18 @@ export function getPageLayoutInfo(options: PageLayoutInfoOptions): PageLayoutInf
     }
   }
 
-  let align: 'left' | 'right' | 'center' = 'center'
-  if (pagePositionSetting === 'between' && spread !== 'center') {
-    align = spread === 'left' ? 'right' : 'left'
-  }
-
-  let parAlign = 'xMidYMid'
-  if (align === 'left') {
-    parAlign = 'xMinYMid'
-  } else if (align === 'right') {
-    parAlign = 'xMaxYMid'
-  }
-
   let par = 'none'
-  if (pageFitSetting !== 'stretch') {
-    par = parAlign
-    if (pageFitSetting === 'fit') {
-      par += ' meet'
-    } else if (pageFitSetting === 'fill') {
+  if (pageFitSetting !== 'fill') {
+    par = 'xMidYMid'
+    if (pageFitSetting === 'cover') {
       par += ' slice'
     } else {
       par += ' meet'
     }
   }
 
-  let objectPosition = 'center center'
-  if (align === 'left') {
-    objectPosition = 'left center'
-  } else if (align === 'right') {
-    objectPosition = 'right center'
-  }
-
   return {
     spread,
-    align,
     par,
-    objectPosition,
   }
 }

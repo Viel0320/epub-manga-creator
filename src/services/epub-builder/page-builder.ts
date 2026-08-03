@@ -69,6 +69,7 @@ export const buildPageFiles = (data: EpubBookData): GeneratedPagesResult => {
           content: fillTemplate(templatePageXhtml, '{{title}}', bookTitle)
             .replace(new RegExp('{{width}}', 'gm'), pageViewPortWidth)
             .replace(new RegExp('{{height}}', 'gm'), pageViewPortHeight)
+            .replace('{{par}}', 'xMidYMid meet')
             .replace('{{image}}', '')
         })
         return
@@ -105,6 +106,7 @@ export const buildPageFiles = (data: EpubBookData): GeneratedPagesResult => {
         content: fillTemplate(templatePageXhtml, '{{title}}', bookTitle)
           .replace(new RegExp('{{width}}', 'gm'), pageViewPortWidth)
           .replace(new RegExp('{{height}}', 'gm'), pageViewPortHeight)
+          .replace('{{par}}', layout.par)
           .replace(
             '{{image}}',
             `<image width="100%" height="100%" preserveAspectRatio="${layout.par}" xlink:href="../image/${imageFileName}" />`
@@ -169,14 +171,11 @@ export const buildPageFiles = (data: EpubBookData): GeneratedPagesResult => {
         isSingle: layoutFirst === undefined
       })
 
-      let imgStyle = 'object-fit:fill'
-      if (fitMode !== 'stretch') {
-        imgStyle = `object-position:${layout.objectPosition};`
-        if (fitMode === 'fit') {
-          imgStyle += 'object-fit:contain'
-        } else {
-          imgStyle += 'object-fit:cover'
-        }
+      let imgStyle = 'object-fit:contain'
+      if (fitMode === 'fill') {
+        imgStyle = 'object-fit:fill'
+      } else if (fitMode === 'cover') {
+        imgStyle = 'object-fit:cover'
       }
 
       textFiles.push({

@@ -5,7 +5,7 @@
 
 :root {
   /* layout metrics (read by main.tsx — DO NOT rename) */
-  --card-box-width: 282px;
+  --card-box-width: 280px;
   --card-box-margin: 7px;
 
   /* accent */
@@ -1166,6 +1166,11 @@ html.dark-theme .lightbox-menu-popover {
   background: #ffffff;
 }
 
+.lightbox-spread-wrapper.is-single {
+  max-width: 43vw;
+  width: min(43vw, calc(88vh * 0.7));
+}
+
 .lightbox-blank-page {
   height: 88vh;
   width: auto;
@@ -1182,7 +1187,7 @@ html.dark-theme .lightbox-menu-popover {
   max-width: 86vw;
   max-height: 88vh;
   height: 88vh;
-  width: min(86vw, calc(88vh * 1.41));
+  width: min(86vw, calc(88vh * 1.4));
   background: transparent;
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-panel);
@@ -1191,6 +1196,11 @@ html.dark-theme .lightbox-menu-popover {
 
 .lightbox-spread-wrapper.has-bg-filled {
   background: #ffffff;
+}
+
+.lightbox-spread-wrapper.is-single {
+  max-width: 43vw;
+  width: min(43vw, calc(88vh * 0.707));
 }
 
 .lightbox-spread-wrapper .lightbox-page-wrapper {
@@ -1202,6 +1212,11 @@ html.dark-theme .lightbox-menu-popover {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+}
+
+.lightbox-spread-wrapper.is-single .lightbox-page-wrapper {
+  flex: 1 1 100%;
+  max-width: 100%;
 }
 
 .lightbox-spread-wrapper .lightbox-page-wrapper:first-child {

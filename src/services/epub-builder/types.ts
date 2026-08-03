@@ -40,7 +40,7 @@ export interface EpubBookData {
   pageSize: [number, number]
   pageSizeMode: 'manual' | 'auto'
   pagePosition: 'center' | 'between'
-  pageFit: 'stretch' | 'fit' | 'fill'
+  pageFit: 'contain' | 'cover' | 'fill'
   pageDirection: 'right' | 'left'
   coverPosition: 'first-page' | 'alone'
   imgTag: 'svg' | 'img'

@@ -183,25 +183,6 @@ const Lightbox = observer(function() {
       options: sizeOptions
     },
     {
-      key: 'position',
-      label: t.page.position,
-      value: book.pagePosition === 'between' ? t.option.between : t.option.center,
-      options: [
-        {
-          key: 'between',
-          label: t.option.between,
-          active: book.pagePosition === 'between',
-          onClick: () => book.updateBookPageProperty('pagePosition', 'between')
-        },
-        {
-          key: 'center',
-          label: t.option.center,
-          active: book.pagePosition === 'center',
-          onClick: () => book.updateBookPageProperty('pagePosition', 'center')
-        }
-      ]
-    },
-    {
       key: 'show',
       label: t.page.show,
       value: book.pageShow === 'two' ? t.option.twoPages : t.option.onePage,
@@ -223,19 +204,19 @@ const Lightbox = observer(function() {
     {
       key: 'fit',
       label: t.page.fit,
-      value: book.pageFit === 'fit' ? t.option.fit : (book.pageFit === 'stretch' ? t.option.stretch : t.option.fill),
+      value: book.pageFit === 'contain' ? t.option.contain : (book.pageFit === 'cover' ? t.option.cover : t.option.fill),
       options: [
         {
-          key: 'fit',
-          label: t.option.fit,
-          active: book.pageFit === 'fit',
-          onClick: () => book.updateBookPageProperty('pageFit', 'fit')
+          key: 'contain',
+          label: t.option.contain,
+          active: book.pageFit === 'contain',
+          onClick: () => book.updateBookPageProperty('pageFit', 'contain')
         },
         {
-          key: 'stretch',
-          label: t.option.stretch,
-          active: book.pageFit === 'stretch',
-          onClick: () => book.updateBookPageProperty('pageFit', 'stretch')
+          key: 'cover',
+          label: t.option.cover,
+          active: book.pageFit === 'cover',
+          onClick: () => book.updateBookPageProperty('pageFit', 'cover')
         },
         {
           key: 'fill',
@@ -357,16 +338,19 @@ const Lightbox = observer(function() {
       isSingle: !isTwoPages || !side
     })
 
-    const svgStyle: React.CSSProperties = isTwoPages && side ? {
+    const svgStyle: React.CSSProperties = {
       width: '100%',
       height: '100%',
       aspectRatio: `${effectiveSize[0]} / ${effectiveSize[1]}`,
-    } : {
-      height: '88vh',
-      width: 'auto',
-      maxWidth: '82vw',
-      maxHeight: '88vh',
-      aspectRatio: `${effectiveSize[0]} / ${effectiveSize[1]}`,
+    }
+
+    let par = 'xMidYMid meet'
+    if (book.pageFit === 'fill') {
+      par = 'none'
+    } else {
+      const alignPos = side === 'left' ? 'xMaxYMid' : (side === 'right' ? 'xMinYMid' : 'xMidYMid')
+      const mode = book.pageFit === 'cover' ? 'slice' : 'meet'
+      par = `${alignPos} ${mode}`
     }
 
     return (
@@ -408,7 +392,7 @@ const Lightbox = observer(function() {
           <svg
             className={`lightbox-image ${ui.containerBgFilled ? 'has-bg-filled' : ''}`}
             viewBox={'0 0 ' + effectiveSize.join(' ')}
-            preserveAspectRatio={layout.par}
+            preserveAspectRatio={par}
             style={svgStyle}
             onClick={onContentClick}
           >
@@ -416,7 +400,7 @@ const Lightbox = observer(function() {
             <image
               width="100%"
               height="100%"
-              preserveAspectRatio={layout.par}
+              preserveAspectRatio={par}
               xlinkHref={imageURL}
             />
           </svg>
@@ -473,7 +457,12 @@ const Lightbox = observer(function() {
             {rightIndex !== null && renderSingleImage(rightIndex, 'right')}
           </div>
         ) : (
-          renderSingleImage(pageIndex)
+          <div
+            className={`lightbox-spread-wrapper is-single ${ui.containerBgFilled ? 'has-bg-filled' : ''}`}
+            onClick={onContentClick}
+          >
+            {renderSingleImage(pageIndex)}
+          </div>
         )}
 
         <button

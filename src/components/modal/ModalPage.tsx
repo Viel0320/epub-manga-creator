@@ -77,13 +77,10 @@ const ModalPage = observer(function() {
   const onSetAutoPageSize = useCallback(() => {
     storeBook.updateBookPageProperty('pageSizeMode', 'auto');
   }, [storeBook]);
-  const onChangePagePosition = useCallback((value: 'center' | 'between') => {
-    storeBook.updateBookPageProperty('pagePosition', value);
-  }, [storeBook]);
   const onChangePageShow = useCallback((value: 'two' | 'one') => {
     storeBook.updateBookPageProperty('pageShow', value);
   }, [storeBook]);
-  const onChangePageFit = useCallback((value: 'stretch' | 'fit' | 'fill') => {
+  const onChangePageFit = useCallback((value: 'contain' | 'cover' | 'fill') => {
     storeBook.updateBookPageProperty('pageFit', value);
   }, [storeBook]);
   const onChangePageDirection = useCallback((value: 'right' | 'left') => {
@@ -112,12 +109,12 @@ const ModalPage = observer(function() {
                   <div className="input-group input-group-sm">
                     <span className="input-group-text">w</span>
                     <input
-                      type="number"
+                      type={storeBook.pageSizeMode === 'auto' ? 'text' : 'number'}
                       className="form-control"
                       min="1"
                       max="9999"
-                      value={displaySize[0]}
-                      onInput={onChangePageWidth}
+                      value={storeBook.pageSizeMode === 'auto' ? 'auto' : displaySize[0]}
+                      onChange={onChangePageWidth}
                     />
                   </div>
                 </div>
@@ -130,12 +127,12 @@ const ModalPage = observer(function() {
                   <div className="input-group input-group-sm">
                     <span className="input-group-text">h</span>
                     <input
-                      type="number"
+                      type={storeBook.pageSizeMode === 'auto' ? 'text' : 'number'}
                       className="form-control"
                       min="1"
                       max="9999"
-                      value={displaySize[1]}
-                      onInput={onChangePageHeight}
+                      value={storeBook.pageSizeMode === 'auto' ? 'auto' : displaySize[1]}
+                      onChange={onChangePageHeight}
                     />
                   </div>
                 </div>
@@ -156,13 +153,6 @@ const ModalPage = observer(function() {
             </div>
           </div>
           <div className="mb-2 row">
-            <label htmlFor="input-page-position" className="col-3 col-form-label text-end">{t.page.position}</label>
-            <div className="col-9 d-flex align-items-center">
-              <ButtonRadio current={storeBook.pagePosition} value="between" label={t.option.between} onClick={onChangePagePosition} />
-              <ButtonRadio current={storeBook.pagePosition} value="center" label={t.option.center} onClick={onChangePagePosition} />
-            </div>
-          </div>
-          <div className="mb-2 row">
             <label className="col-3 col-form-label text-end">{t.page.show}</label>
             <div className="col-9 d-flex align-items-center">
               <ButtonRadio current={storeBook.pageShow} value="two" label={t.option.twoPages} onClick={onChangePageShow} />
@@ -172,8 +162,8 @@ const ModalPage = observer(function() {
           <div className="mb-2 row">
             <label className="col-3 col-form-label text-end">{t.page.fit}</label>
             <div className="col-9 d-flex align-items-center">
-              <ButtonRadio current={storeBook.pageFit} value="fit" label={t.option.fit} onClick={onChangePageFit} />
-              <ButtonRadio current={storeBook.pageFit} value="stretch" label={t.option.stretch} onClick={onChangePageFit} />
+              <ButtonRadio current={storeBook.pageFit} value="contain" label={t.option.contain} onClick={onChangePageFit} />
+              <ButtonRadio current={storeBook.pageFit} value="cover" label={t.option.cover} onClick={onChangePageFit} />
               <ButtonRadio current={storeBook.pageFit} value="fill" label={t.option.fill} onClick={onChangePageFit} />
             </div>
           </div>

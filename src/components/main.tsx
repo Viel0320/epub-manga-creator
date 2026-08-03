@@ -17,7 +17,7 @@ const PageCard = observer(function(props: {
   pageItemIndex: number | null
   realPageIndex?: number | null
   blobItem?: StoreBlobs.ImageBlob | null
-  pagePosition: 'center' | 'left' | 'right'
+  spread?: 'center' | 'left' | 'right'
   blank: boolean
   onContextMenu?: (e: React.MouseEvent, pageIndex: number) => void
 }) {
@@ -97,18 +97,9 @@ const PageCard = observer(function(props: {
 
   let preserveAspectRatio = 'none'
 
-  if (storeBook.pageFit !== 'stretch') {
-    preserveAspectRatio = props.pagePosition === 'center'
-      ? 'xMidYMid '
-      : props.pagePosition === 'left'
-        ? 'xMinYMid '
-        : 'xMaxYMid '
-
-    if (storeBook.pageFit === 'fit') {
-      preserveAspectRatio += 'meet'
-    } else { // props.imageFit === 'fill'
-      preserveAspectRatio += 'slice'
-    }
+  if (storeBook.pageFit !== 'fill') {
+    const alignPos = props.spread === 'left' ? 'xMaxYMid ' : (props.spread === 'right' ? 'xMinYMid ' : 'xMidYMid ')
+    preserveAspectRatio = alignPos + (storeBook.pageFit === 'contain' ? 'meet' : 'slice')
   }
 
   const imageFocus = props.pageItemIndex !== null && (storeUI.selectedPageIndex === props.pageItemIndex)
@@ -226,7 +217,7 @@ const DoublePageCard = observer(function(props: {
           pageItemIndex={singleIndex - coverPosition}
           realPageIndex={singleIndex}
           blobItem={page ? blobs.blobs[page.blobID] : null}
-          pagePosition="center"
+          spread="center"
           blank={page?.blank || false}
           onContextMenu={props.onContextMenu}
         />
@@ -268,7 +259,7 @@ const DoublePageCard = observer(function(props: {
         pageItemIndex={leftSidePageIndex === null ? null : (leftSidePageIndex - coverPosition)}
         realPageIndex={leftSidePageIndex}
         blobItem={leftSidePage ? blobs.blobs[leftSidePage.blobID] : null}
-        pagePosition={leftLayout ? leftLayout.align : 'center'}
+        spread={leftLayout ? leftLayout.spread : 'center'}
         blank={leftSidePage?.blank || false}
         onContextMenu={props.onContextMenu}
       />
@@ -276,7 +267,7 @@ const DoublePageCard = observer(function(props: {
         pageItemIndex={rightSidePageIndex === null ? null : (rightSidePageIndex - coverPosition)}
         realPageIndex={rightSidePageIndex}
         blobItem={rightSidePage ? blobs.blobs[rightSidePage.blobID] : null}
-        pagePosition={rightLayout ? rightLayout.align : 'center'}
+        spread={rightLayout ? rightLayout.spread : 'center'}
         blank={rightSidePage?.blank || false}
         onContextMenu={props.onContextMenu}
       />
@@ -316,7 +307,7 @@ const SinglePageCard = observer(function(props: {
         pageItemIndex={realPageIndex - coverPosition}
         realPageIndex={realPageIndex}
         blobItem={page ? blobs.blobs[page.blobID] : null}
-        pagePosition={layout.align}
+        spread={layout.spread}
         blank={page?.blank || false}
         onContextMenu={props.onContextMenu}
       />
@@ -330,13 +321,13 @@ const SinglePageCard = observer(function(props: {
   )
 })
 
-let CARD_BOX_WIDTH = 282;
+let CARD_BOX_WIDTH = 280;
 let CARD_BOX_MARGIN = 7;
 
 if (typeof window !== 'undefined') {
   try {
     const computedStyle = getComputedStyle(document.documentElement);
-    CARD_BOX_WIDTH = +computedStyle.getPropertyValue('--card-box-width').slice(0, -2) || 282;
+    CARD_BOX_WIDTH = +computedStyle.getPropertyValue('--card-box-width').slice(0, -2) || 280;
     CARD_BOX_MARGIN = +computedStyle.getPropertyValue('--card-box-margin').slice(0, -2) || 7;
   } catch (e) {
     // SSR Fallback

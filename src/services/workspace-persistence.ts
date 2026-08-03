@@ -85,7 +85,14 @@ export async function restoreWorkspaceFromDB(store: StoreMain): Promise<void> {
         if (s.pageSizeMode) store.book.pageSizeMode = s.pageSizeMode
         if (s.pagePosition) store.book.pagePosition = s.pagePosition
         if (s.pageShow) store.book.pageShow = s.pageShow
-        if (s.pageFit) store.book.pageFit = s.pageFit
+        if (s.pageFit) {
+          const legacyMap: Record<string, 'contain' | 'cover' | 'fill'> = {
+            fit: 'contain',
+            fill: 'cover',
+            stretch: 'fill'
+          }
+          store.book.pageFit = legacyMap[s.pageFit] || (s.pageFit as any)
+        }
         if (s.pageBackgroundColor) store.book.pageBackgroundColor = s.pageBackgroundColor
         if (s.pageDirection) store.book.pageDirection = s.pageDirection
         if (s.coverPosition) store.book.coverPosition = s.coverPosition
