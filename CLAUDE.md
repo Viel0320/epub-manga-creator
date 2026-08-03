@@ -4,71 +4,85 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project overview
 
-EPUB Manga Creator V2 is a browser-based single-page app that packages manga/comic images into EPUB 3.0 (fixed-layout, Japanese manga format). The EPUB is generated entirely client-side — no backend.
+EPUB Manga Creator V3 is a browser-based single-page app that packages manga/comic images into EPUB 3.0 (fixed-layout, Japanese manga format). The EPUB is generated entirely client-side without any backend server.
 
-- **Homepage**: `https://wing-kai.github.io/epub-manga-creator/`
-- **Tech stack**: React 19, TypeScript, MobX, Vite, Bootstrap Dark 5
+- **Homepage**: `https://viel0320.github.io/epub-manga-creator/`
+- **Tech stack**: React 19, TypeScript, MobX 6, Vite 8, Bootstrap Dark 5
+- **Package Manager**: pnpm (`pnpm@11.18.0`)
 
 ## Commands
 
 ```bash
-npm start          # Vite dev server
-npm run build      # tsc type-check then vite build
-npm run preview    # Vite preview of production build
+pnpm start          # Vite dev server
+pnpm build          # tsc type-check then vite build
+pnpm preview        # Vite preview of production build
 ```
 
-There is no test runner configured. `src/setupTests.ts` references `@testing-library/jest-dom` but the package isn't in `devDependencies`.
+There is no test runner configured.
 
-## Architecture
+## Format & Standard Support
 
-### State management (MobX)
+### Import Capabilities
+- **Direct Images**: PNG, JPEG, WebP, AVIF, GIF. Image types are identified via magic bytes (`store/main.ts`).
+- **Archive Packages**: ZIP archives (decompressed via `JSZip`, auto-detecting image MIME types).
+- **EPUB Re-import & Parser**: Full dual EPUB 2 & EPUB 3 parser (`src/utils/epub-parser.ts`). Compatible with EPUB 3 HTML Nav (`<nav epub:type="toc">`) and `properties="cover-image"` as well as EPUB 2 NCX (`toc.ncx` / `<navMap>`) and `<meta name="cover">` / `<guide>` legacy references.
 
-All state lives in `src/store/`. There is **no router** — modal dialogs and conditional rendering drive navigation.
+### EPUB 3.0 Output Compliance
+- **Specification**: EPUB 3.0 Fixed-Layout (Japanese manga standard).
+- **Metadata**: Embedded `fixed-layout-jp:viewport`, `rendition:viewport`, and `RegionMagnification` tags (`opf-builder.ts`).
+- **ZIP OCF Compliance**: Strictly uncompressed `mimetype` as the very first ZIP entry to pass standard EPUB validators.
+- **Rendering Modes**:
+  - SVG Image Tag: `<svg><image/></svg>` (default)
+  - HTML Image Tag: `<img/>`
+- **Page Fit Modes**: `contain` (fit), `cover` (crop), `fill` (stretch). Controls SVG `preserveAspectRatio` and CSS `object-fit`.
 
-| File | Responsibility |
-|------|---------------|
-| `store/main.ts` | Top-level orchestrator. Handles import, page reorder/split/insert/remove, and EPUB generation via JSZip. The single `store` singleton is the default export. |
-| `store/book.ts` | Book metadata (title, authors, publisher, etc.) and the ordered `pages` array. Each page has an `index`, `blobID` (key into blobs store), and flags for `blank`/`sticky`. |
-| `store/contents.ts` | Table of contents — a `list` of `{pageIndex, title}` plus an `indexMap` for reverse lookup (page → TOC entry). |
-| `store/blobs.ts` | Image blob storage keyed by UUID. Each entry holds the raw `Blob`, a blob URL, a thumbnail URL (200px tall), and the original `HTMLImageElement`. |
-| `store/ui.ts` | Modal visibility toggles, selected page index, file name, language preference, and the `firstImport` flag. |
+## Architecture & Code Structure
 
-Key patterns:
-- `store/main.ts` is the **only store** that coordinates across stores. Components never stitch multiple stores together; they call methods on `storeMain`.
-- `localStorage` keys: `EPUB_CREATOR_SAVED_SETS_BOOK`, `EPUB_CREATOR_SAVED_SETS_CONTENTS`, `EPUB_CREATOR_LANG`.
-- The `firstImport` flag on `storeUI` triggers auto-analysis of the filename on the very first import.
+### Dependencies
+- **UI & State**: React 19, MobX 6, MobX React 9.
+- **Build & Utility**: Vite 8, TypeScript 7, JSZip (zip creation/extract), Native IndexedDB (`src/utils/db.ts`).
 
-### Component tree
+### Directory Structure & Responsibilities
 
 ```
-App (observer)
-├── I18nProvider (context with locale strings)
-│   ├── Header (import, modal toggles, page controls, generate, lang switch)
-│   ├── Main (page card grid with responsive layout)
-│   └── Modal + ModalBackDrop
-│       ├── ModalBook (book metadata editor with filename auto-analyze)
-│       ├── ModalContents (TOC editor with form/plain-text toggle)
-│       └── ModalPage (page size, position, fit, direction, cover settings)
+src/
+├── components/          # React UI Components
+│   ├── header.tsx       # Top navbar (import, export, modal toggles, language)
+│   ├── main.tsx         # Page grid viewer & double-page spread layout
+│   ├── lightbox.tsx     # Fullscreen interactive reader & preview modal
+│   ├── toast.tsx        # Toast notification system
+│   └── modal/           # Form modals (ModalBook, ModalContents, ModalPage)
+├── services/            # Core Business Services
+│   ├── epub-builder/    # Modular EPUB Generation Engine
+│   │   ├── index.ts     # Main packager orchestrator
+│   │   ├── opf-builder.ts # Standard OPF manifest generator
+│   │   ├── page-builder.ts# XHTML page renderer
+│   │   ├── toc-builder.ts # Navigation XHTML generator
+│   │   └── types.ts     # EPUB Builder domain interfaces
+│   └── workspace-persistence.ts # IndexedDB workspace snapshot saver/restorer
+├── store/               # MobX State Management Stores
+│   ├── main.ts          # Central orchestrator singleton (StoreMain)
+│   ├── book.ts          # Metadata & page list store
+│   ├── contents.ts      # Table of contents store
+│   ├── blobs.ts         # Image Blob & memory URL store
+│   └── ui.ts            # UI states & modal visibilities
+├── template/            # EPUB XHTML, OPF, and CSS Templates
+├── utils/               # Helper Utilities
+│   ├── epub-parser.ts   # EPUB import & extraction parser
+│   ├── toc-generator.ts # Auto TOC generation algorithms
+│   ├── page-layout.ts   # Spread calculation & alignment layout math
+│   ├── db.ts            # Raw IndexedDB wrapper
+│   └── date-normalizer.ts # Date format normalization
 ```
 
-### EPUB generation flow (`store/main.ts` → `generateBook()`)
+### State Management & Persistence (MobX + IndexedDB)
+- `store/main.ts` (`storeMain`) is the primary orchestrator that coordinates cross-store mutations.
+- **Auto Workspace Recovery**: `src/services/workspace-persistence.ts` automatically saves current workspace state and image Blobs to IndexedDB (`src/utils/db.ts`), restoring them upon app startup.
+- `localStorage` handles persistent UI settings (`EPUB_CREATOR_SAVED_SETS_BOOK`, `EPUB_CREATOR_LANG`, etc.).
 
-1. Replace placeholders (`{{title}}`, `{{width}}`, etc.) in template strings from `src/template/`.
-2. Iterate over `book.pages`: for each page, create the XHTML text file and copy the image blob into the ZIP under `OEBPS/image/`.
-3. Assemble `container.xml`, `standard.opf`, `navigation-documents.xhtml`, and CSS via JSZip.
-4. Supports two image tag modes: `<svg><image/></svg>` (default) and `<img/>` — controlled by `book.imgTag`.
-5. Page spread direction alternates `left`/`right` based on `book.pageDirection` and `book.coverPosition`.
+### Internationalization (i18n)
+- `src/i18n/index.tsx` provides `I18nProvider` and `useI18n()` hook.
+- Locale definitions in `en.ts` (source of truth) and `zh.ts`.
 
-### Import pipeline
-
-- **Images**: Direct file input → `storeMain.importPageFromImages()`.
-- **ZIP archives**: JSZip extracts entries, detects MIME type via magic bytes (PNG/JPEG/WebP/AVIF), rebuilds as `File` objects, then imports.
-- **EPUB import**: Stubbed out but not implemented (see `Header.tsx` TODO).
-
-### Internationalization
-
-`src/i18n/index.tsx` provides `I18nProvider` (React context) and `useI18n()` hook. Locale strings are in `en.ts` (source of truth for the `Locale` type) and `zh.ts`. Language detection: saved preference → browser `navigator.language` → `'en'` fallback.
-
-### Path resolution
-
-`tsconfig.json` sets `baseUrl: "src"`, so imports like `'store/main'` resolve to `src/store/main.ts`. The `vite-tsconfig-paths` plugin enables this in Vite. The app is deployed under the `/epub-manga-creator/` base path.
+### Path Resolution
+- `tsconfig.json` specifies `baseUrl: "src"`. Module paths like `'store/main'` resolve to `src/store/main.ts`.

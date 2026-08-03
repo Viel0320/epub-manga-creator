@@ -1,6 +1,6 @@
 {
-  "name": "epub-manga-creator-v2",
-  "version": "2.0.0",
+  "name": "epub-manga-creator-v3",
+  "version": "3.0.0",
   "private": true,
   "type": "module",
   "dependencies": {
@@ -21,7 +21,7 @@
     "typescript": "^7.0.2",
     "vite": "^8.1.4"
   },
-  "homepage": "https://wing-kai.github.io/epub-manga-creator",
+  "homepage": "https://viel0320.github.io/epub-manga-creator",
   "scripts": {
     "start": "vite",
     "dev": "vite",
