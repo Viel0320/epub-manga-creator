@@ -74,3 +74,12 @@ This project focuses on producing a **single, unified EPUB file** that delivers 
    pnpm preview
    ```
    Starts a local server to test the production bundle in the `dist/` directory.
+
+---
+
+## Acknowledgements
+
+Special thanks to the following upstream projects for their inspiration and foundational work:
+
+- [wing-kai/epub-manga-creator](https://github.com/wing-kai/epub-manga-creator)
+- [Joycai/epub-manga-creator](https://github.com/Joycai/epub-manga-creator)

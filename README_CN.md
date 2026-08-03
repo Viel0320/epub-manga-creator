@@ -74,3 +74,13 @@
    pnpm preview
    ```
    启动本地服务器以测试 `dist/` 目录下的构建产物。
+
+---
+
+## 致谢
+
+特别感谢以下上游项目提供的灵感与基础支持：
+
+- [wing-kai/epub-manga-creator](https://github.com/wing-kai/epub-manga-creator)
+- [Joycai/epub-manga-creator](https://github.com/Joycai/epub-manga-creator)
+
