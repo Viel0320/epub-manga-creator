@@ -234,7 +234,6 @@ const DoublePageCard = observer(function(props: {
     pageIndex: leftSidePageIndex,
     coverPosition: storeBook.coverPosition,
     pageDirection: storeBook.pageDirection,
-    pagePositionSetting: storeBook.pagePosition,
     pageFitSetting: storeBook.pageFit,
     customSpread: leftSidePage?.customSpread,
     isFirstInPair: isRightJP ? false : true
@@ -244,7 +243,6 @@ const DoublePageCard = observer(function(props: {
     pageIndex: rightSidePageIndex,
     coverPosition: storeBook.coverPosition,
     pageDirection: storeBook.pageDirection,
-    pagePositionSetting: storeBook.pagePosition,
     pageFitSetting: storeBook.pageFit,
     customSpread: rightSidePage?.customSpread,
     isFirstInPair: isRightJP ? true : false
@@ -295,7 +293,6 @@ const SinglePageCard = observer(function(props: {
     pageIndex: realPageIndex,
     coverPosition: storeBook.coverPosition,
     pageDirection: storeBook.pageDirection,
-    pagePositionSetting: storeBook.pagePosition,
     pageFitSetting: storeBook.pageFit,
     customSpread: page?.customSpread,
     isSingle: true

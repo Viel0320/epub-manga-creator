@@ -7,7 +7,6 @@ export interface PageLayoutInfoOptions {
   pages?: Array<{ customSpread?: CustomSpreadType }>
   coverPosition: 'first-page' | 'alone'
   pageDirection: 'left' | 'right'
-  pagePositionSetting: 'center' | 'between'
   pageFitSetting?: 'contain' | 'cover' | 'fill'
   customSpread?: CustomSpreadType
   pageShow?: 'two' | 'one'
@@ -92,7 +91,7 @@ export function getSpreadPairs(
 }
 
 export function getPageLayoutInfo(options: PageLayoutInfoOptions): PageLayoutInfo {
-  const { pageIndex, pages, coverPosition, pageDirection, pagePositionSetting, pageFitSetting, customSpread, pageShow, isFirstInPair, isSingle } = options
+  const { pageIndex, pages, coverPosition, pageDirection, pageFitSetting, customSpread, pageShow, isFirstInPair, isSingle } = options
 
   let spread: 'left' | 'right' | 'center'
 

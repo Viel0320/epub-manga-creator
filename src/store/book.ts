@@ -33,7 +33,7 @@ export declare namespace StoreBook {
   }
 }
 
-type BookPageProperty = 'bookID' | 'bookISBN' | 'bookTitle' | 'bookAuthors' | 'bookSubject' | 'bookPublisher' | 'bookLanguage' | 'bookSeriesName' | 'bookSeriesVolume' | 'bookDescription' | 'bookDate' | 'bookContributors' | 'pageSize' | 'pageSizeMode' | 'pagePosition' | 'pageShow' | 'pageFit' | 'pageBackgroundColor' | 'pageDirection' | 'coverPosition' | 'imgTag'
+type BookPageProperty = 'bookID' | 'bookISBN' | 'bookTitle' | 'bookAuthors' | 'bookSubject' | 'bookPublisher' | 'bookLanguage' | 'bookSeriesName' | 'bookSeriesVolume' | 'bookDescription' | 'bookDate' | 'bookContributors' | 'pageSize' | 'pageSizeMode' | 'pageShow' | 'pageFit' | 'pageBackgroundColor' | 'pageDirection' | 'coverPosition' | 'imgTag'
 
 class Store {
   bookID: string = uuid()
@@ -51,7 +51,6 @@ class Store {
 
   pageSize: [number, number] = [1200, 1600]
   pageSizeMode: ('manual' | 'auto') = 'auto'
-  pagePosition: ('center' | 'between') = 'between'
   pageShow: ('two' | 'one') = 'two'
   pageFit: ('contain' | 'cover' | 'fill') = 'contain'
   pageBackgroundColor: ('white' | 'black') = 'white'

@@ -330,7 +330,6 @@ class Store {
       bookISBN: this.book.bookISBN,
       pageSize: toJS(this.book.pageSize),
       pageSizeMode: this.book.pageSizeMode,
-      pagePosition: this.book.pagePosition,
       pageFit: this.book.pageFit,
       pageDirection: this.book.pageDirection,
       coverPosition: this.book.coverPosition,

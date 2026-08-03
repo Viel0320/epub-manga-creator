@@ -120,7 +120,6 @@ const zh: Locale = {
   page: {
     modalTitle: '页面设置',
     size: '尺寸',
-    position: '对齐方式',
     show: '显示模式',
     fit: '适配模式',
     direction: '阅读方向',
@@ -130,7 +129,6 @@ const zh: Locale = {
 
   option: {
     center: '居中',
-    between: '内侧',
     twoPages: '双页',
     onePage: '单页',
     contain: '适应',

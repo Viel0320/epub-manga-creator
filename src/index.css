@@ -1166,11 +1166,6 @@ html.dark-theme .lightbox-menu-popover {
   background: #ffffff;
 }
 
-.lightbox-spread-wrapper.is-single {
-  max-width: 43vw;
-  width: min(43vw, calc(88vh * 0.7));
-}
-
 .lightbox-blank-page {
   height: 88vh;
   width: auto;
@@ -1200,7 +1195,7 @@ html.dark-theme .lightbox-menu-popover {
 
 .lightbox-spread-wrapper.is-single {
   max-width: 43vw;
-  width: min(43vw, calc(88vh * 0.707));
+  width: min(43vw, calc(88vh * 0.7));
 }
 
 .lightbox-spread-wrapper .lightbox-page-wrapper {

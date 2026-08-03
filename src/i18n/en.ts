@@ -128,7 +128,6 @@ const en = {
   page: {
     modalTitle: 'Page',
     size: 'Size',
-    position: 'Position',
     show: 'Show',
     fit: 'Fit',
     direction: 'Direction',
@@ -139,7 +138,6 @@ const en = {
   // Option labels (shared)
   option: {
     center: 'Center',
-    between: 'Between',
     twoPages: 'Two pages',
     onePage: 'One page',
     contain: 'Fit',

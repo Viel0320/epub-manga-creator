@@ -39,7 +39,6 @@ export interface EpubBookData {
 
   pageSize: [number, number]
   pageSizeMode: 'manual' | 'auto'
-  pagePosition: 'center' | 'between'
   pageFit: 'contain' | 'cover' | 'fill'
   pageDirection: 'right' | 'left'
   coverPosition: 'first-page' | 'alone'

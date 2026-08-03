@@ -11,7 +11,6 @@ export interface WorkspaceSnapshot {
   pageSettings: {
     pageSize: [number, number]
     pageSizeMode?: Book['pageSizeMode']
-    pagePosition: Book['pagePosition']
     pageShow: Book['pageShow']
     pageFit: Book['pageFit']
     pageBackgroundColor: Book['pageBackgroundColor']
@@ -83,7 +82,6 @@ export async function restoreWorkspaceFromDB(store: StoreMain): Promise<void> {
         const s = backup.pageSettings
         if (Array.isArray(s.pageSize)) store.book.pageSize = s.pageSize
         if (s.pageSizeMode) store.book.pageSizeMode = s.pageSizeMode
-        if (s.pagePosition) store.book.pagePosition = s.pagePosition
         if (s.pageShow) store.book.pageShow = s.pageShow
         if (s.pageFit) {
           const legacyMap: Record<string, 'contain' | 'cover' | 'fill'> = {
@@ -179,7 +177,6 @@ export function initWorkspaceAutoSave(store: StoreMain): () => void {
       pageSettings: {
         pageSize: toJS(store.book.pageSize),
         pageSizeMode: store.book.pageSizeMode,
-        pagePosition: store.book.pagePosition,
         pageShow: store.book.pageShow,
         pageFit: store.book.pageFit,
         pageBackgroundColor: store.book.pageBackgroundColor,

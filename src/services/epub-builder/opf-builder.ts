@@ -61,7 +61,6 @@ export const buildStandardOpfDocument = (
         pageIndex: i,
         coverPosition: data.coverPosition,
         pageDirection: data.pageDirection,
-        pagePositionSetting: data.pagePosition,
         pageFitSetting: data.pageFit,
         customSpread: pageItem.customSpread,
         isFirstInPair: refFirst,

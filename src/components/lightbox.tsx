@@ -331,7 +331,6 @@ const Lightbox = observer(function() {
       pages: book.pages,
       coverPosition: book.coverPosition,
       pageDirection: book.pageDirection,
-      pagePositionSetting: book.pagePosition,
       pageFitSetting: book.pageFit,
       customSpread: page?.customSpread,
       isFirstInPair,

@@ -50,16 +50,18 @@ const ModalPage = observer(function() {
 
   const onChangePageWidth = useCallback((e: FormEvent<HTMLInputElement>) => {
     storeBook.updateBookPageProperty('pageSizeMode', 'manual');
+    const val = +e.currentTarget.value;
     storeBook.updateBookPageProperty('pageSize', [
-      +e.currentTarget.value || 1,
-      storeBook.pageSize[1]
+      val > 0 ? val : 1200,
+      storeBook.pageSize[1] || 1600
     ]);
   }, [storeBook]);
   const onChangePageHeight = useCallback((e: FormEvent<HTMLInputElement>) => {
     storeBook.updateBookPageProperty('pageSizeMode', 'manual');
+    const val = +e.currentTarget.value;
     storeBook.updateBookPageProperty('pageSize', [
-      storeBook.pageSize[0],
-      +e.currentTarget.value || 1
+      storeBook.pageSize[0] || 1200,
+      val > 0 ? val : 1600
     ]);
   }, [storeBook]);
   const onSwitchPageSize = useCallback(() => {
