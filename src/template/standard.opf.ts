@@ -66,6 +66,7 @@ const getText = (): string => `<?xml version="1.0" encoding="UTF-8"?>
 <meta name="RegionMagnification" content="true"/>
 
 <meta property="fixed-layout-jp:viewport">width={{width}}, height={{height}}</meta>
+<meta property="rendition:viewport">width={{width}}, height={{height}}</meta>
 
 </metadata>
 

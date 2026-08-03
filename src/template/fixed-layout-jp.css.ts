@@ -1,9 +1,5 @@
 const getText = (): string => `@charset "UTF-8";
 
-@page {
-    margin: 0 !important;
-    padding: 0 !important;
-}
 html,
 body {
     margin:    0;
@@ -18,32 +14,20 @@ div.main {
     width:     100%;
     height:    100%;
     position:  absolute;
-    top:       0;
-    left:      0;
+    display:   flex;
 }
 svg {
-    margin:    0;
+    margin:    auto;
     padding:   0;
     width:     100%;
     height:    100%;
-    position:  absolute;
-    top:       0;
-    left:      0;
 }
 img {
-    margin:    0;
+    margin:    auto;
     padding:   0;
-}
-img.comic-page {
-    margin:          0 !important;
-    padding:         0 !important;
-    max-width:       100% !important;
-    max-height:      100% !important;
-    width:           auto !important;
-    height:          auto !important;
-    display:         inline-block !important;
-    vertical-align:  top !important;
-    border:          0 !important;
+    width:     100% !important;
+    height:    100% !important;
+    display:   block;
 }
 `
 
