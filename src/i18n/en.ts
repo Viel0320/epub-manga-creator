@@ -27,6 +27,8 @@ const en = {
     previewBg: 'Preview Bg',
     previewBgFilled: 'Preview Bg: Solid White',
     previewBgTransparent: 'Preview Bg: Transparent',
+    more: 'More',
+    selectPageHint: 'Tap a page in the grid to enable these tools',
   },
 
   // Confirm dialogs

@@ -137,6 +137,7 @@ html.dark-theme body::before {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-panel);
   max-height: calc(100vh - 28px);
+  max-height: calc(100dvh - 28px);
 }
 
 #nav .nav-item {
@@ -919,6 +920,7 @@ html.dark-theme .btn-close { filter: invert(1) grayscale(1) brightness(1.6); }
   justify-content: center;
   max-width: 90vw;
   max-height: 88vh;
+  max-height: 88dvh;
   margin: 0;
   box-sizing: border-box;
 }
@@ -1151,6 +1153,7 @@ html.dark-theme .lightbox-menu-popover {
 /* Image & Blank Canvas display — constrained strictly by screen height */
 .lightbox-image {
   max-height: 88vh;
+  max-height: 88dvh;
   max-width: 82vw;
   width: auto;
   height: auto;
@@ -1168,6 +1171,7 @@ html.dark-theme .lightbox-menu-popover {
 
 .lightbox-blank-page {
   height: 88vh;
+  height: 88dvh;
   width: auto;
   max-width: 82vw;
   border-radius: var(--radius-md);
@@ -1181,12 +1185,18 @@ html.dark-theme .lightbox-menu-popover {
   justify-content: center;
   max-width: 86vw;
   max-height: 88vh;
+  max-height: 88dvh;
   height: 88vh;
+  height: 88dvh;
   width: min(86vw, calc(88vh * 1.4));
+  width: min(86vw, calc(88dvh * 1.4));
   background: transparent;
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-panel);
   overflow: visible;
+  /* gestures over the pages are handled by the swipe logic, so the browser
+     must not turn them into scrolls / double-tap zooms */
+  touch-action: none;
 }
 
 .lightbox-spread-wrapper.has-bg-filled {
@@ -1196,6 +1206,7 @@ html.dark-theme .lightbox-menu-popover {
 .lightbox-spread-wrapper.is-single {
   max-width: 43vw;
   width: min(43vw, calc(88vh * 0.7));
+  width: min(43vw, calc(88dvh * 0.7));
 }
 
 .lightbox-spread-wrapper .lightbox-page-wrapper {
@@ -1348,22 +1359,174 @@ html.dark-theme .lightbox-menu-popover {
   box-shadow: none;
 }
 
-/* Responsive adjustments for narrow screens */
-@media (max-width: 768px) {
-  .lightbox-nav-btn.prev { left: 8px; }
-  .lightbox-nav-btn.next { right: 8px; }
-  .lightbox-close-btn { top: -48px; right: 8px; }
-  .lightbox-toggle-btn { top: -48px; left: 8px; }
+/* Responsive adjustments for narrow screens & short (landscape) screens */
+@media (max-width: 768px), (max-height: 520px) {
+  /* pin the primary controls to the viewport corners (the container is
+     fullscreen, so fixed coordinates match the screen even though it
+     establishes a containing block via transform) */
+  .lightbox-toggle-btn {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 12px);
+    left: calc(env(safe-area-inset-left, 0px) + 12px);
+  }
+  .lightbox-close-btn {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 12px);
+    right: calc(env(safe-area-inset-right, 0px) + 12px);
+  }
+
+  /* drop info that the per-page chip already carries */
+  .lightbox-header,
+  .lightbox-size-chip,
+  .lightbox-image-size-chip {
+    display: none;
+  }
+
+  /* page chip overlays the top edge of its page instead of floating above
+     the content box (where it would collide with the pinned buttons) */
+  .lightbox-page-chip {
+    top: 8px;
+    height: 30px;
+    padding: 0 10px;
+    font-size: 12px;
+    max-width: calc(100% - 16px);
+    overflow: hidden;
+  }
+  .lightbox-page-chip span:not(:first-child) {
+    display: none;
+  }
+
+  .lightbox-nav-btn {
+    position: fixed;
+    width: 42px;
+    height: 42px;
+  }
+  .lightbox-nav-btn.prev { left: calc(env(safe-area-inset-left, 0px) + 8px); }
+  .lightbox-nav-btn.next { right: calc(env(safe-area-inset-right, 0px) + 8px); }
+
+  /* give the artwork most of the screen while leaving room for the pinned
+     top controls and the bottom settings chips */
+  .lightbox-content {
+    max-width: 96vw;
+  }
+  .lightbox-image {
+    max-width: 94vw;
+  }
+  .lightbox-blank-page {
+    max-width: 94vw;
+  }
+  .lightbox-spread-wrapper {
+    max-width: 94vw;
+    height: 78vh;
+    height: 78dvh;
+    max-height: 78vh;
+    max-height: 78dvh;
+    width: min(94vw, calc(78vh * 1.4));
+    width: min(94vw, calc(78dvh * 1.4));
+  }
+  .lightbox-spread-wrapper.is-single {
+    max-width: 94vw;
+    width: min(94vw, calc(78vh * 0.7));
+    width: min(94vw, calc(78dvh * 0.7));
+  }
+
 }
 
-/* Card Drag and Drop Styles */
-.card[draggable="true"] {
+/* Mobile-only lightbox footer & menu (must match the ui.isMobile breakpoint:
+   the menu is rendered outside the scrolling footer on these viewports) */
+@media (max-width: 768px), (hover: none) and (pointer: coarse) and (max-height: 520px) {
+  /* settings chips: one horizontally scrollable row above the safe area */
+  .lightbox-settings-footer {
+    left: 8px;
+    right: 8px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
+    transform: none;
+    width: auto;
+    max-width: none;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding: 2px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .lightbox-settings-footer::-webkit-scrollbar { display: none; }
+  .lightbox-settings-footer .lightbox-setting-chip {
+    flex-shrink: 0;
+  }
+
+  /* the menu is a direct child of .lightbox-container here (the chips have
+     backdrop-filter and the footer scrolls, either of which would trap or
+     clip a fixed popover rendered inside them); the container's transform
+     makes these fixed coordinates resolve against the fullscreen layer */
+  .lightbox-menu-popover {
+    position: fixed;
+    left: 50%;
+    right: auto;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 58px);
+    transform: translateX(-50%);
+    min-width: 200px;
+    max-width: calc(100vw - 24px);
+    max-height: 42vh;
+    max-height: 42dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    z-index: 5;
+  }
+}
+
+/* Card Drag and Drop Styles (pointer-based, mouse + touch) */
+.card.is-draggable {
   cursor: grab;
   position: relative;
 }
 
-.card[draggable="true"]:active {
+.card.is-draggable:active {
   cursor: grabbing;
+}
+
+/* suppress iOS long-press callout / text selection on touch devices so the
+   long-press drag gesture is not interrupted */
+@media (hover: none) {
+  #main .card {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
+
+/* floating ghost that follows the pointer during a drag */
+.page-drag-ghost {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 5000;
+  pointer-events: none;
+  opacity: 0.85;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  box-shadow: var(--shadow-panel);
+  will-change: transform;
+  background: var(--glass-strong);
+}
+
+.page-drag-ghost .card {
+  position: relative;
+  overflow: hidden;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+}
+
+.page-drag-ghost .card-image {
+  width: 100%;
+  height: 100%;
+  display: flex;
+}
+
+.page-drag-ghost .zoom-btn,
+.page-drag-ghost .btn-group {
+  display: none;
 }
 
 .card.is-dragging {
@@ -1574,6 +1737,328 @@ html.dark-theme .lightbox-menu-popover {
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+/* ============================================================
+   Mobile adaptations (≤768px & touch devices)
+   ============================================================ */
+
+/* iOS Safari zooms into focused controls whose font-size is <16px
+   (query matches ui.isMobile: narrow viewports or touch short-landscape) */
+@media (max-width: 768px), (hover: none) and (pointer: coarse) and (max-height: 520px) {
+  .form-control,
+  .form-select {
+    font-size: 16px;
+  }
+}
+
+/* ---------- Mobile bottom navigation bar ------------------- */
+
+#nav-mobile {
+  position: fixed;
+  left: 10px;
+  right: 10px;
+  bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  z-index: 30;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-around;
+  gap: 2px;
+  padding: 6px 8px;
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-panel);
+  box-sizing: border-box;
+}
+
+.mnav-btn {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 54px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 5px 2px;
+  background: transparent;
+  border: none;
+  border-radius: 14px;
+  color: var(--text-secondary);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mnav-btn:disabled { opacity: 0.4; }
+
+.mnav-icon-box {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: var(--control-bg);
+  color: var(--text);
+  transition: background-color 0.18s ease, color 0.18s ease;
+}
+
+.mnav-btn .icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.mnav-label {
+  font-size: 10px;
+  line-height: 1.1;
+  font-weight: 500;
+  letter-spacing: -0.1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.mnav-btn.open { color: var(--text); }
+.mnav-btn.open .mnav-icon-box {
+  background: var(--accent);
+  color: var(--text-on-accent);
+  box-shadow: var(--shadow-btn);
+}
+
+.mnav-btn.primary .mnav-icon-box {
+  background: var(--accent);
+  color: var(--text-on-accent);
+  box-shadow: var(--shadow-btn);
+}
+.mnav-btn.primary { color: var(--text); font-weight: 600; }
+
+.mnav-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--glass-strong);
+}
+
+/* ---------- Mobile nav popup sheets ------------------------ */
+
+.mnav-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 28;
+  background: rgba(15, 18, 26, 0.32);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+}
+
+.mnav-sheet {
+  position: fixed;
+  left: 10px;
+  right: 10px;
+  bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  z-index: 32;
+  max-height: 58vh;
+  max-height: 58dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px;
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-panel);
+  box-sizing: border-box;
+  animation: mnavSheetIn 0.18s ease-out;
+}
+
+@keyframes mnavSheetIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.mnav-sheet-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.3;
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mnav-sheet-item:active:not(:disabled) { background: var(--hover-veil); }
+.mnav-sheet-item:disabled { opacity: 0.38; }
+.mnav-sheet-item.active { color: var(--accent); }
+.mnav-sheet-item.danger { color: var(--danger); }
+
+.mnav-sheet-item .icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.mnav-sheet-item-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mnav-sheet-check {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.mnav-sheet-arrow {
+  font-size: 11px;
+  color: var(--text-secondary);
+  transition: transform 0.18s ease;
+}
+.mnav-sheet-arrow.up { transform: rotate(180deg); }
+
+.mnav-sheet-divider {
+  height: 1px;
+  background: var(--glass-hairline);
+  margin: 4px 10px;
+  flex-shrink: 0;
+}
+
+.mnav-sheet-hint {
+  padding: 8px 14px 4px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.mnav-sheet-sub {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 30px;
+}
+
+.mnav-sheet-subitem {
+  display: block;
+  width: 100%;
+  min-height: 40px;
+  padding: 9px 14px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 14px;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mnav-sheet-subitem:active { background: var(--hover-veil); }
+.mnav-sheet-subitem.active {
+  color: var(--accent);
+  font-weight: 600;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+/* keep grid content clear of the fixed bottom bar
+   (!important needed to beat Bootstrap's .pb-4 utility;
+   query matches ui.isMobile so the clearance follows the bar) */
+@media (max-width: 768px), (hover: none) and (pointer: coarse) and (max-height: 520px) {
+  #main {
+    padding: 0 10px;
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+/* ---------- Page grid on small screens --------------------- */
+
+@media (max-width: 768px) {
+  :root {
+    --card-box-width: 260px;
+    --card-box-margin: 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --card-box-width: 240px;
+    --card-box-margin: 5px;
+  }
+}
+
+/* hover-revealed card controls must stay visible on touch devices */
+@media (hover: none) {
+  #main .card .zoom-btn {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---------- Toasts, banners & empty state on small screens - */
+
+@media (max-width: 576px) {
+  .app-toast-container {
+    left: 12px;
+    right: 12px;
+    top: calc(env(safe-area-inset-top, 0px) + 12px);
+    align-items: stretch;
+  }
+
+  .app-toast {
+    min-width: 0;
+    max-width: none;
+    width: 100%;
+  }
+
+  #main > .alert,
+  .restore-alert-banner {
+    width: calc(100vw - 24px);
+    max-width: none;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  #main .main-input-card {
+    padding: 32px 20px;
+    gap: 20px;
+  }
+
+  #main .main-app-title {
+    font-size: 30px;
+  }
+
+  #main .main-input-title {
+    font-size: 26px;
   }
 }
 

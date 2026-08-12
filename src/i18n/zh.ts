@@ -28,6 +28,8 @@ const zh: Locale = {
     previewBg: '预览背景',
     previewBgFilled: '预览背景：白色填充',
     previewBgTransparent: '预览背景：透明',
+    more: '更多',
+    selectPageHint: '先在网格中点选一个页面,即可使用这些工具',
   },
 
   confirm: {

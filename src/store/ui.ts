@@ -46,6 +46,17 @@ export interface ToastMessage {
   text: string
 }
 
+// narrow viewports (portrait phones / small tablets) plus touch devices in
+// short landscape: a landscape phone is wider than 768px but still needs the
+// mobile chrome. Keep in sync with the matching CSS media queries.
+const MOBILE_MEDIA_QUERY =
+  '(max-width: 768px), (hover: none) and (pointer: coarse) and (max-height: 520px)'
+
+function detectIsMobile(): boolean {
+  if (typeof window === 'undefined' || !window.matchMedia) return false
+  return window.matchMedia(MOBILE_MEDIA_QUERY).matches
+}
+
 class Store {
   modalBookVisible = false
   modalContentVisible = false
@@ -65,12 +76,14 @@ class Store {
 
   firstImport = true
   containerBgFilled = false
+  isMobile = false
 
   constructor() {
     makeAutoObservable(this)
     this.lang = detectDefaultLang()
     this.theme = detectDefaultTheme()
     this.containerBgFilled = detectDefaultContainerBg()
+    this.isMobile = detectIsMobile()
     this.applyTheme(this.theme)
 
     // keep "auto" in sync with the OS appearance while it's active
@@ -80,7 +93,15 @@ class Store {
           this.applyTheme('auto')
         }
       })
+
+      window.matchMedia(MOBILE_MEDIA_QUERY).addEventListener('change', (e) => {
+        this.setIsMobile(e.matches)
+      })
     }
+  }
+
+  setIsMobile(value: boolean) {
+    this.isMobile = value
   }
 
   showToast = (text: string, type: ToastMessage['type'] = 'info', duration = 5000) => {
