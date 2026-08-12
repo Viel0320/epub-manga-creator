@@ -13,9 +13,26 @@ export interface PageImageInfo {
 
 export type TOCGenerateMode = 'smart' | 'folder' | 'interval' | 'filename' | 'page'
 
+/**
+ * 生成标题所用的本地化文案。仅用于凭空生成的标题；
+ * 从文件名/文件夹名中提取到的标题保留其原文语义。
+ */
+export interface TOCLabels {
+  cover: string
+  chapter: (num: number) => string
+  page: (num: number) => string
+}
+
+const DEFAULT_LABELS: TOCLabels = {
+  cover: '封面',
+  chapter: (num: number) => `第 ${num} 话`,
+  page: (num: number) => `第 ${num} 页`,
+}
+
 export interface TOCGenerateOptions {
   mode: TOCGenerateMode
   interval?: number
+  labels?: TOCLabels
 }
 
 // Clean file path to extract directory and basename without extension
@@ -34,7 +51,7 @@ const getFolderAndName = (fullPath: string): { dir: string; name: string } => {
 }
 
 // Extract chapter title from filename or folder name
-export const extractChapterTitle = (text: string): string | null => {
+export const extractChapterTitle = (text: string, labels: TOCLabels = DEFAULT_LABELS): string | null => {
   const cleaned = cleanExt(text).trim()
   if (!cleaned) return null
 
@@ -58,14 +75,14 @@ export const extractChapterTitle = (text: string): string | null => {
   // 3. Short chapter tag c01, c001
   const matchC = /(?:^|[\s_.-])c(\d{1,4})(?:[\s_.-]|$)/i.exec(cleaned)
   if (matchC) {
-    return `第 ${parseInt(matchC[1], 10)} 话`
+    return labels.chapter(parseInt(matchC[1], 10))
   }
 
   // 4. Special keywords (Cover / 封面 / 表紙 / 后记 / 附录 / 彩页 etc.)
   const matchKw = /(Cover|封面|表紙|彩页|卷头|前言|目录|后记|附录|Extra|番外)/i.exec(cleaned)
   if (matchKw) {
     const kw = matchKw[1].toLowerCase()
-    if (kw === 'cover' || kw === '封面' || kw === '表紙') return '封面'
+    if (kw === 'cover' || kw === '封面' || kw === '表紙') return labels.cover
     return matchKw[1]
   }
 
@@ -76,11 +93,12 @@ export const generateTOC = (
   pages: PageImageInfo[],
   options: TOCGenerateOptions = { mode: 'smart' }
 ): ContentItem[] => {
+  const { mode, interval = 10, labels = DEFAULT_LABELS } = options
+
   if (!pages || pages.length === 0) {
-    return [{ pageIndex: 0, title: '封面', level: 0 }]
+    return [{ pageIndex: 0, title: labels.cover, level: 0 }]
   }
 
-  const { mode, interval = 10 } = options
   const result: ContentItem[] = []
   const addedPages = new Set<number>()
 
@@ -93,7 +111,7 @@ export const generateTOC = (
 
   if (mode === 'page') {
     pages.forEach((_, i) => {
-      const title = i === 0 ? '封面' : `第 ${i + 1} 页`
+      const title = i === 0 ? labels.cover : labels.page(i + 1)
       addEntry(i, title)
     })
     return result
@@ -103,7 +121,7 @@ export const generateTOC = (
     const step = Math.max(1, interval)
     for (let i = 0; i < pages.length; i += step) {
       const chapterNum = Math.floor(i / step) + 1
-      const title = i === 0 ? '封面' : `第 ${chapterNum} 话`
+      const title = i === 0 ? labels.cover : labels.chapter(chapterNum)
       addEntry(i, title)
     }
     return result
@@ -112,7 +130,7 @@ export const generateTOC = (
   if (mode === 'filename') {
     pages.forEach((page, i) => {
       const { name } = getFolderAndName(page.fileName)
-      const cleaned = cleanExt(name) || `第 ${i + 1} 页`
+      const cleaned = cleanExt(name) || labels.page(i + 1)
       addEntry(i, cleaned)
     })
     return result
@@ -125,13 +143,13 @@ export const generateTOC = (
       if (dir && dir !== lastDir) {
         // extract last segment of directory path
         const folderName = dir.split('/').pop() || dir
-        const title = extractChapterTitle(folderName) || folderName
+        const title = extractChapterTitle(folderName, labels) || folderName
         addEntry(i, title)
         lastDir = dir
       }
     })
     if (result.length === 0) {
-      addEntry(0, '封面')
+      addEntry(0, labels.cover)
     }
     return result
   }
@@ -148,7 +166,7 @@ export const generateTOC = (
       const { dir } = getFolderAndName(page.fileName)
       if (dir && dir !== lastDir) {
         const folderName = dir.split('/').pop() || dir
-        const title = extractChapterTitle(folderName) || folderName
+        const title = extractChapterTitle(folderName, labels) || folderName
         addEntry(i, title)
         lastDir = dir
       }
@@ -158,7 +176,7 @@ export const generateTOC = (
   // Step 2: Check filename chapter regexes
   pages.forEach((page, i) => {
     const { name } = getFolderAndName(page.fileName)
-    const title = extractChapterTitle(name)
+    const title = extractChapterTitle(name, labels)
     if (title) {
       addEntry(i, title)
     }
@@ -168,7 +186,7 @@ export const generateTOC = (
   if (!addedPages.has(0)) {
     // Check if page 0 image name looks like cover
     const page0Name = getFolderAndName(pages[0]?.fileName || '').name
-    const title0 = extractChapterTitle(page0Name) || '封面'
+    const title0 = extractChapterTitle(page0Name, labels) || labels.cover
     // Prepend or add at 0
     result.unshift({ pageIndex: 0, title: title0, level: 0 })
     addedPages.add(0)

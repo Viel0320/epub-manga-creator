@@ -16,6 +16,7 @@ const cloneState = function(this: Store) {
 }
 
 class Store {
+  defaultCoverTitle = '表紙'
   list: ContentItem[] = [{
     pageIndex: 0,
     title: '表紙',
@@ -28,6 +29,20 @@ class Store {
 
   constructor() {
     makeAutoObservable(this)
+  }
+
+  setDefaultCoverTitle(title: string) {
+    // keep the pristine initial entry in sync with the UI language,
+    // but never touch a list the user has already edited
+    if (
+      this.list.length === 1 &&
+      this.list[0].pageIndex === 0 &&
+      this.list[0].level === 0 &&
+      this.list[0].title === this.defaultCoverTitle
+    ) {
+      this.list[0].title = title
+    }
+    this.defaultCoverTitle = title
   }
 
   removeTitle(listIndex: number) {
@@ -152,7 +167,7 @@ class Store {
   }
 
   reset() {
-    this.list = [{ pageIndex: 0, title: '表紙', level: 0 }]
+    this.list = [{ pageIndex: 0, title: this.defaultCoverTitle, level: 0 }]
     this.indexMap = { 0: 0 }
   }
 
