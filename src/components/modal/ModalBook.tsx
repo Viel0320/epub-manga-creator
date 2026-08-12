@@ -278,8 +278,8 @@ const ModalBook = observer(function() {
         <div className="modal-body" onClick={onClickModalBody}>
           {/* 1. 文件名 */}
           <div className="mb-3 row">
-            <label htmlFor="input-filename" className="col-sm-3 col-form-label text-end">{t.book.filename}</label>
-            <div className="col-sm-9">
+            <label htmlFor="input-filename" className="col-md-3 col-form-label text-md-end">{t.book.filename}</label>
+            <div className="col-md-9">
               <div className="input-group">
                 <input type="text" className="form-control" id="input-filename" value={fileName} onInput={onChangeFileName}/>
                 <button
@@ -295,12 +295,12 @@ const ModalBook = observer(function() {
 
           {/* 2. ID & ISBN 双列并排 */}
           <div className="mb-3 row">
-            <label htmlFor="input-book-id" className="col-sm-3 col-form-label text-end">{t.book.id}</label>
-            <div className="col-sm-3">
+            <label htmlFor="input-book-id" className="col-md-3 col-form-label text-md-end">{t.book.id}</label>
+            <div className="col-md-3">
               <input type="text" className="form-control" id="input-book-id" value={storeBook.bookID} onInput={onChangeBookID}/>
             </div>
-            <label htmlFor="input-book-isbn" className="col-sm-3 col-form-label text-end">{t.book.isbn}</label>
-            <div className="col-sm-3">
+            <label htmlFor="input-book-isbn" className="col-md-3 col-form-label text-md-end">{t.book.isbn}</label>
+            <div className="col-md-3">
               <input
                 type="text"
                 className="form-control"
@@ -314,8 +314,8 @@ const ModalBook = observer(function() {
 
           {/* 3. 标题 */}
           <div className="mb-3 row">
-            <label htmlFor="input-book-title" className="col-sm-3 col-form-label text-end">{t.book.title}</label>
-            <div className="col-sm-9">
+            <label htmlFor="input-book-title" className="col-md-3 col-form-label text-md-end">{t.book.title}</label>
+            <div className="col-md-9">
               <input type="text" className="form-control" id="input-book-title" value={storeBook.bookTitle} onInput={onChangeBookTitle}/>
               <div className={keywordsLength ? "mt-3" : ''}>
                 <KeywordPicker keywords={keywords} onClick={onChangeTitleFromPicker}/>
@@ -325,8 +325,8 @@ const ModalBook = observer(function() {
 
           {/* 4. 作者 */}
           <div className="mb-3 row">
-            <label htmlFor="input-book-author" className="col-sm-3 col-form-label text-end">{t.book.author}</label>
-            <div className="col-sm-9">
+            <label htmlFor="input-book-author" className="col-md-3 col-form-label text-md-end">{t.book.author}</label>
+            <div className="col-md-9">
               {
                 storeBook.bookAuthors.map((name: string, index: number) => (
                   <div key={index} className={"input-group" + ((index + 1) === storeBook.bookAuthors.length ? '' : ' mb-3')}>
@@ -359,8 +359,8 @@ const ModalBook = observer(function() {
 
           {/* 5. 出版商 & 出版日期 双列并排 */}
           <div className="mb-3 row">
-            <label htmlFor="input-book-publisher" className="col-sm-3 col-form-label text-end">{t.book.publisher}</label>
-            <div className="col-sm-3">
+            <label htmlFor="input-book-publisher" className="col-md-3 col-form-label text-md-end">{t.book.publisher}</label>
+            <div className="col-md-3">
               <input type="text" className="form-control" list="dl-publisher" id="input-book-publisher" value={storeBook.bookPublisher} onInput={onChangeBookPublisher}/>
               <datalist id="dl-publisher">
                 <option value="KADOKAWA" />
@@ -377,8 +377,8 @@ const ModalBook = observer(function() {
                 <option value="FAKKU" />
               </datalist>
             </div>
-            <label htmlFor="input-book-date" className="col-sm-3 col-form-label text-end">{t.book.date}</label>
-            <div className="col-sm-3">
+            <label htmlFor="input-book-date" className="col-md-3 col-form-label text-md-end">{t.book.date}</label>
+            <div className="col-md-3">
               <div className="input-group">
                 <input
                   type="text"
@@ -407,7 +407,7 @@ const ModalBook = observer(function() {
           </div>
           {keywordsLength ? (
             <div className="mb-3 row">
-              <div className="col-sm-9 offset-sm-3">
+              <div className="col-md-9 offset-md-3">
                 <KeywordPicker keywords={keywords} onClick={onChangePublisherFromPicker}/>
               </div>
             </div>
@@ -415,8 +415,8 @@ const ModalBook = observer(function() {
 
           {/* 6. 语言 & 主题/分类 双列并排 */}
           <div className="mb-3 row">
-            <label htmlFor="select-book-language" className="col-sm-3 col-form-label text-end">{t.book.language}</label>
-            <div className="col-sm-3">
+            <label htmlFor="select-book-language" className="col-md-3 col-form-label text-md-end">{t.book.language}</label>
+            <div className="col-md-3">
               <select
                 id="select-book-language"
                 className="form-select"
@@ -437,8 +437,8 @@ const ModalBook = observer(function() {
                 <option value="pt">Português (pt)</option>
               </select>
             </div>
-            <label htmlFor="input-book-subject" className="col-sm-3 col-form-label text-end">{t.book.subject}</label>
-            <div className="col-sm-3">
+            <label htmlFor="input-book-subject" className="col-md-3 col-form-label text-md-end">{t.book.subject}</label>
+            <div className="col-md-3">
               <input type="text" className="form-control" list="dl-subject" id="input-book-subject" value={storeBook.bookSubject} onInput={onChangeBookSubject}/>
               <datalist id="dl-subject">
                 <option value="少年" />
@@ -453,20 +453,20 @@ const ModalBook = observer(function() {
 
           {/* 7. 系列名称 & 卷号 双列并排 */}
           <div className="mb-3 row">
-            <label htmlFor="input-book-series" className="col-sm-3 col-form-label text-end">{t.book.seriesName}</label>
-            <div className="col-sm-3">
+            <label htmlFor="input-book-series" className="col-md-3 col-form-label text-md-end">{t.book.seriesName}</label>
+            <div className="col-md-3">
               <input type="text" className="form-control" id="input-book-series" value={storeBook.bookSeriesName || ''} onInput={onChangeBookSeriesName}/>
             </div>
-            <label htmlFor="input-book-volume" className="col-sm-3 col-form-label text-end">{t.book.seriesVolume}</label>
-            <div className="col-sm-3">
+            <label htmlFor="input-book-volume" className="col-md-3 col-form-label text-md-end">{t.book.seriesVolume}</label>
+            <div className="col-md-3">
               <input type="text" className="form-control" id="input-book-volume" value={storeBook.bookSeriesVolume || ''} onInput={onChangeBookSeriesVolume}/>
             </div>
           </div>
 
           {/* 8. 贡献者列表 */}
           <div className="mb-3 row">
-            <label className="col-sm-3 col-form-label text-end">{t.book.contributor}</label>
-            <div className="col-sm-9">
+            <label className="col-md-3 col-form-label text-md-end">{t.book.contributor}</label>
+            <div className="col-md-9">
               {
                 (storeBook.bookContributors || []).map((item, index) => (
                   <div key={index} className="input-group mb-2">
@@ -504,8 +504,8 @@ const ModalBook = observer(function() {
 
           {/* 9. 内容简介 */}
           <div className="mb-3 row">
-            <label htmlFor="input-book-desc" className="col-sm-3 col-form-label text-end">{t.book.description}</label>
-            <div className="col-sm-9">
+            <label htmlFor="input-book-desc" className="col-md-3 col-form-label text-md-end">{t.book.description}</label>
+            <div className="col-md-9">
               <textarea
                 className="form-control"
                 id="input-book-desc"
@@ -518,7 +518,7 @@ const ModalBook = observer(function() {
         </div>
         <div className="modal-footer justify-content-start">
           <button type="button" className="btn btn-sm btn-outline-primary" onClick={onClickSaveSet}>{t.book.saveSet}</button>
-          <select className="form-select form-select-sm" value={selectedSetIndex + ''} style={{width: '200px'}} onChange={onApplySet}>
+          <select className="form-select form-select-sm modal-set-select" value={selectedSetIndex + ''} onChange={onApplySet}>
             <option value="-1" hidden>--</option>
             {
               storeBook.savedSets.map((set, index) =>

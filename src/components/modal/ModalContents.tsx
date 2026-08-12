@@ -34,7 +34,7 @@ const ModalContentRow = React.memo(function ModalContentRow({
   const level = contentItem.level || 0;
   return (
     <div className="row mx-0 g-2 align-items-stretch mb-4" style={{ paddingLeft: level * 24 }}>
-      <div className="col-2">
+      <div className="col-3 col-md-2">
         <input
           type="number"
           className="form-control"
@@ -376,7 +376,7 @@ const ModalContents = observer(function ModalContents() {
             ) : (
               <>
                 <div className="row mx-0 mb-2">
-                  <div className="col-2">
+                  <div className="col-3 col-md-2">
                     <h6>{t.contents.colIndex}</h6>
                   </div>
                   <div className="col-6">
@@ -411,7 +411,7 @@ const ModalContents = observer(function ModalContents() {
           plainMode ? null : (
             <div className="modal-footer justify-content-start">
               <button type="button" className="btn btn-sm btn-outline-primary" onClick={onClickSaveSet}>{t.contents.saveSet}</button>
-              <select className="form-select form-select-sm" value={selectedSetIndex + ''} style={{ width: '200px' }} onChange={onApplySet}>
+              <select className="form-select form-select-sm modal-set-select" value={selectedSetIndex + ''} onChange={onApplySet}>
                 <option value="-1" hidden>--</option>
                 {
                   storeContents.savedSets.map((set, index) =>

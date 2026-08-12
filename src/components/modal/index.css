@@ -1,6 +1,73 @@
 #modal {
   position: fixed;
-  overflow: scroll;
+  overflow-y: auto;
   top: 0;
   left: 0;
+}
+
+/* saved-set selector in modal footers: fixed width on desktop, fluid on
+   small screens so the footer toolbar can wrap without overflowing */
+#modal .modal-footer .modal-set-select {
+  width: 200px;
+}
+
+/* Near-fullscreen sheet layout on narrow viewports.
+   Query matches ui.isMobile (narrow, or touch short-landscape); form stacking
+   via col-md-* stays width-based, which suits wide landscape screens */
+@media (max-width: 768px), (hover: none) and (pointer: coarse) and (max-height: 520px) {
+  #modal .modal-dialog {
+    margin: 0;
+    width: 100%;
+    max-width: none;
+    min-height: 100%;
+    display: flex;
+    align-items: stretch;
+  }
+
+  #modal .modal-content {
+    width: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  #modal .modal-header,
+  #modal .modal-footer {
+    padding: 0.85rem 1rem;
+  }
+
+  #modal .modal-body {
+    padding: 1rem;
+  }
+
+  #modal .modal-footer .modal-set-select {
+    width: auto;
+    flex: 1 1 140px;
+    min-width: 0;
+  }
+
+  /* stacked form rhythm: labels hug their field, and the second
+     label/field pair of a two-column row gets breathing room */
+  #modal .modal-body .col-form-label {
+    padding-bottom: 2px;
+  }
+
+  #modal .modal-body .row > .col-form-label:not(:first-child) {
+    margin-top: 10px;
+  }
+
+  /* keep TOC editor rows on one line: slim down the row action buttons and
+     let the inputs shrink instead of overflowing */
+  #modal .modal-body .btn-group .btn {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  #modal .modal-body .form-control {
+    min-width: 0;
+  }
 }

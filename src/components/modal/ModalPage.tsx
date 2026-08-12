@@ -104,8 +104,8 @@ const ModalPage = observer(function() {
         </div>
         <div className="modal-body">
           <div className="mb-2 row">
-            <label className="col-3 col-form-label text-end">{t.page.size}</label>
-            <div className="col-9 d-flex align-items-center">
+            <label className="col-md-3 col-form-label text-md-end">{t.page.size}</label>
+            <div className="col-md-9 d-flex align-items-center flex-wrap row-gap-2">
               <div className="row justify-content-between">
                 <div className="col-5 d-flex align-items-center">
                   <div className="input-group input-group-sm">
@@ -142,8 +142,8 @@ const ModalPage = observer(function() {
             </div>
           </div>
           <div className="mb-2 row">
-            <div className="col-3"></div>
-            <div className="col-9 d-flex align-items-center flex-wrap gap-1">
+            <div className="col-md-3 d-none d-md-block"></div>
+            <div className="col-md-9 d-flex align-items-center flex-wrap gap-1">
               <ButtonRadio current={storeBook.pageSizeMode === 'auto' ? 'Auto' : 'x'} value="Auto" label="Auto" onClick={onSetAutoPageSize}/>
               <ButtonRadio current="x" value="Kindle" label="Kindle" onClick={onChangeSizeWithDefaultValue}/>
               <ButtonRadio current="x" value="B4" label="B4" onClick={onChangeSizeWithDefaultValue}/>
@@ -155,37 +155,37 @@ const ModalPage = observer(function() {
             </div>
           </div>
           <div className="mb-2 row">
-            <label className="col-3 col-form-label text-end">{t.page.show}</label>
-            <div className="col-9 d-flex align-items-center">
+            <label className="col-md-3 col-form-label text-md-end">{t.page.show}</label>
+            <div className="col-md-9 d-flex align-items-center flex-wrap row-gap-2">
               <ButtonRadio current={storeBook.pageShow} value="two" label={t.option.twoPages} onClick={onChangePageShow} />
               <ButtonRadio current={storeBook.pageShow} value="one" label={t.option.onePage} onClick={onChangePageShow} />
             </div>
           </div>
           <div className="mb-2 row">
-            <label className="col-3 col-form-label text-end">{t.page.fit}</label>
-            <div className="col-9 d-flex align-items-center">
+            <label className="col-md-3 col-form-label text-md-end">{t.page.fit}</label>
+            <div className="col-md-9 d-flex align-items-center flex-wrap row-gap-2">
               <ButtonRadio current={storeBook.pageFit} value="contain" label={t.option.contain} onClick={onChangePageFit} />
               <ButtonRadio current={storeBook.pageFit} value="cover" label={t.option.cover} onClick={onChangePageFit} />
               <ButtonRadio current={storeBook.pageFit} value="fill" label={t.option.fill} onClick={onChangePageFit} />
             </div>
           </div>
           <div className="mb-2 row">
-            <label className="col-3 col-form-label text-end">{t.page.direction}</label>
-            <div className="col-9 d-flex align-items-center">
+            <label className="col-md-3 col-form-label text-md-end">{t.page.direction}</label>
+            <div className="col-md-9 d-flex align-items-center flex-wrap row-gap-2">
               <ButtonRadio current={storeBook.pageDirection} value="right" label={t.option.rightJP} onClick={onChangePageDirection} />
               <ButtonRadio current={storeBook.pageDirection} value="left" label={t.option.left} onClick={onChangePageDirection} />
             </div>
           </div>
           <div className="mb-2 row">
-            <label className="col-3 col-form-label text-end">{t.page.cover}</label>
-            <div className="col-9 d-flex align-items-center">
+            <label className="col-md-3 col-form-label text-md-end">{t.page.cover}</label>
+            <div className="col-md-9 d-flex align-items-center flex-wrap row-gap-2">
               <ButtonRadio current={storeBook.coverPosition} value="first-page" label={t.option.firstPage} onClick={onChangeCoverPosition} />
               <ButtonRadio current={storeBook.coverPosition} value="alone" label={t.option.alone} onClick={onChangeCoverPosition} />
             </div>
           </div>
           <div className="mb-2 row">
-            <label className="col-3 col-form-label text-end">{t.page.imageTag}</label>
-            <div className="col-9 d-flex align-items-center">
+            <label className="col-md-3 col-form-label text-md-end">{t.page.imageTag}</label>
+            <div className="col-md-9 d-flex align-items-center flex-wrap row-gap-2">
               <ButtonRadio current={storeBook.imgTag} value="svg" label="<svg />" onClick={onChangeImageTag} />
               <ButtonRadio current={storeBook.imgTag} value="img" label="<img />" onClick={onChangeImageTag} />
             </div>
