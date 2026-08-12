@@ -1,5 +1,6 @@
 import { autorun, runInAction, toJS } from 'mobx'
 import { db } from 'utils/db'
+import { getLocale } from 'i18n'
 import type { StoreBook } from 'store/book'
 import type Book from 'store/book'
 import type Contents from 'store/contents'
@@ -34,30 +35,35 @@ export async function restoreWorkspaceFromDB(store: StoreMain): Promise<void> {
     const blobList: Blob[] = []
 
     let failedCount = 0
-    for (const page of backup.pages) {
-      if (page.blank || !page.blobID) {
-        continue
-      }
-      try {
-        const blob = await db.getBlob(page.blobID)
-        if (blob) {
-          blobIDs.push(page.blobID)
-          blobList.push(blob)
-        } else {
-          failedCount++
+    const imagePages = backup.pages.filter(page => !page.blank && page.blobID)
+    const readResults = await Promise.all(
+      imagePages.map(async page => {
+        try {
+          return { blobID: page.blobID, blob: await db.getBlob(page.blobID) }
+        } catch (err) {
+          console.error(`Failed to read blob ${page.blobID} from IndexedDB:`, err)
+          return { blobID: page.blobID, blob: null }
         }
-      } catch (err) {
+      })
+    )
+    for (const result of readResults) {
+      if (result.blob) {
+        blobIDs.push(result.blobID)
+        blobList.push(result.blob)
+      } else {
         failedCount++
-        console.error(`Failed to read blob ${page.blobID} from IndexedDB:`, err)
       }
     }
 
+    let restoredIDs: string[] = []
     if (blobList.length > 0) {
-      await store.blobs.push(blobList, blobIDs)
+      const pushResult = await store.blobs.push(blobList, blobIDs)
+      restoredIDs = pushResult.succeededIDs
+      failedCount += pushResult.failedCount
     }
 
     runInAction(() => {
-      const available = new Set(blobIDs)
+      const available = new Set(restoredIDs)
       store.book.pages = backup.pages
         .filter(page => page.blank || available.has(page.blobID))
         .map((page, i) => ({ ...page, index: i }))
@@ -102,12 +108,13 @@ export async function restoreWorkspaceFromDB(store: StoreMain): Promise<void> {
       }
 
       store.ui.firstImport = false
-      blobIDs.forEach(id => store.savedBlobIDs.add(id))
+      restoredIDs.forEach(id => store.savedBlobIDs.add(id))
 
+      const locale = getLocale(store.ui.lang)
       if (failedCount > 0) {
-        store.ui.showToast(`已恢复 ${blobIDs.length} 页，有 ${failedCount} 页图片损坏无法读取`, 'warning', 5000)
+        store.ui.showToast(locale.main.restoredPartial(restoredIDs.length, failedCount), 'warning', 5000)
       } else {
-        store.ui.showToast(`已成功从本地备份恢复工作区 (${store.book.pages.length} 页)`, 'success', 5000)
+        store.ui.showToast(locale.main.restoredSuccess(store.book.pages.length), 'success', 5000)
       }
     })
   } finally {
