@@ -27,9 +27,11 @@ const PageCard = observer(function(props: {
   const [isDragging, setIsDragging] = useState(false)
   const [isDragOver, setIsDragOver] = useState(false)
 
+  // selection always stores the real page-array index; pageItemIndex is a
+  // display-only number (shifted by 1 in "alone" cover mode)
   const onClickImage = useCallback(() => {
-    storeUI.selectPageIndex(props.pageItemIndex)
-  }, [props.pageItemIndex, storeUI])
+    storeUI.selectPageIndex(props.realPageIndex ?? null)
+  }, [props.realPageIndex, storeUI])
 
   const handleContextMenu = (e: React.MouseEvent) => {
     if (props.realPageIndex !== undefined && props.realPageIndex !== null && props.realPageIndex > 0) {
@@ -91,7 +93,7 @@ const PageCard = observer(function(props: {
     const targetIndex = props.realPageIndex as number
 
     if (!isNaN(sourceIndex) && sourceIndex >= 0 && sourceIndex < storeBook.pages.length && sourceIndex !== targetIndex) {
-      storeMain.replacePageIndex(sourceIndex, targetIndex)
+      storeMain.movePage(sourceIndex, targetIndex)
     }
   }
 
@@ -102,7 +104,7 @@ const PageCard = observer(function(props: {
     preserveAspectRatio = alignPos + (storeBook.pageFit === 'contain' ? 'meet' : 'slice')
   }
 
-  const imageFocus = props.pageItemIndex !== null && (storeUI.selectedPageIndex === props.pageItemIndex)
+  const imageFocus = props.realPageIndex !== undefined && props.realPageIndex !== null && (storeUI.selectedPageIndex === props.realPageIndex)
   const pageItem = props.realPageIndex !== undefined && props.realPageIndex !== null ? storeBook.pages[props.realPageIndex] : null
   const effectiveSize = getPageEffectiveSize(pageItem, props.blobItem, storeBook.pageSizeMode, storeBook.pageSize, modePageSize)
 
@@ -118,8 +120,8 @@ const PageCard = observer(function(props: {
       onContextMenu={handleContextMenu}
     >
       {
-        props.pageItemIndex in storeContent.indexMap
-          ? <div className="bookmark-ribbon" title={storeContent.list[storeContent.indexMap[props.pageItemIndex]].title} />
+        props.realPageIndex !== undefined && props.realPageIndex !== null && props.realPageIndex in storeContent.indexMap
+          ? <div className="bookmark-ribbon" title={storeContent.list[storeContent.indexMap[props.realPageIndex]].title} />
           : null
       }
 
@@ -132,7 +134,9 @@ const PageCard = observer(function(props: {
             onClick={(e) => {
               e.stopPropagation()
               const previewIdx = props.realPageIndex ?? props.pageItemIndex
-              storeUI.openPreview(previewIdx as number)
+              if (previewIdx !== null && previewIdx >= 0) {
+                storeUI.openPreview(previewIdx)
+              }
             }}
           >
             <Icon name="zoom" />
@@ -625,8 +629,7 @@ const Main = function() {
           ui.navigatePreview(
             'left',
             storeBook.pageDirection,
-            storeBook.pageShow,
-            storeBook.coverPosition,
+            storeBook.spreadPairs,
             storeBook.pages.length
           )
         } else if (e.code === 'ArrowRight') {
@@ -634,8 +637,7 @@ const Main = function() {
           ui.navigatePreview(
             'right',
             storeBook.pageDirection,
-            storeBook.pageShow,
-            storeBook.coverPosition,
+            storeBook.spreadPairs,
             storeBook.pages.length
           )
         } else if (e.code === 'Escape' || e.code === 'Space') {

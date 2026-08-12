@@ -297,6 +297,7 @@ export function detectImageMime(data: Uint8Array): string | null {
 
   if (hexOf(0, 4) === '89504e47') return 'image/png'
   if (hexOf(0, 3) === 'ffd8ff') return 'image/jpeg'
+  if (asciiOf(0, 6) === 'GIF87a' || asciiOf(0, 6) === 'GIF89a') return 'image/gif'
   if (asciiOf(0, 4) === 'RIFF' && asciiOf(8, 12) === 'WEBP') return 'image/webp'
   if (asciiOf(4, 8) === 'ftyp' && ['avif', 'avis'].includes(asciiOf(8, 12))) return 'image/avif'
 

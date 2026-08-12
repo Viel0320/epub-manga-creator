@@ -93,8 +93,7 @@ const Lightbox = observer(function() {
         ui.navigatePreview(
           direction,
           book.pageDirection,
-          book.pageShow,
-          book.coverPosition,
+          book.spreadPairs,
           book.pages.length
         )
       }
@@ -138,12 +137,12 @@ const Lightbox = observer(function() {
 
   const onLeftClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    ui.navigatePreview('left', book.pageDirection, book.pageShow, book.coverPosition, totalPages)
+    ui.navigatePreview('left', book.pageDirection, book.spreadPairs, totalPages)
   }
 
   const onRightClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    ui.navigatePreview('right', book.pageDirection, book.pageShow, book.coverPosition, totalPages)
+    ui.navigatePreview('right', book.pageDirection, book.spreadPairs, totalPages)
   }
 
   const onTogglePageShow = (e: React.MouseEvent) => {

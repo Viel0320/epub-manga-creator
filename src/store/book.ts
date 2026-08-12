@@ -70,8 +70,11 @@ class Store {
   }
 
   pushNewPage(blobUUIDs: string[]) {
+    // index must continue from the existing pages, otherwise appended
+    // imports would produce duplicated page indices
+    const baseIndex = this.pages.length
     const newPages: StoreBook.PageItem[] = blobUUIDs.map((uuid, index) => ({
-      index,
+      index: baseIndex + index,
       blobID: uuid,
       sticky: 'auto',
       blank: false
@@ -126,14 +129,6 @@ class Store {
 
   removePage(index: number) {
     this.pages.splice(index, 1)
-  }
-
-  switchIndex(index: number, targetIndex: number) {
-    const pageItem = this.pages[index];
-    if (pageItem) {
-      this.pages.splice(index, 1);
-      this.pages.splice(targetIndex, 0, pageItem);
-    }
   }
 
   movePage(fromIndex: number, toIndex: number) {

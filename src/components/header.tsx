@@ -28,7 +28,7 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
       num = max
     }
 
-    storeMain.replacePageIndex(props.pageIndex as number, num - 1)
+    storeMain.movePage(props.pageIndex as number, num - 1)
   }, [props.pageIndex, storeMain, t])
 
   const onSetContentq = useCallback((e: React.MouseEvent<HTMLSpanElement>) => {
@@ -139,7 +139,7 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
     )
   }
 
-  const blankPage = storeMain.book.pages[props.pageIndex].blank
+  const blankPage = storeMain.book.pages[props.pageIndex]?.blank ?? false
 
   return (
     <>
@@ -205,7 +205,7 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
 })
 
 const AcceptMap = {
-  image: 'image/jpeg,image/png,image/webp,image/avif,.jpg,.jpeg,.png,.webp,.avif',
+  image: 'image/jpeg,image/png,image/webp,image/avif,image/gif,.jpg,.jpeg,.png,.webp,.avif,.gif',
   zip: 'application/zip,.zip,.cbz,application/x-cbz',
   epub: 'application/epub+zip,.epub',
 }
@@ -256,49 +256,48 @@ const Header = function() {
     }
 
     if (inputType === 'zip' && (input?.files?.[0])) {
-      const fileName = input.files[0].name 
-      JSZip.loadAsync(input.files[0]).then(zipContent => {
+      const file = input.files[0]
+      const fileName = file.name
+      storeMain.ui.setLoading(true, t.loading.importingImages)
+      try {
+        const zipContent = await JSZip.loadAsync(file)
         // natural sort so "10.jpg" comes after "2.jpg"
         const zipFiles = Object.keys(zipContent.files)
           .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }))
           .map((filename) => zipContent.files[filename])
-        const promises: Promise<File | null>[] = zipFiles.map(zipItem => {
-          if (zipItem.dir) {
-            return Promise.resolve(null)
-          }
+          .filter(zipItem => !zipItem.dir)
 
-          return new Promise(resolve => {
-            zipItem.async('uint8array').then(uint8Array => {
-              const bytes = new Uint8Array(uint8Array)
-              const mimeType = detectImageMime(bytes)
+        const fileResults = await Promise.all(zipFiles.map(async zipItem => {
+          const uint8Array = await zipItem.async('uint8array')
+          const bytes = new Uint8Array(uint8Array)
+          const mimeType = detectImageMime(bytes)
+          if (!mimeType) return null
+          return blobToFile(new Blob([bytes], { type: mimeType }), zipItem.name)
+        }))
+        const files = fileResults.filter((f): f is File => f !== null)
 
-              if (mimeType) {
-                const b = new Blob([new Uint8Array(uint8Array)], { type: mimeType })
-                resolve(
-                  blobToFile(
-                    b,
-                    zipItem.name
-                  )
-                )
-              } else {
-                resolve(null)
-              }
-            })
-          })
-        })
+        if (files.length === 0) {
+          storeMain.ui.showToast(t.alert.zipNoImages, 'warning')
+          return
+        }
 
-        return Promise.all(promises) as Promise<File[]>
-      }).then((files: (File | null)[]) => {
-        storeMain.importPageFromImages(files.filter(b => b !== null) as File[])
+        await storeMain.importPageFromImages(files)
         if (storeMain.ui.firstImport) {
           storeMain.ui.toggleBookVisible(fileName)
         }
-      })
+      } catch (err) {
+        console.error('Failed to import archive:', err)
+        storeMain.ui.showToast(t.alert.zipReadFailed, 'error')
+      } finally {
+        storeMain.ui.setLoading(false)
+      }
       return
     }
 
-    storeMain.importPageFromImages(Array.from(input.files as FileList))
-  }, [inputType, storeMain])
+    if (input?.files?.length) {
+      storeMain.importPageFromImages(Array.from(input.files))
+    }
+  }, [inputType, storeMain, t])
 
   const onClickGenerate = useCallback(() => {
     storeMain.generateBook()

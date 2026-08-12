@@ -1,15 +1,16 @@
 import React from 'react';
-import { autorun, makeAutoObservable, runInAction, toJS } from "mobx"
+import { autorun, makeAutoObservable, reaction, runInAction, toJS } from "mobx"
 import uuid from 'utils/get-uuid'
 import Book, { StoreBook } from 'store/book'
 import Ui from 'store/ui'
 import Contents from 'store/contents'
 import UndoStore from 'store/undo'
-import storeBlobs, { Store as Blobs, StoreBlobs, getImageWithBlobURL, formatBlobItem } from 'store/blobs'
+import storeBlobs, { Store as Blobs, StoreBlobs, getImageWithBlobURL } from 'store/blobs'
 import { db } from 'utils/db'
 import { getLocale } from 'i18n'
 import { parseEpub } from 'utils/epub-parser'
 import { getModePageSize } from 'utils/page-size'
+import { getSpreadPairs } from 'utils/page-layout'
 import { restoreWorkspaceFromDB, initWorkspaceAutoSave } from 'services/workspace-persistence'
 import { EpubBuilder } from 'services/epub-builder'
 
@@ -88,12 +89,26 @@ class Store {
     await restoreWorkspaceFromDB(this)
   }
 
-  importPageFromImages(fileList: File[]) {
-    this.setAutoSaveActive(true)
-    const uuids = fileList.map(() => uuid())
+  async importPageFromImages(fileList: File[]) {
+    if (fileList.length === 0) return
 
-    this.book.pushNewPage(uuids)
-    this.blobs.push(fileList, uuids)
+    this.setAutoSaveActive(true)
+    this.ui.setLoading(true, getLocale(this.ui.lang).loading.importingImages)
+    try {
+      const uuids = fileList.map(() => uuid())
+      // decode first, then create pages only for images that succeeded,
+      // so a failed decode can never leave a page without its blob
+      const result = await this.blobs.push(fileList, uuids)
+
+      if (result.succeededIDs.length > 0) {
+        this.book.pushNewPage(result.succeededIDs)
+      }
+      if (result.failedCount > 0) {
+        this.ui.showToast(getLocale(this.ui.lang).alert.importImagesFailed(result.failedCount), 'warning')
+      }
+    } finally {
+      this.ui.setLoading(false)
+    }
   }
 
   async importFromEpub(file: File) {
@@ -103,10 +118,13 @@ class Store {
 
       this.resetWorkspace()
 
-      // Import images
+      // Import images (pages are created only for successfully decoded blobs)
       const uuids = result.images.map(() => uuid())
-      this.book.pushNewPage(uuids)
-      await this.blobs.push(result.images, uuids)
+      const pushResult = await this.blobs.push(result.images, uuids)
+      this.book.pushNewPage(pushResult.succeededIDs)
+      if (pushResult.failedCount > 0) {
+        this.ui.showToast(getLocale(this.ui.lang).alert.importImagesFailed(pushResult.failedCount), 'warning')
+      }
 
       runInAction(() => {
         // Apply metadata
@@ -168,79 +186,72 @@ class Store {
     }
   }
 
-  replacePageIndex(index: number, targetIndex: number) {
-    this.saveUndoSnapshot()
-    this.book.switchIndex(index, index > targetIndex ? targetIndex : targetIndex + 1)
-    this.ui.selectPageIndex(targetIndex)
-
-    const newIndexMap: Contents['indexMap'] = {}
-    const list = toJS(this.contents.list)
-
-    this.book.pages.forEach((pageItem, index) => {
-      if (pageItem.index in this.contents.indexMap) {
-        const listIndex = this.contents.indexMap[pageItem.index]
-        newIndexMap[index] = listIndex
-        list[listIndex].pageIndex = index
-      }
-    })
-
-    this.contents.updateList(list)
-    this.book.updatePageItemIndex()
-  }
-
   async splitPage(index: number) {
     const pageItem = this.book.pages[index]
+    if (!pageItem || pageItem.blank || !pageItem.blobID) return
     const blobItem = this.blobs.blobs[pageItem.blobID]
-    if (!pageItem || !blobItem) return
+    if (!blobItem) return
 
-    const uuids = [uuid(), uuid()]
-    const mime = blobItem.blob.type
+    try {
+      const uuids = [uuid(), uuid()]
+      const mime = blobItem.blob.type
 
-    const originImage = await getImageWithBlobURL(blobItem.blobURL)
-    const w1 = originImage.width >> 1
-    const w2 = originImage.width - w1
+      const originImage = await getImageWithBlobURL(blobItem.blobURL)
+      const w1 = originImage.width >> 1
+      const w2 = originImage.width - w1
 
-    const canvas1 = document.createElement('canvas')
-    const canvas2 = document.createElement('canvas')
+      const canvas1 = document.createElement('canvas')
+      const canvas2 = document.createElement('canvas')
 
-    canvas1.width = w1
-    canvas1.height = originImage.height
+      canvas1.width = w1
+      canvas1.height = originImage.height
 
-    canvas2.width = w2
-    canvas2.height = originImage.height
+      canvas2.width = w2
+      canvas2.height = originImage.height
 
-    const ctx1 = canvas1.getContext('2d')
-    const ctx2 = canvas2.getContext('2d')
+      const ctx1 = canvas1.getContext('2d')
+      const ctx2 = canvas2.getContext('2d')
 
-    ctx1?.drawImage(originImage, 0, 0)
-    ctx2?.drawImage(originImage, 0 - w1, 0)
+      ctx1?.drawImage(originImage, 0, 0)
+      ctx2?.drawImage(originImage, 0 - w1, 0)
 
-    const blobs = await Promise.all([
-      new Promise<Blob>((resolve, reject) =>
-        canvas1.toBlob(
-          (blob) => blob ? resolve(blob) : reject(),
-          mime, 1
-        )
-      ),
-      new Promise<Blob>((resolve, reject) =>
-        canvas2.toBlob(
-          (blob) => blob ? resolve(blob) : reject(),
-          mime, 1
-        )
-      ),
-    ])
+      const blobs = await Promise.all([
+        new Promise<Blob>((resolve, reject) =>
+          canvas1.toBlob(
+            (blob) => blob ? resolve(blob) : reject(new Error('canvas.toBlob returned null')),
+            mime, 1
+          )
+        ),
+        new Promise<Blob>((resolve, reject) =>
+          canvas2.toBlob(
+            (blob) => blob ? resolve(blob) : reject(new Error('canvas.toBlob returned null')),
+            mime, 1
+          )
+        ),
+      ])
 
-    const removedBlobs: Record<string, StoreBlobs.ImageBlob> = {
-      [pageItem.blobID]: blobItem
+      // push the two halves first; mutate pages only when both succeeded
+      const pushResult = await this.blobs.push(blobs, this.book.pageDirection === 'left' ? uuids : [...uuids].reverse())
+      if (pushResult.failedCount > 0) {
+        pushResult.succeededIDs.forEach(id => this.blobs.remove(id))
+        this.ui.showToast(getLocale(this.ui.lang).alert.splitFailed, 'error')
+        return
+      }
+
+      const removedBlobs: Record<string, StoreBlobs.ImageBlob> = {
+        [pageItem.blobID]: blobItem
+      }
+      this.saveUndoSnapshot(removedBlobs, uuids)
+
+      this.book.splitPage(index, uuids)
+      this.book.updatePageItemIndex()
+      this.blobs.remove(pageItem.blobID)
+
+      this.contents.shiftPageIndices(index, 1)
+    } catch (err) {
+      console.error('Failed to split page:', err)
+      this.ui.showToast(getLocale(this.ui.lang).alert.splitFailed, 'error')
     }
-    this.saveUndoSnapshot(removedBlobs, uuids)
-
-    this.book.splitPage(index, uuids)
-    this.book.updatePageItemIndex()
-    await this.blobs.push(blobs, this.book.pageDirection === 'left' ? uuids : [...uuids].reverse())
-    this.blobs.remove(pageItem.blobID)
-
-    this.contents.shiftPageIndices(index, 1)
   }
 
   async undo() {
@@ -335,7 +346,9 @@ class Store {
       coverPosition: this.book.coverPosition,
       imgTag: this.book.imgTag,
       pages: toJS(this.book.pages),
-      spreadPairs: toJS(this.book.spreadPairs),
+      // pageShow is a preview-only setting; exported spreads are always
+      // computed in two-page mode so the EPUB is independent of the UI state
+      spreadPairs: getSpreadPairs(toJS(this.book.pages), this.book.coverPosition, 'two'),
       contents: toJS(this.contents.list),
       blobs: this.blobs.blobs
     })
@@ -348,6 +361,13 @@ autorun(() => {
   localStorage.setItem('EPUB_CREATOR_SAVED_SETS_BOOK', JSON.stringify(toJS(store.book.savedSets)))
   localStorage.setItem('EPUB_CREATOR_SAVED_SETS_CONTENTS', JSON.stringify(toJS(store.contents.savedSets)))
 })
+
+// keep the default TOC cover title in sync with the UI language
+reaction(
+  () => store.ui.lang,
+  (lang) => store.contents.setDefaultCoverTitle(getLocale(lang).contents.tocCover),
+  { fireImmediately: true }
+)
 
 // ---- workspace auto-save (IndexedDB) ----
 initWorkspaceAutoSave(store)

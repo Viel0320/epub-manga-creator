@@ -204,51 +204,33 @@ class Store {
   navigatePreview(
     direction: 'left' | 'right',
     pageDirection: 'left' | 'right',
-    pageShow: 'one' | 'two',
-    coverPosition: 'first-page' | 'alone',
+    spreadPairs: number[][],
     totalPages: number
   ) {
     if (!this.isPreviewOpen || this.previewPageIndex === null || totalPages <= 0) return
 
     const isRTL = pageDirection === 'right'
     const isForward = isRTL ? direction === 'left' : direction === 'right'
-    const isTwoPages = pageShow === 'two'
     const pageIndex = Math.max(0, Math.min(totalPages - 1, this.previewPageIndex))
 
-    let minIndex = pageIndex
-    let maxIndex = pageIndex
-
-    if (isTwoPages) {
-      if (pageIndex > 0) {
-        const offset = pageIndex - 1
-        const group = Math.floor(offset / 2)
-        minIndex = 1 + group * 2
-        maxIndex = Math.min(totalPages - 1, minIndex + 1)
-      }
-    }
-
-    if (isForward) {
-      if (maxIndex >= totalPages - 1) return
-      if (isTwoPages) {
-        if (minIndex === 0) {
-          this.openPreview(1)
-        } else {
-          this.openPreview(Math.min(totalPages - 1, maxIndex + 1))
-        }
-      } else {
+    // navigate by the same spread grouping the lightbox renders with,
+    // so custom spreads (center / bound pairs) are never skipped
+    const pairIndex = spreadPairs.findIndex(pair => pair.includes(pageIndex))
+    if (pairIndex === -1) {
+      if (isForward) {
         this.nextPreviewPage(totalPages, 1)
-      }
-    } else {
-      if (minIndex <= 0) return
-      if (isTwoPages) {
-        if (minIndex === 1) {
-          this.openPreview(0)
-        } else {
-          this.openPreview(Math.max(0, minIndex - 2))
-        }
       } else {
         this.prevPreviewPage(1)
       }
+      return
+    }
+
+    const targetPairIndex = isForward ? pairIndex + 1 : pairIndex - 1
+    if (targetPairIndex < 0 || targetPairIndex >= spreadPairs.length) return
+
+    const targetPair = spreadPairs[targetPairIndex]
+    if (targetPair.length > 0) {
+      this.openPreview(targetPair[0])
     }
   }
 
