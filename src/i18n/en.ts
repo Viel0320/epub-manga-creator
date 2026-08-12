@@ -39,6 +39,7 @@ const en = {
     newPageIndex: (max: number) => `New page index (1 – ${max}):`,
     insertPageIndex: (max: number) => `Insert at index (1 – ${max}):`,
     removePage: (idx: number) => `Remove page ${idx + 1}?`,
+    removeCover: 'Remove the cover page?',
   },
 
   // Alert messages
@@ -186,6 +187,7 @@ export type Locale = {
     newPageIndex: (max: number) => string
     insertPageIndex: (max: number) => string
     removePage: (idx: number) => string
+    removeCover: string
   }
   alert: SectionLocale<typeof en.alert>
   confirm: Record<keyof typeof en.confirm, string>

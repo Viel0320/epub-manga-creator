@@ -333,8 +333,14 @@ const ModalContents = observer(function ModalContents() {
 
   const onApplySet = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const index = +e.currentTarget.value;
+    const selectedSet = storeContents.savedSets[index];
+    // some browsers still render the hidden placeholder option (value -1)
+    if (!selectedSet) {
+      setSelectedSetIndex(-1);
+      return;
+    }
     setSelectedSetIndex(index);
-    setTempList(toJS(storeContents.savedSets[index].list));
+    setTempList(toJS(selectedSet.list));
   }, [storeContents]);
 
   const onClickModalBody = useCallback(() => {

@@ -38,6 +38,7 @@ const zh: Locale = {
     newPageIndex: (max: number) => `新页码（1 – ${max}）：`,
     insertPageIndex: (max: number) => `插入位置（1 – ${max}）：`,
     removePage: (idx: number) => `确认删除第 ${idx + 1} 页？`,
+    removeCover: '确认删除封面？',
   },
 
   alert: {

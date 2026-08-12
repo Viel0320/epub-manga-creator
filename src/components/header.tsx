@@ -17,8 +17,12 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
     }
   }, [props.pageIndex, storeMain])
 
+  // in standalone-cover mode the cards are numbered without the cover,
+  // so prompts must translate between displayed numbers and real indices
+  const coverOffset = storeMain.book.coverPosition === 'alone' ? 1 : 0
+
   const onChangePageIndex = useCallback(() => {
-    const max = storeMain.book.pages.length
+    const max = storeMain.book.pages.length - coverOffset
     const inputValue = window.prompt(t.prompt.newPageIndex(max))
     let num = parseInt(inputValue || '')
     
@@ -28,8 +32,8 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
       num = max
     }
 
-    storeMain.movePage(props.pageIndex as number, num - 1)
-  }, [props.pageIndex, storeMain, t])
+    storeMain.movePage(props.pageIndex as number, num - 1 + coverOffset)
+  }, [props.pageIndex, storeMain, t, coverOffset])
 
   const onSetContentq = useCallback((e: React.MouseEvent<HTMLSpanElement>) => {
     storeMain.setBookmark(
@@ -49,9 +53,13 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
   }, [storeMain])
 
   const onRemovePage = useCallback(() => {
-    const res = window.confirm(t.prompt.removePage(props.pageIndex as number))
-    res && storeMain.removePage(props.pageIndex as number)
-  }, [props.pageIndex, storeMain, t])
+    const realIndex = props.pageIndex as number
+    const message = coverOffset && realIndex === 0
+      ? t.prompt.removeCover
+      : t.prompt.removePage(realIndex - coverOffset)
+    const res = window.confirm(message)
+    res && storeMain.removePage(realIndex)
+  }, [props.pageIndex, storeMain, t, coverOffset])
 
   const onClickInsertBlankPage = useCallback(() => {
     if (props.pageIndex !== null && props.pageIndex >= 0 && props.pageIndex < storeMain.book.pages.length) {
@@ -60,7 +68,7 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
       return
     }
 
-    const max = storeMain.book.pages.length
+    const max = storeMain.book.pages.length - coverOffset
     const inputValue = window.prompt(t.prompt.insertPageIndex(max))
     let num = parseInt(inputValue || '')
 
@@ -70,9 +78,9 @@ const PageControl = observer(function(props: { pageIndex: number | null }) {
       num = max
     }
 
-    storeMain.insertBlankPage(num - 1)
-    storeMain.ui.selectPageIndex(num - 1)
-  }, [props.pageIndex, storeMain, t])
+    storeMain.insertBlankPage(num - 1 + coverOffset)
+    storeMain.ui.selectPageIndex(num - 1 + coverOffset)
+  }, [props.pageIndex, storeMain, t, coverOffset])
 
   const undoButton = (
     <div className="nav-item">
