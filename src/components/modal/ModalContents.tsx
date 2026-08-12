@@ -95,7 +95,6 @@ const ModalContents = observer(function ModalContents() {
   const storeMain = useContext(StoreContext);
   const { ui: store, contents: storeContents, book: storeBook } = storeMain;
   const t = useI18n();
-  const setsSeletRef = React.useRef<HTMLSelectElement>(null);
   const [plainMode, setPlainMode] = useState(false);
   const [tempList, setTempList] = useState<typeof storeContents.list>([]);
   const [textAreaInput, setTextAreaInput] = useState('');
@@ -138,7 +137,15 @@ const ModalContents = observer(function ModalContents() {
       fileName: p.blobID && storeBlobs.blobs[p.blobID] ? storeBlobs.blobs[p.blobID].name : ''
     }));
 
-    const generated = generateTOC(pagesInfo, { mode, interval });
+    const generated = generateTOC(pagesInfo, {
+      mode,
+      interval,
+      labels: {
+        cover: t.contents.tocCover,
+        chapter: t.contents.tocChapter,
+        page: t.contents.tocPage,
+      }
+    });
 
     if (plainMode) {
       const textVal = generated.map(item => {
@@ -289,9 +296,9 @@ const ModalContents = observer(function ModalContents() {
         return [{ ...prev[0], pageIndex: prev[0].pageIndex ?? 0 }];
       }
 
-      return [{ pageIndex: 0, title: '封面', level: 0 }];
+      return [{ pageIndex: 0, title: t.contents.tocCover, level: 0 }];
     });
-  }, []);
+  }, [t]);
 
   const onFocusNumberInput = useCallback((e: FormEvent<HTMLInputElement>) => {
     e.currentTarget.select();
@@ -302,28 +309,26 @@ const ModalContents = observer(function ModalContents() {
   }, []);
 
   const onSave = useCallback(() => {
-    storeContents.updateList(tempList);
+    // clamp page numbers to the actual page count so the exported TOC
+    // never links to a page file that does not exist
+    const maxPage = storeBook.pages.length;
+    const cleaned = tempList.map(item => {
+      if (item.pageIndex === null) return item;
+      if (maxPage === 0) return { ...item, pageIndex: null };
+      return { ...item, pageIndex: Math.min(Math.max(0, item.pageIndex), maxPage - 1) };
+    });
+    storeContents.updateList(cleaned);
     store.toggleContentVisible();
-  }, [store, storeContents, tempList]);
+  }, [store, storeContents, storeBook, tempList]);
 
   const onClickSaveSet = useCallback(() => {
     storeContents.saveSet(storeBook.bookTitle);
     setSelectedSetIndex(-1);
-    setTimeout(() => {
-      if (setsSeletRef.current) {
-        setsSeletRef.current.value = '-1';
-      }
-    }, 0);
   }, [storeBook, storeContents]);
 
   const onClickRemoveSet = useCallback(() => {
     storeContents.removeSet(selectedSetIndex);
     setSelectedSetIndex(-1);
-    setTimeout(() => {
-      if (setsSeletRef.current) {
-        setsSeletRef.current.value = '-1';
-      }
-    }, 0);
   }, [selectedSetIndex, storeContents]);
 
   const onApplySet = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -336,17 +341,6 @@ const ModalContents = observer(function ModalContents() {
     setSelectedSetIndex(-1);
     setAutoDropdownOpen(false);
   }, []);
-
-  useEffect(() => {
-    if (selectedSetIndex !== -1) {
-      return;
-    }
-    setTimeout(() => {
-      if (setsSeletRef.current) {
-        setsSeletRef.current.value = selectedSetIndex + '';
-      }
-    }, 0);
-  });
 
   useEffect(() => {
     if (store.modalContentVisible) {
@@ -411,10 +405,11 @@ const ModalContents = observer(function ModalContents() {
           plainMode ? null : (
             <div className="modal-footer justify-content-start">
               <button type="button" className="btn btn-sm btn-outline-primary" onClick={onClickSaveSet}>{t.contents.saveSet}</button>
-              <select className="form-select form-select-sm" key={selectedSetIndex} value={selectedSetIndex + ''} defaultChecked={false} ref={setsSeletRef} style={{ width: '200px' }} onChange={onApplySet}>
+              <select className="form-select form-select-sm" value={selectedSetIndex + ''} style={{ width: '200px' }} onChange={onApplySet}>
+                <option value="-1" hidden>--</option>
                 {
                   storeContents.savedSets.map((set, index) =>
-                    <option defaultChecked={false} key={index} value={index}>{set.title}</option>
+                    <option key={index} value={index}>{set.title}</option>
                   )
                 }
               </select>

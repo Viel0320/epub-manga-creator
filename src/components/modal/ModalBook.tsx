@@ -33,7 +33,6 @@ const KeywordPicker = function(props: { keywords: string[], onClick: (str: strin
 const ModalBook = observer(function() {
   const { ui: storeUI, book: storeBook } = useContext(StoreContext);
   const t = useI18n();
-  const setsSeletRef = React.useRef<HTMLSelectElement>(null);
 
   const [fileName, setFileName] = useState('');
   const [keywords, setKeywords] = useState<string[]>([]);
@@ -245,21 +244,11 @@ const ModalBook = observer(function() {
   const onClickSaveSet = useCallback(() => {
     storeBook.saveBookInfoToSet();
     setSelectedSetIndex(-1);
-    setTimeout(() => {
-      if (setsSeletRef.current) {
-        setsSeletRef.current.value = '-1';
-      }
-    }, 0);
   }, [storeBook]);
 
   const onClickRemoveSet = useCallback(() => {
     storeBook.removeBookInfoSet(selectedSetIndex);
     setSelectedSetIndex(-1);
-    setTimeout(() => {
-      if (setsSeletRef.current) {
-        setsSeletRef.current.value = '-1';
-      }
-    }, 0);
   }, [selectedSetIndex, storeBook]);
 
   const onApplySet = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -278,17 +267,6 @@ const ModalBook = observer(function() {
       storeUI.firstUploaded();
     }
   }, [fileName, onClickAnalyze, storeUI]);
-
-  useEffect(() => {
-    if (selectedSetIndex !== -1) {
-      return;
-    }
-    setTimeout(() => {
-      if (setsSeletRef.current) {
-        setsSeletRef.current.value = selectedSetIndex + '';
-      }
-    }, 0);
-  });
 
   return (
     <div className="modal-dialog modal-xl" onClick={onClickModal}>
@@ -540,10 +518,11 @@ const ModalBook = observer(function() {
         </div>
         <div className="modal-footer justify-content-start">
           <button type="button" className="btn btn-sm btn-outline-primary" onClick={onClickSaveSet}>{t.book.saveSet}</button>
-          <select className="form-select form-select-sm" value={selectedSetIndex + ''} defaultChecked={false} ref={setsSeletRef} style={{width: '200px'}} onChange={onApplySet}>
+          <select className="form-select form-select-sm" value={selectedSetIndex + ''} style={{width: '200px'}} onChange={onApplySet}>
+            <option value="-1" hidden>--</option>
             {
               storeBook.savedSets.map((set, index) =>
-                <option defaultChecked={false} key={index} value={index}>title: {set.bookTitle}, author: {set.bookAuthors[0]}, subject: {set.bookSubject}</option>
+                <option key={index} value={index}>title: {set.bookTitle}, author: {set.bookAuthors[0]}, subject: {set.bookSubject}</option>
               )
             }
           </select>
