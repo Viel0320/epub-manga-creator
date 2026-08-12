@@ -23,7 +23,7 @@ There is no test runner configured.
 ## Format & Standard Support
 
 ### Import Capabilities
-- **Direct Images**: PNG, JPEG, WebP, AVIF, GIF. Image types are identified via magic bytes (`store/main.ts`).
+- **Direct Images**: PNG, JPEG, WebP, AVIF, GIF. Image types are identified via magic bytes (`detectImageMime` in `src/utils/epub-parser.ts`, used by the ZIP import in `components/header.tsx`).
 - **Archive Packages**: ZIP archives (decompressed via `JSZip`, auto-detecting image MIME types).
 - **EPUB Re-import & Parser**: Full dual EPUB 2 & EPUB 3 parser (`src/utils/epub-parser.ts`). Compatible with EPUB 3 HTML Nav (`<nav epub:type="toc">`) and `properties="cover-image"` as well as EPUB 2 NCX (`toc.ncx` / `<navMap>`) and `<meta name="cover">` / `<guide>` legacy references.
 
@@ -85,4 +85,4 @@ src/
 - Locale definitions in `en.ts` (source of truth) and `zh.ts`.
 
 ### Path Resolution
-- `tsconfig.json` specifies `baseUrl: "src"`. Module paths like `'store/main'` resolve to `src/store/main.ts`.
+- `tsconfig.json` specifies `paths: { "*": ["./src/*"] }` (resolved by Vite via `resolve.tsconfigPaths`). Module paths like `'store/main'` resolve to `src/store/main.ts`.
