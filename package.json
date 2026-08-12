@@ -8,8 +8,7 @@
     "mobx": "^6.16.1",
     "mobx-react": "^9.2.2",
     "react": "^19.2.7",
-    "react-dom": "^19.2.7",
-    "web-vitals": "^2.1.4"
+    "react-dom": "^19.2.7"
   },
   "devDependencies": {
     "@types/node": "^26.1.1",
