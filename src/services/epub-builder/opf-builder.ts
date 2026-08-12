@@ -89,11 +89,16 @@ export const buildStandardOpfDocument = (
 
   const bookTitle = htmlToEscape(data.bookTitle.trim())
 
-  const authorsStr = data.bookAuthors
-    .filter(name => name.trim())
+  const authorNames = data.bookAuthors
+    .map(name => name.trim())
+    .filter(Boolean)
+
+  // a book without any filled-in author must still carry a dc:creator node,
+  // otherwise readers/validators that expect creator metadata reject the OPF
+  const authorsStr = (authorNames.length > 0 ? authorNames : [''])
     .map((name, i) => {
       return [
-        `<dc:creator id="creator${i + 1}">${htmlToEscape(name.trim())}</dc:creator>`,
+        `<dc:creator id="creator${i + 1}">${htmlToEscape(name)}</dc:creator>`,
         `<meta refines="#creator${i + 1}" property="role" scheme="marc:relators">aut</meta>`,
         `<meta refines="#creator${i + 1}" property="display-seq">${i + 1}</meta>`
       ].join('\n')

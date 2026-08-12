@@ -126,6 +126,17 @@ class Store {
         this.ui.showToast(getLocale(this.ui.lang).alert.importImagesFailed(pushResult.failedCount), 'warning')
       }
 
+      // failed decodes compact the page list, so TOC entries carrying the
+      // original image indices must be remapped to the surviving pages
+      const succeededSet = new Set(pushResult.succeededIDs)
+      const pageIndexMap = new Map<number, number>()
+      let compactedIndex = 0
+      uuids.forEach((id, originalIndex) => {
+        if (succeededSet.has(id)) {
+          pageIndexMap.set(originalIndex, compactedIndex++)
+        }
+      })
+
       runInAction(() => {
         // Apply metadata
         const m = result.metadata
@@ -147,10 +158,10 @@ class Store {
         if (ps.pageShow) this.book.pageShow = ps.pageShow
         if (ps.pageDirection) this.book.pageDirection = ps.pageDirection
 
-        // Apply TOC
+        // Apply TOC (entries whose page failed to decode become unlinked)
         if (result.toc.length > 0) {
           const tocList = result.toc.map(item => ({
-            pageIndex: item.pageIndex as number | null,
+            pageIndex: pageIndexMap.get(item.pageIndex) ?? null,
             title: item.title,
             level: item.level
           }))
