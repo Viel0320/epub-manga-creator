@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react'
+import React, { useCallback, useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { observer } from 'mobx-react'
 import { useStore } from 'store/main'
 import Icon from 'components/icon'
@@ -44,6 +44,10 @@ const Lightbox = observer(function() {
   const t = useI18n()
 
   const [activeMenuKey, setActiveMenuKey] = useState<string | null>(null)
+  // horizontal center (viewport px) of the chip that opened the menu, so the
+  // mobile popover can anchor above it instead of floating screen-centered
+  const [menuAnchorX, setMenuAnchorX] = useState<number | null>(null)
+  const mobileMenuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!activeMenuKey) return
@@ -55,6 +59,20 @@ const Lightbox = observer(function() {
       window.removeEventListener('click', handleGlobalClick)
     }
   }, [activeMenuKey])
+
+  // align the mobile popover with the tapped chip, clamped to the screen
+  // edges; runs before paint so there is no visible jump
+  useLayoutEffect(() => {
+    const el = mobileMenuRef.current
+    if (!el || !activeMenuKey || menuAnchorX === null) return
+    const margin = 12
+    const half = el.offsetWidth / 2
+    const center = Math.max(
+      margin + half,
+      Math.min(menuAnchorX, window.innerWidth - margin - half)
+    )
+    el.style.left = `${center}px`
+  }, [activeMenuKey, menuAnchorX])
 
   useEffect(() => {
     if (!ui.isPreviewOpen) return
@@ -105,7 +123,57 @@ const Lightbox = observer(function() {
     }
   }, [ui.isPreviewOpen, book.pageDirection, book.pageShow, book.coverPosition, book.pages.length, ui])
 
+  // ---- touch swipe navigation ----
+  const swipeStartRef = useRef<{ id: number; x: number; y: number } | null>(null)
+  const swipeHandledRef = useRef(false)
+
+  const onSwipePointerDown = useCallback((e: React.PointerEvent) => {
+    if (e.pointerType === 'mouse') return
+    // gestures on the settings chips row (horizontally scrollable), its
+    // popovers or any button must not be treated as page-turn swipes
+    const target = e.target as HTMLElement
+    if (target.closest('.lightbox-settings-footer, .lightbox-menu-popover, button')) return
+    swipeStartRef.current = { id: e.pointerId, x: e.clientX, y: e.clientY }
+  }, [])
+
+  const onSwipePointerUp = useCallback((e: React.PointerEvent) => {
+    const start = swipeStartRef.current
+    if (!start || e.pointerId !== start.id) return
+    swipeStartRef.current = null
+
+    const dx = e.clientX - start.x
+    const dy = e.clientY - start.y
+
+    // any real movement means the user swiped, so the click that follows
+    // must not close the lightbox; browsers don't always synthesize that
+    // click, so the guard resets itself instead of eating the next tap
+    if (Math.hypot(dx, dy) > 10) {
+      swipeHandledRef.current = true
+      window.setTimeout(() => {
+        swipeHandledRef.current = false
+      }, 250)
+    }
+
+    if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+      // swiping the content left reveals the page on the right, and vice versa
+      ui.navigatePreview(
+        dx < 0 ? 'right' : 'left',
+        book.pageDirection,
+        book.spreadPairs,
+        book.pages.length
+      )
+    }
+  }, [ui, book])
+
+  const onSwipePointerCancel = useCallback(() => {
+    swipeStartRef.current = null
+  }, [])
+
   const onClose = useCallback(() => {
+    if (swipeHandledRef.current) {
+      swipeHandledRef.current = false
+      return
+    }
     ui.closePreview()
   }, [ui])
 
@@ -284,6 +352,27 @@ const Lightbox = observer(function() {
     }
   ]
 
+  const renderMenuOptions = (options: { key?: string; label: string; active: boolean; onClick: () => void }[]) => (
+    options.map((opt, idx) => (
+      <div
+        key={opt.key || idx}
+        className={`lightbox-menu-item ${opt.active ? 'active' : ''}`}
+        onClick={(e) => {
+          e.stopPropagation()
+          opt.onClick()
+          setActiveMenuKey(null)
+        }}
+      >
+        <span className="menu-item-check">{opt.active ? '✓' : ''}</span>
+        <span className="menu-item-label">{opt.label}</span>
+      </div>
+    ))
+  )
+
+  const activeChip = activeMenuKey !== null
+    ? settingsChips.find(chip => chip.key === activeMenuKey) ?? null
+    : null
+
   const renderSingleImage = (idx: number, side?: 'left' | 'right') => {
     const page = book.pages[idx]
     if (!page) return null
@@ -410,7 +499,13 @@ const Lightbox = observer(function() {
   }
 
   return (
-    <div className="lightbox-container" onClick={onClose}>
+    <div
+      className="lightbox-container"
+      onClick={onClose}
+      onPointerDown={onSwipePointerDown}
+      onPointerUp={onSwipePointerUp}
+      onPointerCancel={onSwipePointerCancel}
+    >
       <div className="lightbox-content">
         {/* Page Mode Toggle Button (Top Left) */}
         <button
@@ -475,7 +570,11 @@ const Lightbox = observer(function() {
       </div>
 
       {/* Page Settings Chips Footer (Bottom) */}
-      <div className="lightbox-settings-footer" onClick={onContentClick}>
+      <div
+        className="lightbox-settings-footer"
+        onClick={onContentClick}
+        onScroll={() => setActiveMenuKey(null)}
+      >
         {settingsChips.map((chip) => {
           const isOpen = activeMenuKey === chip.key
           return (
@@ -484,6 +583,8 @@ const Lightbox = observer(function() {
               className={`lightbox-setting-chip ${isOpen ? 'active' : ''}`}
               onClick={(e) => {
                 e.stopPropagation()
+                const rect = e.currentTarget.getBoundingClientRect()
+                setMenuAnchorX(rect.left + rect.width / 2)
                 setActiveMenuKey(isOpen ? null : chip.key)
               }}
             >
@@ -491,31 +592,29 @@ const Lightbox = observer(function() {
               <span className="chip-val">{chip.value}</span>
               <span className="chip-arrow">▾</span>
 
-              {isOpen && (
+              {/* desktop keeps the dropup anchored inside the chip; on mobile
+                  the chip has backdrop-filter (fixed containing block) and the
+                  footer scrolls (clips), so the menu renders outside instead */}
+              {isOpen && !ui.isMobile && (
                 <div
                   className="lightbox-menu-popover"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {chip.options.map((opt, idx) => (
-                    <div
-                      key={opt.key || idx}
-                      className={`lightbox-menu-item ${opt.active ? 'active' : ''}`}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        opt.onClick()
-                        setActiveMenuKey(null)
-                      }}
-                    >
-                      <span className="menu-item-check">{opt.active ? '✓' : ''}</span>
-                      <span className="menu-item-label">{opt.label}</span>
-                    </div>
-                  ))}
+                  {renderMenuOptions(chip.options)}
                 </div>
               )}
             </div>
           )
         })}
       </div>
+
+      {/* Mobile: menu floats above the footer, outside the scroll container,
+          horizontally anchored to the tapped chip (see useLayoutEffect) */}
+      {ui.isMobile && activeChip && (
+        <div ref={mobileMenuRef} className="lightbox-menu-popover" onClick={onContentClick}>
+          {renderMenuOptions(activeChip.options)}
+        </div>
+      )}
     </div>
   )
 })
