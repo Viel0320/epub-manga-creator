@@ -7,11 +7,11 @@ import { useI18n } from 'i18n'
 import { db } from 'utils/db'
 import { getPageLayoutInfo, getSpreadPairs } from 'utils/page-layout'
 import { getPageEffectiveSize } from 'utils/page-size'
+import { requestImportGlobal } from 'components/nav/actions'
+import { usePageDrag } from 'hooks/usePageDrag'
 import ToastContainer from './toast'
 
 const THIS_YEAR = (new Date()).getFullYear()
-
-let globalDraggedIndex: number | null = null
 
 const PageCard = observer(function(props: {
   pageItemIndex: number | null
@@ -24,8 +24,6 @@ const PageCard = observer(function(props: {
   const storeMain = useStore()
   const { ui: storeUI, book: storeBook, contents: storeContent, modePageSize } = storeMain
   const t = useI18n()
-  const [isDragging, setIsDragging] = useState(false)
-  const [isDragOver, setIsDragOver] = useState(false)
 
   // selection always stores the real page-array index; pageItemIndex is a
   // display-only number (shifted by 1 in "alone" cover mode)
@@ -43,58 +41,23 @@ const PageCard = observer(function(props: {
     }
   }
 
+  const isDraggable = props.realPageIndex !== null && props.realPageIndex !== undefined && props.realPageIndex !== 0
+  const isDropTarget = props.realPageIndex !== null && props.realPageIndex !== undefined
+
+  const handleDrop = useCallback((sourceIndex: number, targetIndex: number) => {
+    storeMain.movePage(sourceIndex, targetIndex)
+  }, [storeMain])
+
+  const { onPointerDown } = usePageDrag({
+    pageIndex: props.realPageIndex,
+    draggable: isDraggable,
+    onDrop: handleDrop,
+  })
+
   if (props.pageItemIndex === null) {
     return (
       <div className="card"><div className="card-image"></div></div>
     )
-  }
-
-  const isDraggable = props.realPageIndex !== null && props.realPageIndex !== undefined && props.realPageIndex !== 0
-  const isDropTarget = props.realPageIndex !== null && props.realPageIndex !== undefined
-
-  const onDragStart = (e: React.DragEvent) => {
-    if (!isDraggable) {
-      e.preventDefault()
-      return
-    }
-    globalDraggedIndex = props.realPageIndex ?? null
-    e.dataTransfer.setData('text/plain', String(props.realPageIndex))
-    e.dataTransfer.effectAllowed = 'move'
-    setIsDragging(true)
-  }
-
-  const onDragEnd = () => {
-    globalDraggedIndex = null
-    setIsDragging(false)
-    setIsDragOver(false)
-  }
-
-  const onDragOver = (e: React.DragEvent) => {
-    if (!isDropTarget) return
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
-    setIsDragOver(true)
-  }
-
-  const onDragLeave = () => {
-    if (!isDropTarget) return
-    setIsDragOver(false)
-  }
-
-  const onDrop = (e: React.DragEvent) => {
-    if (!isDropTarget) return
-    e.preventDefault()
-    setIsDragOver(false)
-
-    const rawSource = globalDraggedIndex
-    globalDraggedIndex = null
-    const fallbackSourceStr = e.dataTransfer.getData('text/plain')
-    const sourceIndex = rawSource !== null ? rawSource : (fallbackSourceStr ? Number(fallbackSourceStr) : NaN)
-    const targetIndex = props.realPageIndex as number
-
-    if (!isNaN(sourceIndex) && sourceIndex >= 0 && sourceIndex < storeBook.pages.length && sourceIndex !== targetIndex) {
-      storeMain.movePage(sourceIndex, targetIndex)
-    }
   }
 
   let preserveAspectRatio = 'none'
@@ -110,13 +73,9 @@ const PageCard = observer(function(props: {
 
   return (
     <div
-      className={`card ${isDragging ? 'is-dragging' : ''} ${isDragOver ? 'drag-over' : ''}`}
-      draggable={isDraggable}
-      onDragStart={onDragStart}
-      onDragEnd={onDragEnd}
-      onDragOver={onDragOver}
-      onDragLeave={onDragLeave}
-      onDrop={onDrop}
+      className={`card${isDraggable ? ' is-draggable' : ''}`}
+      data-page-index={isDropTarget ? props.realPageIndex : undefined}
+      onPointerDown={onPointerDown}
       onContextMenu={handleContextMenu}
     >
       {
@@ -322,17 +281,21 @@ const SinglePageCard = observer(function(props: {
   )
 })
 
-let CARD_BOX_WIDTH = 280;
-let CARD_BOX_MARGIN = 7;
-
-if (typeof window !== 'undefined') {
-  try {
-    const computedStyle = getComputedStyle(document.documentElement);
-    CARD_BOX_WIDTH = +computedStyle.getPropertyValue('--card-box-width').slice(0, -2) || 280;
-    CARD_BOX_MARGIN = +computedStyle.getPropertyValue('--card-box-margin').slice(0, -2) || 7;
-  } catch (e) {
-    // SSR Fallback
+// read the CSS vars on every layout pass (not once at module load) so
+// media-query overrides take effect after resizes / orientation changes
+function readCardMetrics(): { width: number; margin: number } {
+  if (typeof window !== 'undefined') {
+    try {
+      const computedStyle = getComputedStyle(document.documentElement);
+      return {
+        width: parseFloat(computedStyle.getPropertyValue('--card-box-width')) || 280,
+        margin: parseFloat(computedStyle.getPropertyValue('--card-box-margin')) || 7,
+      };
+    } catch (e) {
+      // SSR fallback below
+    }
   }
+  return { width: 280, margin: 7 };
 }
 
 const RestoreBanner = observer(function() {
@@ -526,12 +489,16 @@ const Main = function() {
     const mainEl = mainRef.current
     if (!mainEl) return
 
-    const availableWidth = mainEl.clientWidth - 36
+    // use the actual computed padding so media-query overrides stay in sync
+    const mainStyle = getComputedStyle(mainEl)
+    const horizontalPadding = (parseFloat(mainStyle.paddingLeft) || 0) + (parseFloat(mainStyle.paddingRight) || 0)
+    const availableWidth = mainEl.clientWidth - horizontalPadding
     if (availableWidth <= 0) return
 
+    const { width: cardBaseWidth, margin: cardMargin } = readCardMetrics()
     const isSingle = storeBook.pageShow === 'one'
-    const cardBoxWidth = isSingle ? CARD_BOX_WIDTH / 2 : CARD_BOX_WIDTH
-    const cardTotalWidth = cardBoxWidth + CARD_BOX_MARGIN * 2
+    const cardBoxWidth = isSingle ? cardBaseWidth / 2 : cardBaseWidth
+    const cardTotalWidth = cardBoxWidth + cardMargin * 2
     const boxCountInOneRow = Math.max(1, Math.floor(availableWidth / cardTotalWidth))
 
     const len = storeBook.pages.length
@@ -584,12 +551,7 @@ const Main = function() {
   }, [storeBook.coverPosition, storeBook.pages.length, storeBook.pageShow, pagesVersionKey, modePageSize])
 
   const onClickImportType = useCallback((type: 'image' | 'zip' | 'epub') => {
-    const item = document.querySelector(`#nav .dropdown-item[data-type="${type}"]`) as HTMLElement
-    if (item) {
-      item.click()
-    } else {
-      document.getElementById('input-upload')?.click()
-    }
+    requestImportGlobal(type)
   }, [])
 
   useEffect(() => {
