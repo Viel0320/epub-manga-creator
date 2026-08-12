@@ -1,5 +1,5 @@
 import getTemplateStandardOpf from 'template/standard.opf'
-import { getPageLayoutInfo, getSpreadPairs } from 'utils/page-layout'
+import { getPageLayoutInfo } from 'utils/page-layout'
 import { EpubBookData } from './types'
 import { htmlToEscape, getNumberStr } from './utils'
 
@@ -23,7 +23,8 @@ export const buildStandardOpfDocument = (
   const pageItemStr: string[] = []
   const itemRefStr: string[] = []
 
-  const refPairs = getSpreadPairs(data.pages, data.coverPosition)
+  // use the same spread grouping as page-builder (single source of truth)
+  const refPairs = data.spreadPairs
   const refPairMap = new Map<number, boolean | undefined>()
   for (const pair of refPairs) {
     if (pair.length === 1) {
@@ -66,9 +67,14 @@ export const buildStandardOpfDocument = (
         isFirstInPair: refFirst,
         isSingle: isSinglePage
       })
+      // EPUB 3 spine vocabulary only defines page-spread-left/right;
+      // "center" requires the rendition: prefix to pass epubcheck
       const spreadDir = isSinglePage ? 'center' : layout.spread
+      const spreadProperty = spreadDir === 'center'
+        ? 'rendition:page-spread-center'
+        : `page-spread-${spreadDir}`
       itemRefStr.push(
-        `<itemref linear="yes" idref="p_${numStr}" properties="page-spread-${spreadDir}"></itemref>`
+        `<itemref linear="yes" idref="p_${numStr}" properties="${spreadProperty}"></itemref>`
       )
     }
   })
@@ -84,11 +90,11 @@ export const buildStandardOpfDocument = (
   const bookTitle = htmlToEscape(data.bookTitle.trim())
 
   const authorsStr = data.bookAuthors
+    .filter(name => name.trim())
     .map((name, i) => {
       return [
-        `<dc:creator id="creator${i + 1}">${htmlToEscape(name)}</dc:creator>`,
+        `<dc:creator id="creator${i + 1}">${htmlToEscape(name.trim())}</dc:creator>`,
         `<meta refines="#creator${i + 1}" property="role" scheme="marc:relators">aut</meta>`,
-        `<meta refines="#creator${i + 1}" property="file-as"></meta>`,
         `<meta refines="#creator${i + 1}" property="display-seq">${i + 1}</meta>`
       ].join('\n')
     })

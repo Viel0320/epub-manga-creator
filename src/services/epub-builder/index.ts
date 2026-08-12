@@ -19,8 +19,11 @@ export class EpubBuilder {
     // 1. 构建页面与图片资源
     const pageResult = buildPageFiles(data)
 
-    // 2. 构建目录导航文档
-    const tocContent = buildTocNavigationDocument(data.contents, coverAlone)
+    // 2. 构建目录导航文档（过滤指向不存在页面的条目，避免导出死链）
+    const validContents = data.contents.filter(
+      item => item.pageIndex === null || (item.pageIndex >= 0 && item.pageIndex < data.pages.length)
+    )
+    const tocContent = buildTocNavigationDocument(validContents, coverAlone)
 
     // 3. 构建 OPF 主包描述文件
     const opfResult = buildStandardOpfDocument(
@@ -68,12 +71,12 @@ export class EpubBuilder {
       compression: 'DEFLATE'
     })
 
-    // 7. 触发文件下载
+    // 7. 触发文件下载（延迟 revoke，避免部分浏览器下载被中断）
     const anchor = document.createElement('a')
     const objectURL = window.URL.createObjectURL(blob)
     anchor.download = (data.bookTitle.trim() || 'untitled') + '.epub'
     anchor.href = objectURL
     anchor.click()
-    window.URL.revokeObjectURL(objectURL)
+    setTimeout(() => window.URL.revokeObjectURL(objectURL), 10000)
   }
 }
