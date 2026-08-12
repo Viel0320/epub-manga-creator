@@ -42,6 +42,10 @@ const zh: Locale = {
 
   alert: {
     error: '错误',
+    importImagesFailed: (count: number) => `有 ${count} 张图片导入失败`,
+    zipNoImages: '压缩包中没有找到图片',
+    zipReadFailed: '读取压缩包失败',
+    splitFailed: '拆分页面失败',
   },
 
   main: {
@@ -54,6 +58,8 @@ const zh: Locale = {
     restoreDetected: '检测到您上次未完成的项目，是否恢复进度？',
     restore: '恢复',
     dismiss: '忽略',
+    restoredSuccess: (count: number) => `已成功从本地备份恢复工作区（${count} 页）`,
+    restoredPartial: (restored: number, failed: number) => `已恢复 ${restored} 页，有 ${failed} 页图片损坏无法读取`,
   },
 
   lightbox: {
@@ -68,6 +74,7 @@ const zh: Locale = {
   loading: {
     generating: '正在生成 EPUB…',
     importingEpub: '正在导入 EPUB…',
+    importingImages: '正在导入图片…',
   },
 
   book: {
@@ -115,6 +122,9 @@ const zh: Locale = {
     intervalPrompt: '请输入间隔页数：',
     autoSuccess: (count: number) => `已自动生成 ${count} 个目录项`,
     noPages: '暂无可用页面，无法生成目录',
+    tocCover: '封面',
+    tocChapter: (num: number) => `第 ${num} 话`,
+    tocPage: (num: number) => `第 ${num} 页`,
   },
 
   page: {

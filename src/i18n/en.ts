@@ -44,6 +44,10 @@ const en = {
   // Alert messages
   alert: {
     error: 'Error',
+    importImagesFailed: (count: number) => `${count} image(s) could not be imported`,
+    zipNoImages: 'No images found in the archive',
+    zipReadFailed: 'Failed to read the archive',
+    splitFailed: 'Failed to split the page',
   },
 
   // Main area
@@ -57,6 +61,8 @@ const en = {
     restoreDetected: 'Detected a backup from your last session. Would you like to restore it?',
     restore: 'Restore',
     dismiss: 'Dismiss',
+    restoredSuccess: (count: number) => `Workspace restored from local backup (${count} pages)`,
+    restoredPartial: (restored: number, failed: number) => `Restored ${restored} pages, ${failed} could not be read`,
   },
 
   // Lightbox (page preview)
@@ -73,6 +79,7 @@ const en = {
   loading: {
     generating: 'Generating EPUB…',
     importingEpub: 'Importing EPUB…',
+    importingImages: 'Importing images…',
   },
 
   // Modal – Book settings
@@ -122,6 +129,9 @@ const en = {
     intervalPrompt: 'Enter interval (pages):',
     autoSuccess: (count: number) => `Generated ${count} TOC items`,
     noPages: 'No image pages available to generate TOC',
+    tocCover: 'Cover',
+    tocChapter: (num: number) => `Chapter ${num}`,
+    tocPage: (num: number) => `Page ${num}`,
   },
 
   // Modal – Page settings
@@ -166,6 +176,10 @@ const en = {
 
 export default en
 
+type SectionLocale<T> = {
+  [K in keyof T]: T[K] extends (...args: any[]) => any ? T[K] : string
+}
+
 export type Locale = {
   nav: Record<keyof typeof en.nav, string>
   prompt: {
@@ -173,17 +187,13 @@ export type Locale = {
     insertPageIndex: (max: number) => string
     removePage: (idx: number) => string
   }
-  alert: Record<keyof typeof en.alert, string>
+  alert: SectionLocale<typeof en.alert>
   confirm: Record<keyof typeof en.confirm, string>
-  main: Record<keyof typeof en.main, string>
+  main: SectionLocale<typeof en.main>
   lightbox: Record<keyof typeof en.lightbox, string>
   loading: Record<keyof typeof en.loading, string>
   book: Record<keyof typeof en.book, string>
-  contents: {
-    [K in keyof typeof en.contents]: (typeof en.contents)[K] extends (...args: any[]) => any
-      ? (typeof en.contents)[K]
-      : string
-  }
+  contents: SectionLocale<typeof en.contents>
   page: Record<keyof typeof en.page, string>
   option: Record<keyof typeof en.option, string>
   lang: Record<keyof typeof en.lang, string>
