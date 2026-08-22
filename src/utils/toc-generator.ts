@@ -33,6 +33,9 @@ export interface TOCGenerateOptions {
   mode: TOCGenerateMode
   interval?: number
   labels?: TOCLabels
+  /** 传入书籍封面设置：独立封面模式下封面不属于阅读流，生成结果不含
+   *  封面条目，页码从第一个内容页的 1 开始（与卡片编号一致） */
+  coverPosition?: 'first-page' | 'alone'
 }
 
 // Clean file path to extract directory and basename without extension
@@ -93,7 +96,8 @@ export const generateTOC = (
   pages: PageImageInfo[],
   options: TOCGenerateOptions = { mode: 'smart' }
 ): ContentItem[] => {
-  const { mode, interval = 10, labels = DEFAULT_LABELS } = options
+  const { mode, interval = 10, labels = DEFAULT_LABELS, coverPosition } = options
+  const coverOffset = coverPosition === 'alone' ? 1 : 0
 
   if (!pages || pages.length === 0) {
     return [{ pageIndex: 0, title: labels.cover, level: 0 }]
@@ -110,17 +114,19 @@ export const generateTOC = (
   }
 
   if (mode === 'page') {
-    pages.forEach((_, i) => {
-      const title = i === 0 ? labels.cover : labels.page(i + 1)
+    for (let i = coverOffset; i < pages.length; i++) {
+      const title = i === 0 ? labels.cover : labels.page(i + 1 - coverOffset)
       addEntry(i, title)
-    })
+    }
     return result
   }
 
   if (mode === 'interval') {
     const step = Math.max(1, interval)
-    for (let i = 0; i < pages.length; i += step) {
-      const chapterNum = Math.floor(i / step) + 1
+    // 产品行为：普通封面模式下封面占据"第 1 话"位置（首个内容条目为第 2 话）；
+    // 独立封面模式从第一个内容页的"第 1 话"起算
+    for (let i = coverOffset; i < pages.length; i += step) {
+      const chapterNum = Math.floor((i - coverOffset) / step) + 1
       const title = i === 0 ? labels.cover : labels.chapter(chapterNum)
       addEntry(i, title)
     }
@@ -129,8 +135,9 @@ export const generateTOC = (
 
   if (mode === 'filename') {
     pages.forEach((page, i) => {
+      if (coverOffset && i === 0) return
       const { name } = getFolderAndName(page.fileName)
-      const cleaned = cleanExt(name) || labels.page(i + 1)
+      const cleaned = cleanExt(name) || labels.page(i + 1 - coverOffset)
       addEntry(i, cleaned)
     })
     return result
@@ -139,6 +146,7 @@ export const generateTOC = (
   if (mode === 'folder') {
     let lastDir = ''
     pages.forEach((page, i) => {
+      if (coverOffset && i === 0) return
       const { dir } = getFolderAndName(page.fileName)
       if (dir && dir !== lastDir) {
         // extract last segment of directory path
@@ -148,8 +156,9 @@ export const generateTOC = (
         lastDir = dir
       }
     })
-    if (result.length === 0) {
-      addEntry(0, labels.cover)
+    if (result.length === 0 && pages.length > coverOffset) {
+      // standalone-cover books have no cover entry; anchor at the first content page
+      addEntry(coverOffset, coverOffset ? labels.page(1) : labels.cover)
     }
     return result
   }
@@ -163,6 +172,7 @@ export const generateTOC = (
     hasFolderStructure = true
     let lastDir = ''
     pages.forEach((page, i) => {
+      if (coverOffset && i === 0) return
       const { dir } = getFolderAndName(page.fileName)
       if (dir && dir !== lastDir) {
         const folderName = dir.split('/').pop() || dir
@@ -175,6 +185,7 @@ export const generateTOC = (
 
   // Step 2: Check filename chapter regexes
   pages.forEach((page, i) => {
+    if (coverOffset && i === 0) return
     const { name } = getFolderAndName(page.fileName)
     const title = extractChapterTitle(name, labels)
     if (title) {
@@ -182,14 +193,14 @@ export const generateTOC = (
     }
   })
 
-  // Step 3: Ensure page 0 has a title if nothing matched page 0
-  if (!addedPages.has(0)) {
-    // Check if page 0 image name looks like cover
-    const page0Name = getFolderAndName(pages[0]?.fileName || '').name
-    const title0 = extractChapterTitle(page0Name, labels) || labels.cover
+  // Step 3: Ensure the first reading page has an entry if nothing matched it
+  if (pages.length > coverOffset && !addedPages.has(coverOffset)) {
+    const firstName = getFolderAndName(pages[coverOffset]?.fileName || '').name
+    const titleFirst = extractChapterTitle(firstName, labels)
+      || (coverOffset ? labels.page(1) : labels.cover)
     // Prepend or add at 0
-    result.unshift({ pageIndex: 0, title: title0, level: 0 })
-    addedPages.add(0)
+    result.unshift({ pageIndex: coverOffset, title: titleFirst, level: 0 })
+    addedPages.add(coverOffset)
   }
 
   // Sort by pageIndex ascending

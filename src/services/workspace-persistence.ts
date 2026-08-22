@@ -62,8 +62,19 @@ export async function restoreWorkspaceFromDB(store: StoreMain): Promise<void> {
       failedCount += pushResult.failedCount
     }
 
+    // failed pages compact the list, so TOC entries carrying the original
+    // page indices must be remapped to the surviving pages (mirrors the
+    // epub import path in store/main.ts)
+    const available = new Set(restoredIDs)
+    const pageIndexMap = new Map<number, number>()
+    let compactedIndex = 0
+    backup.pages.forEach((page, originalIndex) => {
+      if (page.blank || available.has(page.blobID)) {
+        pageIndexMap.set(originalIndex, compactedIndex++)
+      }
+    })
+
     runInAction(() => {
-      const available = new Set(restoredIDs)
       store.book.pages = backup.pages
         .filter(page => page.blank || available.has(page.blobID))
         .map((page, i) => ({ ...page, index: i }))
@@ -104,17 +115,25 @@ export async function restoreWorkspaceFromDB(store: StoreMain): Promise<void> {
       }
 
       if (backup.contents && Array.isArray(backup.contents.list)) {
-        store.contents.updateList(backup.contents.list)
+        // entries whose page failed to restore become unlinked (null)
+        store.contents.updateList(
+          backup.contents.list.map(item => ({
+            ...item,
+            pageIndex: item.pageIndex === null ? null : (pageIndexMap.get(item.pageIndex) ?? null)
+          }))
+        )
       }
 
       store.ui.firstImport = false
       restoredIDs.forEach(id => store.savedBlobIDs.add(id))
 
       const locale = getLocale(store.ui.lang)
+      // 报告用户视角的页数：独立封面不计入编号
+      const restoredCount = store.book.pages.length - (store.book.coverPosition === 'alone' ? 1 : 0)
       if (failedCount > 0) {
         store.ui.showToast(locale.main.restoredPartial(restoredIDs.length, failedCount), 'warning', 5000)
       } else {
-        store.ui.showToast(locale.main.restoredSuccess(store.book.pages.length), 'success', 5000)
+        store.ui.showToast(locale.main.restoredSuccess(restoredCount), 'success', 5000)
       }
     })
   } finally {

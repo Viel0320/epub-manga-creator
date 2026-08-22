@@ -63,6 +63,7 @@ const PageCard = observer(function(props: {
   let preserveAspectRatio = 'none'
 
   if (storeBook.pageFit !== 'fill') {
+    // 预览专属：左右页贴书脊对齐以模拟跨页观感；导出为标准 EPUB 每页居中（xMidYMid）
     const alignPos = props.spread === 'left' ? 'xMaxYMid ' : (props.spread === 'right' ? 'xMinYMid ' : 'xMidYMid ')
     preserveAspectRatio = alignPos + (storeBook.pageFit === 'contain' ? 'meet' : 'slice')
   }

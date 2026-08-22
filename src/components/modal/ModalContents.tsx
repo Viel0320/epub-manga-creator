@@ -11,6 +11,8 @@ import VirtualList from 'components/common/VirtualList';
 interface ModalContentRowProps {
   index: number;
   contentItem: { pageIndex: number | null; title: string; level: number };
+  /** 独立封面模式下卡片编号不含封面，页码列必须显示同样的编号 */
+  coverOffset: number;
   onInputPageIndex: (index: number, value: string) => void;
   onInputTitle: (index: number, value: string) => void;
   onFocusNumberInput: (e: React.FocusEvent<HTMLInputElement>) => void;
@@ -23,6 +25,7 @@ interface ModalContentRowProps {
 const ModalContentRow = React.memo(function ModalContentRow({
   index,
   contentItem,
+  coverOffset,
   onInputPageIndex,
   onInputTitle,
   onFocusNumberInput,
@@ -32,13 +35,15 @@ const ModalContentRow = React.memo(function ModalContentRow({
   onOutdent
 }: ModalContentRowProps) {
   const level = contentItem.level || 0;
+  const isUnlinked = contentItem.pageIndex === null
+    || (coverOffset === 1 && contentItem.pageIndex === 0);
   return (
     <div className="row mx-0 g-2 align-items-stretch mb-4" style={{ paddingLeft: level * 24 }}>
       <div className="col-3 col-md-2">
         <input
           type="number"
           className="form-control"
-          value={contentItem.pageIndex === null ? '' : contentItem.pageIndex + 1}
+          value={isUnlinked ? '' : contentItem.pageIndex! + 1 - coverOffset}
           onFocus={onFocusNumberInput}
           onChange={(e) => onInputPageIndex(index, e.target.value)}
         />
@@ -95,6 +100,12 @@ const ModalContents = observer(function ModalContents() {
   const storeMain = useContext(StoreContext);
   const { ui: store, contents: storeContents, book: storeBook } = storeMain;
   const t = useI18n();
+  // 目录编辑器显示/输入的页码与卡片编号一致：独立封面模式下不含封面。
+  // 封面无独立页面文件，条目不可指向它——一律视为未关联。
+  const coverOffset = storeBook.coverPosition === 'alone' ? 1 : 0;
+  const isUnlinkedPage = useCallback((pageIndex: number | null) =>
+    pageIndex === null || (coverOffset === 1 && pageIndex === 0)
+  , [coverOffset]);
   const [plainMode, setPlainMode] = useState(false);
   const [tempList, setTempList] = useState<typeof storeContents.list>([]);
   const [textAreaInput, setTextAreaInput] = useState('');
@@ -140,6 +151,7 @@ const ModalContents = observer(function ModalContents() {
     const generated = generateTOC(pagesInfo, {
       mode,
       interval,
+      coverPosition: storeBook.coverPosition,
       labels: {
         cover: t.contents.tocCover,
         chapter: t.contents.tocChapter,
@@ -150,9 +162,9 @@ const ModalContents = observer(function ModalContents() {
     if (plainMode) {
       const textVal = generated.map(item => {
         const indent = '  '.repeat(item.level || 0);
-        return item.pageIndex === null
+        return isUnlinkedPage(item.pageIndex)
           ? indent + item.title
-          : indent + (item.pageIndex + 1) + '. ' + item.title;
+          : indent + (item.pageIndex! + 1 - coverOffset) + '. ' + item.title;
       }).join('\n');
       setTextAreaInput(textVal);
     } else {
@@ -160,7 +172,7 @@ const ModalContents = observer(function ModalContents() {
     }
 
     setAutoGenSuccessCount(generated.length);
-  }, [storeBook, plainMode, t]);
+  }, [storeBook, plainMode, t, coverOffset, isUnlinkedPage]);
 
   const togglePlainMode = useCallback(() => {
     if (plainMode) {
@@ -177,8 +189,9 @@ const ModalContents = observer(function ModalContents() {
         const [pageIndex, ...title] = trimmed.split('. ');
 
         if (pageIndex.trim() !== '' && !isNaN(pageIndex as any) && title.length) {
+          const parsed = Math.max(0, +pageIndex - 1 + coverOffset);
           list.push({
-            pageIndex: Math.max(0, +pageIndex - 1),
+            pageIndex: coverOffset === 1 && parsed === 0 ? null : parsed,
             title: title.join('. '),
             level
           });
@@ -195,27 +208,28 @@ const ModalContents = observer(function ModalContents() {
     } else {
       const value = tempList.map(contentItem => {
         const indent = '  '.repeat(contentItem.level || 0);
-        return contentItem.pageIndex === null
+        return isUnlinkedPage(contentItem.pageIndex)
           ? indent + contentItem.title
-          : indent + (contentItem.pageIndex + 1) + '. ' + contentItem.title;
+          : indent + (contentItem.pageIndex! + 1 - coverOffset) + '. ' + contentItem.title;
       }).join('\n');
 
       setTextAreaInput(value);
     }
 
     setPlainMode(!plainMode);
-  }, [tempList, plainMode, textAreaInput]);
+  }, [tempList, plainMode, textAreaInput, coverOffset, isUnlinkedPage]);
 
   const onInputPageIndex = useCallback((index: number, value: string) => {
     const num = parseInt(value, 10);
-    const pageIndex = isNaN(num) ? null : Math.max(0, num - 1);
+    const clamped = isNaN(num) ? null : Math.max(0, num - 1 + coverOffset);
+    const pageIndex = coverOffset === 1 && clamped === 0 ? null : clamped;
     setTempList(prev => {
       if (prev[index]?.pageIndex === pageIndex) return prev;
       const next = [...prev];
       next[index] = { ...next[index], pageIndex };
       return next;
     });
-  }, []);
+  }, [coverOffset]);
 
   const onInputTitle = useCallback((index: number, value: string) => {
     setTempList(prev => {
@@ -285,7 +299,7 @@ const ModalContents = observer(function ModalContents() {
   const onRemoveExceptCover = useCallback(() => {
     setTempList(prev => {
       const coverItems = prev.filter(item =>
-        item.pageIndex === 0 || /封面|Cover|表紙/i.test(item.title)
+        (!coverOffset && item.pageIndex === 0) || /封面|Cover|表紙/i.test(item.title)
       );
 
       if (coverItems.length > 0) {
@@ -293,12 +307,13 @@ const ModalContents = observer(function ModalContents() {
       }
 
       if (prev.length > 0) {
-        return [{ ...prev[0], pageIndex: prev[0].pageIndex ?? 0 }];
+        // 找不到封面条目时保留第一行原样：独立封面模式的封面不可被目录指向
+        return [prev[0]];
       }
 
-      return [{ pageIndex: 0, title: t.contents.tocCover, level: 0 }];
+      return coverOffset ? [] : [{ pageIndex: 0, title: t.contents.tocCover, level: 0 }];
     });
-  }, [t]);
+  }, [t, coverOffset]);
 
   const onFocusNumberInput = useCallback((e: FormEvent<HTMLInputElement>) => {
     e.currentTarget.select();
@@ -314,12 +329,14 @@ const ModalContents = observer(function ModalContents() {
     const maxPage = storeBook.pages.length;
     const cleaned = tempList.map(item => {
       if (item.pageIndex === null) return item;
+      // normalize legacy entries still pointing at a standalone cover
+      if (coverOffset === 1 && item.pageIndex === 0) return { ...item, pageIndex: null };
       if (maxPage === 0) return { ...item, pageIndex: null };
       return { ...item, pageIndex: Math.min(Math.max(0, item.pageIndex), maxPage - 1) };
     });
     storeContents.updateList(cleaned);
     store.toggleContentVisible();
-  }, [store, storeContents, storeBook, tempList]);
+  }, [store, storeContents, storeBook, tempList, coverOffset]);
 
   const onClickSaveSet = useCallback(() => {
     storeContents.saveSet(storeBook.bookTitle);
@@ -393,6 +410,7 @@ const ModalContents = observer(function ModalContents() {
                       key={index}
                       index={index}
                       contentItem={contentItem}
+                      coverOffset={coverOffset}
                       onInputPageIndex={onInputPageIndex}
                       onInputTitle={onInputTitle}
                       onFocusNumberInput={onFocusNumberInput}

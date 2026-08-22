@@ -51,8 +51,10 @@ class Store {
 
   pageSize: [number, number] = [1200, 1600]
   pageSizeMode: ('manual' | 'auto') = 'auto'
+  // 预览专属：导出的跨页布局固定按双页计算，与此设置无关
   pageShow: ('two' | 'one') = 'two'
   pageFit: ('contain' | 'cover' | 'fill') = 'contain'
+  // 预览专属：不写入导出的 EPUB，页面背景由阅读器默认渲染
   pageBackgroundColor: ('white' | 'black') = 'white'
   pageDirection: ('right' | 'left') = 'right'
   coverPosition: ('first-page' | 'alone') = 'first-page'

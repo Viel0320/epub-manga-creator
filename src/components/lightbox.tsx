@@ -435,6 +435,7 @@ const Lightbox = observer(function() {
     if (book.pageFit === 'fill') {
       par = 'none'
     } else {
+      // 预览专属：左右页贴书脊对齐以模拟跨页观感；导出为标准 EPUB 每页居中（xMidYMid）
       const alignPos = side === 'left' ? 'xMaxYMid' : (side === 'right' ? 'xMinYMid' : 'xMidYMid')
       const mode = book.pageFit === 'cover' ? 'slice' : 'meet'
       par = `${alignPos} ${mode}`
