@@ -34,7 +34,7 @@ The generated EPUB structure conforms to the specifications of the [Digital Comi
 This project focuses on producing a **single, unified EPUB file** that delivers reliable compatibility across diverse e-reading devices and software. The following matrix details real-world testing results and platform behaviors:
 
 - [Starrea](https://apps.microsoft.com/detail/9p8xwg60cqd2) (Windows): Does not support spine page-spreads or image stretch styling.
-- [Readest](https://github.com/readest/readest) (Android & Windows): Overrides image styles; Android client lacks spine page-spread support.
+- [Readest](https://github.com/readest/readest) (Android & Windows): Overrides image styles.
 - [Calibre](https://calibre-ebook.com/) (Windows): Built-in viewer does not support spine page-spreads.
 - [Rodel Reader](https://apps.microsoft.com/detail/9p6796l4r67r) *(Manga mode)* (Windows): Custom rendering engine strips inline CSS styles.
 - [Kindle App & Devices](https://www.amazon.com/sendtokindle) *(via Send to Kindle; Android, Windows, & KindleOS 5.19.2 on KPW5)*: Overrides image styles; cross-page preview may trigger unexpectedly due to Kindle's layout algorithm (spine spread logic itself functions correctly).

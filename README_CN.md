@@ -34,7 +34,7 @@
 本项目致力于通过规范化的结构输出，使**同一份 EPUB 文件**在不同阅读应用与设备上均能获得出色的兼容体验。以下为常见阅读器与设备的实测验证与表现总结：
 
 - [Starrea](https://apps.microsoft.com/detail/9p8xwg60cqd2)（Windows）：不支持 Spine 跨页拼页与图片拉伸样式
-- [Readest](https://github.com/readest/readest)（Android & Windows）：会覆盖图片自定义样式；Android 端不支持 Spine 跨页拼页
+- [Readest](https://github.com/readest/readest)（Android & Windows）：会覆盖图片自定义样式
 - [Calibre](https://calibre-ebook.com/)（Windows）：内置阅读器不支持 Spine 跨页拼页
 - [Rodel Reader](https://apps.microsoft.com/detail/9p6796l4r67r)（漫画模式 / Manga mode）（Windows）：自研渲染引擎会剥离传入的自定义 CSS 样式
 - [Kindle 应用与设备](https://www.amazon.com/sendtokindle)（通过 Send to Kindle 投递；Android、Windows 及 KPW5 上的 Kindle OS 5.19.2）：会覆盖图片样式；受 Kindle 排版算法影响，跨页预览偶有误触发（Spine 拼页功能本身正常）
