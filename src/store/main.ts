@@ -102,6 +102,7 @@ class Store {
 
       if (result.succeededIDs.length > 0) {
         this.book.pushNewPage(result.succeededIDs)
+        this.ui.showToast(getLocale(this.ui.lang).alert.importedImages(result.succeededIDs.length), 'success')
       }
       if (result.failedCount > 0) {
         this.ui.showToast(getLocale(this.ui.lang).alert.importImagesFailed(result.failedCount), 'warning')
@@ -171,9 +172,13 @@ class Store {
         this.ui.firstImport = false
         this.setAutoSaveActive(true)
       })
+
+      if (pushResult.succeededIDs.length > 0) {
+        this.ui.showToast(getLocale(this.ui.lang).alert.importedEpub(pushResult.succeededIDs.length), 'success')
+      }
     } catch (err) {
       console.error('Failed to import EPUB:', err)
-      alert('Failed to import EPUB\n' + err)
+      this.ui.showToast(getLocale(this.ui.lang).alert.importEpubFailed, 'error')
     } finally {
       this.ui.setLoading(false)
     }
@@ -330,7 +335,7 @@ class Store {
       await this.buildAndDownloadBook()
     } catch (err) {
       console.error('Failed to generate EPUB:', err)
-      alert('Failed to generate EPUB\n' + err)
+      this.ui.showToast(getLocale(this.ui.lang).alert.generateFailed, 'error')
     } finally {
       this.ui.setLoading(false)
     }

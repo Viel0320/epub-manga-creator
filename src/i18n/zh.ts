@@ -45,7 +45,11 @@ const zh: Locale = {
 
   alert: {
     error: '错误',
+    importedImages: (count: number) => `成功导入 ${count} 页图片`,
+    importedEpub: (count: number) => `成功导入 EPUB（${count} 页）`,
     importImagesFailed: (count: number) => `有 ${count} 张图片导入失败`,
+    importEpubFailed: '导入 EPUB 失败',
+    generateFailed: 'EPUB 生成失败',
     zipNoImages: '压缩包中没有找到图片',
     zipReadFailed: '读取压缩包失败',
     splitFailed: '拆分页面失败',

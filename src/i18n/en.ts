@@ -47,7 +47,11 @@ const en = {
   // Alert messages
   alert: {
     error: 'Error',
+    importedImages: (count: number) => `Imported ${count} page(s)`,
+    importedEpub: (count: number) => `EPUB imported (${count} pages)`,
     importImagesFailed: (count: number) => `${count} image(s) could not be imported`,
+    importEpubFailed: 'Failed to import EPUB',
+    generateFailed: 'Failed to generate EPUB',
     zipNoImages: 'No images found in the archive',
     zipReadFailed: 'Failed to read the archive',
     splitFailed: 'Failed to split the page',
