@@ -10,6 +10,7 @@ import { getPageEffectiveSize } from 'utils/page-size'
 import { requestImportGlobal } from 'components/nav/actions'
 import { usePageDrag } from 'hooks/usePageDrag'
 import ToastContainer from './toast'
+import { APP_VERSION } from 'utils/version'
 
 const THIS_YEAR = (new Date()).getFullYear()
 
@@ -645,6 +646,7 @@ const Main = function() {
                   <Icon name="github" />
                   <span>GitHub</span>
                 </a>
+                <span>{APP_VERSION}</span>
               </div>
             </div>
             <div className="main-input-card">

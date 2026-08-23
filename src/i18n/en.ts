@@ -59,7 +59,7 @@ const en = {
 
   // Main area
   main: {
-    appTitle: 'EPUB Manga Creator V3',
+    appTitle: 'EPUB Manga Creator',
     appSubtitle: 'Create & edit EPUB manga e-books easily',
     appMaintainer: 'Viel0320',
     ready: 'Ready 🚀',
