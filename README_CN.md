@@ -10,6 +10,14 @@
 
 ---
 
+## 界面预览
+
+![工作区与排版编辑](Screenshots/preview1.webp)
+
+![全屏阅读与灯箱预览](Screenshots/preview2.webp)
+
+---
+
 ## 功能特性
 
 - **现代构建技术栈**：基于 **Vite 8**、**React 19** 和 **MobX 6** 构建，提供极速的开发启动、即时热更新（HMR）及优化的生产环境打包。
@@ -31,15 +39,18 @@
 
 ## 跨阅读器兼容性说明
 
-本项目致力于通过规范化的结构输出，使**同一份 EPUB 文件**在不同阅读应用与设备上均能获得出色的兼容体验。以下为常见阅读器与设备的实测验证与表现总结：
+本项目致力于通过规范化的结构输出，使**同一份 EPUB 文件**在不同阅读应用与设备上均能获得出色的兼容体验。以下为常见阅读器与设备的实测验证与表现汇总：
 
-- [Starrea](https://apps.microsoft.com/detail/9p8xwg60cqd2)（Windows）：不支持 Spine 跨页拼页与图片拉伸样式
-- [Readest](https://github.com/readest/readest)（Android & Windows）：会覆盖图片自定义样式
-- [Calibre](https://calibre-ebook.com/)（Windows）：内置阅读器不支持 Spine 跨页拼页
-- [Rodel Reader](https://apps.microsoft.com/detail/9p6796l4r67r)（漫画模式 / Manga mode）（Windows）：自研渲染引擎会剥离传入的自定义 CSS 样式
-- [Kindle 应用与设备](https://www.amazon.com/sendtokindle)（通过 Send to Kindle 投递；Android、Windows 及 KPW5 上的 Kindle OS 5.19.2）：会覆盖图片样式；受 Kindle 排版算法影响，跨页预览偶有误触发（Spine 拼页功能本身正常）
-- [Jane Reader](https://janereader.com)（Windows）：不支持 Spine 跨页拼页，会覆盖图片样式
-- [Koodo Reader](https://www.koodoreader.com/zh)（Web）：不支持 Spine 跨页拼页，会覆盖图片样式
+| 阅读器 / 应用                                                               | 测试平台                            | 跨页拼页 (Spine Spread) | 表现说明与兼容细节                                                               |
+| :-------------------------------------------------------------------------- | :---------------------------------- | :---------------------: | :------------------------------------------------------------------------------- |
+| [Starrea](https://apps.microsoft.com/detail/9p8xwg60cqd2)                   | Windows                             |        ❌ 不支持        | 不支持图片拉伸样式                                                               |
+| [Readest](https://github.com/readest/readest)                               | Android / Windows                   |         ✅ 支持         | 会覆盖自定义图片样式                                                             |
+| [Calibre](https://calibre-ebook.com/)                                       | Windows                             |        ❌ 不支持        | 内置阅读器不支持 Spine 跨页拼页                                                  |
+| [Rodel Reader](https://apps.microsoft.com/detail/9p6796l4r67r) _(漫画模式)_ | Windows                             |         ✅ 支持         | 自研渲染引擎会剥离传入的自定义 CSS 样式                                          |
+| [Kindle 应用与设备](https://www.amazon.com/sendtokindle) _(Send to Kindle)_ | Android / Windows / KindleOS (KPW5) |         ✅ 支持         | 会覆盖图片样式；受 Kindle 排版算法影响，跨页预览偶有误触发（Spine 拼页本身正常） |
+| [Jane Reader](https://janereader.com)                                       | Windows                             |        ❌ 不支持        | 会覆盖图片样式                                                                   |
+| [Koodo Reader](https://www.koodoreader.com/zh)                              | Web / Windows                       |        ❌ 不支持        | 会覆盖图片样式                                                                   |
+| [KOReader](https://github.com/koreader/koreader)                            | Android / Kindle HF                 |        ❌ 不支持        | 会覆盖图片样式与阅读方向                                                         |
 
 ---
 
@@ -53,20 +64,25 @@
 ### 快速开始
 
 1. **安装依赖**
+
    ```bash
    pnpm install
    ```
 
 2. **启动开发服务器**
+
    ```bash
    pnpm start
    ```
+
    在浏览器中打开终端输出的地址（通常为 `http://localhost:5173`）。
 
 3. **打包生产环境**
+
    ```bash
    pnpm build
    ```
+
    进行 TypeScript 校验并将静态资源打包至 `dist/` 目录。
 
 4. **预览生产打包产物**
@@ -83,4 +99,3 @@
 
 - [wing-kai/epub-manga-creator](https://github.com/wing-kai/epub-manga-creator)
 - [Joycai/epub-manga-creator](https://github.com/Joycai/epub-manga-creator)
-
