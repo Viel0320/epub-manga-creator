@@ -220,9 +220,6 @@ const Lightbox = observer(function() {
 
   const modeSize = modePageSize
   const displaySize = displayPageSize
-  const pageDimensionsText = book.pageSizeMode === 'auto'
-    ? `Auto (${displaySize[0]}×${displaySize[1]})`
-    : `${displaySize[0]}×${displaySize[1]}`
 
   const sizeOptions = [
     {
@@ -518,12 +515,6 @@ const Lightbox = observer(function() {
           <Icon name={isTwoPages ? 'book' : 'document'} />
           <span className="toggle-text">{isTwoPages ? t.option.twoPages : t.option.onePage}</span>
         </button>
-
-        {/* Central Floating Header: Displays Book Page Size */}
-        <div className="lightbox-header">
-          <Icon name="ruler" />
-          <span>{pageDimensionsText}</span>
-        </div>
 
         {/* Close Button */}
         <button type="button" className="lightbox-close-btn" onClick={onClose} title={t.lightbox.close}>

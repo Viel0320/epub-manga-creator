@@ -683,7 +683,7 @@ const Main = function() {
           showPages.map((row, i) => (
             <div
               key={i}
-              className={`row page-row flex-nowrap justify-content-center ${storeBook.pageDirection === 'right' ? 'flex-row-reverse' : ''}`}
+              className={`row page-row flex-nowrap ${storeBook.pageDirection === 'right' ? 'flex-row-reverse' : ''}`}
             >
               {
                 storeBook.pageShow === 'one'
