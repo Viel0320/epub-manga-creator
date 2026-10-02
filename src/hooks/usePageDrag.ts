@@ -85,7 +85,7 @@ function createGhost(s: Session) {
   ghost.style.height = `${rect.height}px`
 
   const clone = s.sourceEl.cloneNode(true) as HTMLElement
-  clone.classList.remove('is-dragging', 'drag-over')
+  clone.classList.remove('is-dragging', 'drag-over', 'is-selected')
   clone.style.width = '100%'
   clone.style.height = '100%'
   ghost.appendChild(clone)

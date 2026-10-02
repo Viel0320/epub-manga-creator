@@ -75,9 +75,10 @@ const PageCard = observer(function(props: {
 
   return (
     <div
-      className={`card${isDraggable ? ' is-draggable' : ''}`}
+      className={`card${isDraggable ? ' is-draggable' : ''}${imageFocus ? ' is-selected' : ''}`}
       data-page-index={isDropTarget ? props.realPageIndex : undefined}
       onPointerDown={onPointerDown}
+      onClick={onClickImage}
       onContextMenu={handleContextMenu}
     >
       {
@@ -110,7 +111,6 @@ const PageCard = observer(function(props: {
             className="card-image"
             viewBox={'0 0 ' + effectiveSize.join(' ')}
             preserveAspectRatio={preserveAspectRatio}
-            onClick={onClickImage}
           >
             <rect x="0" y="0" width="100%" height="100%" fill={storeBook.pageBackgroundColor === 'white' ? '#fff' : '#000'}/>
             {
@@ -123,10 +123,6 @@ const PageCard = observer(function(props: {
                   xlinkHref={props.blobItem.thumbnailURL}
                 />
               ) : null
-            }
-            {
-              !imageFocus ? null :
-                <rect x="0" y="0" width="100%" height="100%" fill="none" stroke="rgba(49,132,253,.5)" strokeWidth="8%"/>
             }
           </svg>
         ) : (
