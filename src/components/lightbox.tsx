@@ -4,17 +4,7 @@ import { useStore } from 'store/main'
 import Icon from 'components/icon'
 import { useI18n } from 'i18n'
 import { getPageLayoutInfo, getSpreadPairs, CustomSpreadType } from 'utils/page-layout'
-import { getPageEffectiveSize } from 'utils/page-size'
-
-const PAGE_SIZE_PRESETS: { name: string; size: [number, number] }[] = [
-  { name: 'Kindle', size: [1200, 1600] },
-  { name: 'B4', size: [1250, 1765] },
-  { name: 'B5', size: [880, 1250] },
-  { name: 'A4', size: [1050, 1485] },
-  { name: 'A5', size: [1480, 2100] },
-  { name: 'CG 16:9', size: [1600, 900] },
-  { name: 'CG 16:10', size: [1600, 1000] },
-]
+import { getPageEffectiveSize, PAGE_SIZE_PRESETS, matchPageSizePreset } from 'utils/page-size'
 
 function getSpreadPair(
   index: number,
@@ -220,6 +210,7 @@ const Lightbox = observer(function() {
 
   const modeSize = modePageSize
   const displaySize = displayPageSize
+  const activePresetName = matchPageSizePreset(book.pageSizeMode, book.pageSize)
 
   const sizeOptions = [
     {
@@ -231,39 +222,21 @@ const Lightbox = observer(function() {
     ...PAGE_SIZE_PRESETS.map((preset) => ({
       key: preset.name,
       label: `${preset.name} (${preset.size[0]}×${preset.size[1]})`,
-      active: book.pageSizeMode === 'manual' && book.pageSize[0] === preset.size[0] && book.pageSize[1] === preset.size[1],
+      active: activePresetName === preset.name,
       onClick: () => {
         book.updateBookPageProperty('pageSizeMode', 'manual')
-        book.updateBookPageProperty('pageSize', preset.size)
+        book.updateBookPageProperty('pageSize', [...preset.size] as [number, number])
       }
     }))
   ]
 
+  /** Keep one display-mode control in the reader header; the footer owns the remaining settings. */
   const settingsChips = [
     {
       key: 'size',
       label: t.page.size,
       value: book.pageSizeMode === 'auto' ? `Auto (${displaySize[0]}×${displaySize[1]})` : `${displaySize[0]}×${displaySize[1]}`,
       options: sizeOptions
-    },
-    {
-      key: 'show',
-      label: t.page.show,
-      value: book.pageShow === 'two' ? t.option.twoPages : t.option.onePage,
-      options: [
-        {
-          key: 'two',
-          label: t.option.twoPages,
-          active: book.pageShow === 'two',
-          onClick: () => book.updateBookPageProperty('pageShow', 'two')
-        },
-        {
-          key: 'one',
-          label: t.option.onePage,
-          active: book.pageShow === 'one',
-          onClick: () => book.updateBookPageProperty('pageShow', 'one')
-        }
-      ]
     },
     {
       key: 'fit',
@@ -385,7 +358,7 @@ const Lightbox = observer(function() {
     const totalCount = book.coverPosition === 'alone' ? totalPages - 1 : totalPages
 
     const pageStr = isCoverAlone
-      ? t.page.cover
+      ? t.page.coverPage
       : isTwoPages
         ? `${t.lightbox.page} ${pageNum}`
         : `${t.lightbox.page} ${pageNum} / ${totalCount}`

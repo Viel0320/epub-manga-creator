@@ -133,6 +133,12 @@ class Store {
     this.pages.splice(index, 1)
   }
 
+  /** Point an existing page at a replacement image blob; order, indices, and spread state stay untouched. */
+  replacePageBlobID(index: number, blobID: string) {
+    const pageItem = this.pages[index]
+    if (pageItem) pageItem.blobID = blobID
+  }
+
   movePage(fromIndex: number, toIndex: number) {
     if (fromIndex === toIndex || fromIndex < 0 || fromIndex >= this.pages.length) return
     if (toIndex < 0 || toIndex >= this.pages.length) return

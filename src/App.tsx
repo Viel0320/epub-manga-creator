@@ -1,9 +1,9 @@
 import React from 'react';
 import { observer } from 'mobx-react';
-import Header from 'components/header';
-import Main from 'components/main';
-import Modal, { ModalBackDrop } from 'components/modal';
+import Workspace from 'components/workspace/Workspace';
 import Lightbox from 'components/lightbox';
+import ToastContainer from 'components/toast';
+import OverlayContainer from 'components/ui/overlay';
 import { I18nProvider } from 'i18n';
 import { useStore } from 'store/main';
 
@@ -25,16 +25,16 @@ const LoadingOverlay = observer(function() {
   );
 });
 
+/** The workspace owns persistent editor pages; only the reader and loading state use overlays. */
 const App = observer(function App() {
   const { ui } = useStore();
 
   return (
     <I18nProvider lang={ui.lang}>
-      <Header />
-      <Main />
-      <Modal />
-      <ModalBackDrop />
+      <Workspace />
       <Lightbox />
+      <OverlayContainer />
+      <ToastContainer />
       <LoadingOverlay />
     </I18nProvider>
   );

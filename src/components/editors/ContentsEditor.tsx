@@ -1,18 +1,21 @@
-import React, { FormEvent, useCallback, useContext, useEffect, useState } from 'react';
+import React, { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { observer } from 'mobx-react';
 import { toJS } from 'mobx';
-import { StoreContext } from 'store/main';
+import { useStore } from 'store/main';
 import storeBlobs from 'store/blobs';
 import Icon from 'components/icon';
+import Select from 'components/ui/select';
 import { useI18n } from 'i18n';
 import { generateTOC, PageImageInfo, TOCGenerateMode } from 'utils/toc-generator';
 import VirtualList from 'components/common/VirtualList';
 
-interface ModalContentRowProps {
+interface ContentRowProps {
   index: number;
   contentItem: { pageIndex: number | null; title: string; level: number };
   /** 独立封面模式下卡片编号不含封面，页码列必须显示同样的编号 */
   coverOffset: number;
+  /** 缩进步长随视口变化，避免窄屏下层级缩进挤占页码列 */
+  indentUnit: number;
   onInputPageIndex: (index: number, value: string) => void;
   onInputTitle: (index: number, value: string) => void;
   onFocusNumberInput: (e: React.FocusEvent<HTMLInputElement>) => void;
@@ -22,10 +25,11 @@ interface ModalContentRowProps {
   onOutdent: (index: number) => void;
 }
 
-const ModalContentRow = React.memo(function ModalContentRow({
+const ContentRow = React.memo(function ContentRow({
   index,
   contentItem,
   coverOffset,
+  indentUnit,
   onInputPageIndex,
   onInputTitle,
   onFocusNumberInput,
@@ -33,13 +37,14 @@ const ModalContentRow = React.memo(function ModalContentRow({
   onClickRemove,
   onIndent,
   onOutdent
-}: ModalContentRowProps) {
+}: ContentRowProps) {
+  const t = useI18n();
   const level = contentItem.level || 0;
   const isUnlinked = contentItem.pageIndex === null
     || (coverOffset === 1 && contentItem.pageIndex === 0);
   return (
-    <div className="row mx-0 g-2 align-items-stretch mb-4" style={{ paddingLeft: level * 24 }}>
-      <div className="col-3 col-md-2">
+    <div className="row mx-0 g-2 align-items-stretch mb-4" style={{ paddingLeft: level * indentUnit }}>
+      <div className="col-2 col-md-2">
         <input
           type="number"
           className="form-control"
@@ -63,7 +68,7 @@ const ModalContentRow = React.memo(function ModalContentRow({
             className="btn btn-outline-secondary d-flex justify-content-center align-items-center h-100"
             disabled={level >= 3}
             onClick={() => onIndent(index)}
-            title="Indent"
+            title={t.contents.indent}
           >
             <Icon name="chevron-right" />
           </button>
@@ -72,7 +77,7 @@ const ModalContentRow = React.memo(function ModalContentRow({
             className="btn btn-outline-secondary d-flex justify-content-center align-items-center h-100"
             disabled={level <= 0}
             onClick={() => onOutdent(index)}
-            title="Outdent"
+            title={t.contents.outdent}
           >
             <Icon name="chevron-left" />
           </button>
@@ -96,8 +101,12 @@ const ModalContentRow = React.memo(function ModalContentRow({
   );
 });
 
-const ModalContents = observer(function ModalContents() {
-  const storeMain = useContext(StoreContext);
+/**
+ * Keep the directory draft, editing mode, and preset selection mounted across
+ * work pages. Navigation never reloads the committed list over unfinished edits.
+ */
+const ContentsEditor = observer(function ContentsEditor() {
+  const storeMain = useStore();
   const { ui: store, contents: storeContents, book: storeBook } = storeMain;
   const t = useI18n();
   // 目录编辑器显示/输入的页码与卡片编号一致：独立封面模式下不含封面。
@@ -107,35 +116,43 @@ const ModalContents = observer(function ModalContents() {
     pageIndex === null || (coverOffset === 1 && pageIndex === 0)
   , [coverOffset]);
   const [plainMode, setPlainMode] = useState(false);
-  const [tempList, setTempList] = useState<typeof storeContents.list>([]);
+  const [tempList, setDraftList] = useState(() => toJS(storeContents.list));
+  const dirty = useRef(false);
+  const sourceKey = useMemo(() => JSON.stringify(storeContents.list), [storeContents.list]);
   const [textAreaInput, setTextAreaInput] = useState('');
   const [selectedSetIndex, setSelectedSetIndex] = useState(-1);
   const [autoDropdownOpen, setAutoDropdownOpen] = useState(false);
+  const autoDropdownRef = useRef<HTMLDivElement>(null);
   const [autoGenSuccessCount, setAutoGenSuccessCount] = useState<number | null>(null);
 
-  const onClickModal = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    setAutoDropdownOpen(false);
+  /** Track intentional draft changes separately from source updates caused by import or page edits. */
+  const setTempList = useCallback((update: React.SetStateAction<typeof storeContents.list>) => {
+    dirty.current = true;
+    setDraftList(update);
   }, []);
 
-  const onClickClose = useCallback(() => {
-    store.toggleContentVisible();
-  }, [store]);
-
-  const toggleAutoDropdown = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
+  const toggleAutoDropdown = useCallback(() => {
     setAutoDropdownOpen(prev => !prev);
   }, []);
 
-  const onAutoGenerate = useCallback((mode: TOCGenerateMode) => {
+  useEffect(() => {
+    if (!autoDropdownOpen) return;
+    const dismiss = (event: PointerEvent) => {
+      if (autoDropdownRef.current && !autoDropdownRef.current.contains(event.target as Node)) setAutoDropdownOpen(false);
+    };
+    document.addEventListener('pointerdown', dismiss);
+    return () => document.removeEventListener('pointerdown', dismiss);
+  }, [autoDropdownOpen]);
+
+  const onAutoGenerate = useCallback(async (mode: TOCGenerateMode) => {
     if (!storeBook.pages.length) {
-      alert(t.contents.noPages);
+      storeMain.ui.showAlert(t.contents.noPages);
       return;
     }
 
     let interval = 10;
     if (mode === 'interval') {
-      const val = window.prompt(t.contents.intervalPrompt, '10');
+      const val = await storeMain.ui.showPrompt(t.contents.intervalPrompt, '10');
       const parsed = parseInt(val || '', 10);
       if (isNaN(parsed) || parsed <= 0) return;
       interval = parsed;
@@ -159,6 +176,7 @@ const ModalContents = observer(function ModalContents() {
       }
     });
 
+    dirty.current = true;
     if (plainMode) {
       const textVal = generated.map(item => {
         const indent = '  '.repeat(item.level || 0);
@@ -320,9 +338,11 @@ const ModalContents = observer(function ModalContents() {
   }, []);
 
   const onTextareaInput = useCallback((e: FormEvent<HTMLTextAreaElement>) => {
+    dirty.current = true;
     setTextAreaInput(e.currentTarget.value);
   }, []);
 
+  /** Commit the existing normalized draft without navigating away or resetting the editor viewport. */
   const onSave = useCallback(() => {
     // clamp page numbers to the actual page count so the exported TOC
     // never links to a page file that does not exist
@@ -334,9 +354,10 @@ const ModalContents = observer(function ModalContents() {
       if (maxPage === 0) return { ...item, pageIndex: null };
       return { ...item, pageIndex: Math.min(Math.max(0, item.pageIndex), maxPage - 1) };
     });
+    dirty.current = false;
     storeContents.updateList(cleaned);
-    store.toggleContentVisible();
-  }, [store, storeContents, storeBook, tempList, coverOffset]);
+    store.showToast(t.contents.saved, 'success');
+  }, [store, storeContents, storeBook, tempList, coverOffset, t]);
 
   const onClickSaveSet = useCallback(() => {
     storeContents.saveSet(storeBook.bookTitle);
@@ -348,10 +369,9 @@ const ModalContents = observer(function ModalContents() {
     setSelectedSetIndex(-1);
   }, [selectedSetIndex, storeContents]);
 
-  const onApplySet = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    const index = +e.currentTarget.value;
+  const onApplySet = useCallback((value: string) => {
+    const index = +value;
     const selectedSet = storeContents.savedSets[index];
-    // some browsers still render the hidden placeholder option (value -1)
     if (!selectedSet) {
       setSelectedSetIndex(-1);
       return;
@@ -360,26 +380,18 @@ const ModalContents = observer(function ModalContents() {
     setTempList(toJS(selectedSet.list));
   }, [storeContents]);
 
-  const onClickModalBody = useCallback(() => {
-    setSelectedSetIndex(-1);
-    setAutoDropdownOpen(false);
-  }, []);
-
+  /** Refresh a pristine editor after genuine source changes, never because its tab becomes active. */
   useEffect(() => {
-    if (store.modalContentVisible) {
-      setTempList(toJS(storeContents.list));
-      setAutoGenSuccessCount(null);
-    }
-  }, [store.modalContentVisible, storeContents.list]);
+    if (!dirty.current) setDraftList(JSON.parse(sourceKey));
+  }, [sourceKey]);
 
   return (
-    <div className="modal-dialog modal-lg" onClick={onClickModal}>
-      <div className="modal-content">
-        <div className="modal-header">
-          <h5 className="modal-title">{t.contents.modalTitle}</h5>
-          <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close" onClick={onClickClose}></button>
+    <div className="editor-form editor-contents">
+      <div className="editor-content">
+        <div className="editor-header">
+          <h1>{t.contents.editorTitle}</h1>
         </div>
-        <div className="modal-body" onClick={onClickModalBody}>
+        <div className="editor-body">
           {
             plainMode ? (
               <textarea
@@ -393,7 +405,7 @@ const ModalContents = observer(function ModalContents() {
             ) : (
               <>
                 <div className="row mx-0 mb-2">
-                  <div className="col-3 col-md-2">
+                  <div className="col-2 col-md-2">
                     <h6>{t.contents.colIndex}</h6>
                   </div>
                   <div className="col-6">
@@ -406,11 +418,12 @@ const ModalContents = observer(function ModalContents() {
                   itemHeight={62}
                   containerHeight="clamp(300px, 55vh, 600px)"
                   renderItem={(contentItem, index) => (
-                    <ModalContentRow
+                    <ContentRow
                       key={index}
                       index={index}
                       contentItem={contentItem}
                       coverOffset={coverOffset}
+                      indentUnit={store.isMobile ? 12 : 24}
                       onInputPageIndex={onInputPageIndex}
                       onInputTitle={onInputTitle}
                       onFocusNumberInput={onFocusNumberInput}
@@ -427,25 +440,25 @@ const ModalContents = observer(function ModalContents() {
         </div>
         {
           plainMode ? null : (
-            <div className="modal-footer justify-content-start">
+            <div className="editor-footer justify-content-start">
               <button type="button" className="btn btn-sm btn-outline-primary" onClick={onClickSaveSet}>{t.contents.saveSet}</button>
-              <select className="form-select form-select-sm modal-set-select" value={selectedSetIndex + ''} onChange={onApplySet}>
-                <option value="-1" hidden>--</option>
-                {
-                  storeContents.savedSets.map((set, index) =>
-                    <option key={index} value={index}>{set.title}</option>
-                  )
-                }
-              </select>
+              <Select
+                className="set-select"
+                size="sm"
+                ariaLabel={t.contents.saveSet}
+                value={selectedSetIndex + ''}
+                onChange={onApplySet}
+                options={[{ value: '-1', label: '--', disabled: true }, ...storeContents.savedSets.map((set, index) => ({ value: index + '', label: set.title }))]}
+              />
               <button type="button" disabled={selectedSetIndex === -1} className="btn btn-sm btn-outline-danger" onClick={onClickRemoveSet}>{t.contents.removeSet}</button>
             </div>
           )
         }
-        <div className="modal-footer justify-content-start gap-2">
+        <div className="editor-footer justify-content-start gap-2">
           <button type="button" className="btn btn-outline-primary" onClick={togglePlainMode}>
             {plainMode ? t.contents.formMode : t.contents.plainMode}
           </button>
-          <div className="dropdown position-relative d-inline-block">
+          <div ref={autoDropdownRef} className="dropdown position-relative d-inline-block">
             <button
               type="button"
               className="btn btn-outline-primary dropdown-toggle"
@@ -538,4 +551,4 @@ const ModalContents = observer(function ModalContents() {
   );
 });
 
-export default ModalContents;
+export default ContentsEditor;

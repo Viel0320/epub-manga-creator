@@ -1,15 +1,16 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
-import 'components/icon';
 import './index.css';
-import App from './App';
+
+/** App is code-split into its own chunk so the entry bundle stays minimal; no routing is involved. */
+const App = lazy(() => import('./App'));
 
 const container = document.getElementById('root');
 if (container) {
   const root = createRoot(container);
   root.render(
     <React.StrictMode>
-      <App />
+      <Suspense fallback={null}><App /></Suspense>
     </React.StrictMode>
   );
 }

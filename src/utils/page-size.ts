@@ -1,6 +1,29 @@
 import { StoreBook } from 'store/book'
 import { StoreBlobs } from 'store/blobs'
 
+export const PAGE_SIZE_PRESETS: { name: string; size: [number, number] }[] = [
+  { name: 'Kindle', size: [1200, 1600] },
+  { name: 'B4', size: [1250, 1765] },
+  { name: 'B5', size: [880, 1250] },
+  { name: 'A4', size: [1050, 1485] },
+  { name: 'A5', size: [742, 1050] },
+  { name: 'CG 16:9', size: [1600, 900] },
+  { name: 'CG 16:10', size: [1600, 1000] },
+]
+
+/** A manual size belongs to a preset when it matches in either orientation,
+ *  so swapping width and height keeps the preset selected. */
+export function matchPageSizePreset(
+  pageSizeMode: 'manual' | 'auto',
+  pageSize: [number, number]
+): string | null {
+  if (pageSizeMode !== 'manual') return null
+  const [w, h] = pageSize
+  const preset = PAGE_SIZE_PRESETS.find(({ size: [pw, ph] }) =>
+    (w === pw && h === ph) || (w === ph && h === pw))
+  return preset ? preset.name : null
+}
+
 export function getModePageSize(
   pages: StoreBook.PageItem[],
   blobs: Record<string, StoreBlobs.ImageBlob>,

@@ -8,7 +8,7 @@ import UndoStore from 'store/undo'
 import storeBlobs, { Store as Blobs, StoreBlobs, getImageWithBlobURL } from 'store/blobs'
 import { db } from 'utils/db'
 import { getLocale } from 'i18n'
-import { parseEpub } from 'utils/epub-parser'
+import { detectImageMime, parseEpub } from 'utils/epub-parser'
 import { getModePageSize } from 'utils/page-size'
 import { getSpreadPairs } from 'utils/page-layout'
 import { restoreWorkspaceFromDB, initWorkspaceAutoSave } from 'services/workspace-persistence'
@@ -58,16 +58,16 @@ class Store {
     })
   }
 
+  /** Reset persistent publication data together with drafts belonging to the replaced project. */
   resetWorkspace = () => {
     this.book.reset()
     this.contents.reset()
     this.blobs.clear()
-    this.ui.selectPageIndex(null)
     this.ui.firstImport = true
     this.ui.fileName = ''
-    this.ui.modalBookVisible = false
-    this.ui.modalContentVisible = false
-    this.ui.modalPageVisible = false
+    this.ui.resetWorkspaceView()
+    // the selection is cleared last so no reset step can resurrect a stale value
+    this.ui.selectPageIndex(null)
     this.undoStore.clearRecord()
     this.savedBlobIDs.clear()
     db.clearAll().catch(err => console.error('Failed to clear backup:', err))
@@ -112,7 +112,8 @@ class Store {
     }
   }
 
-  async importFromEpub(file: File) {
+  /** @returns true when the EPUB replaced the workspace with at least one decoded page. */
+  async importFromEpub(file: File): Promise<boolean> {
     this.ui.setLoading(true, getLocale(this.ui.lang).loading.importingEpub)
     try {
       const result = await parseEpub(file)
@@ -176,9 +177,11 @@ class Store {
       if (pushResult.succeededIDs.length > 0) {
         this.ui.showToast(getLocale(this.ui.lang).alert.importedEpub(pushResult.succeededIDs.length), 'success')
       }
+      return pushResult.succeededIDs.length > 0
     } catch (err) {
       console.error('Failed to import EPUB:', err)
       this.ui.showToast(getLocale(this.ui.lang).alert.importEpubFailed, 'error')
+      return false
     } finally {
       this.ui.setLoading(false)
     }
@@ -189,18 +192,6 @@ class Store {
     this.contents.setPageIndexToTitle(listIndex, pageIndex)
   }
 
-  useImageSizeToPage(pageIndex: number) {
-    const pageItem = this.book.pages[pageIndex]
-    if (!pageItem) return
-    const blobItem = this.blobs.blobs[pageItem.blobID]
-    if (blobItem) {
-      this.saveUndoSnapshot()
-      this.book.updateBookPageProperty('pageSize', [
-        blobItem.width,
-        blobItem.height
-      ])
-    }
-  }
 
   async splitPage(index: number) {
     const pageItem = this.book.pages[index]
@@ -268,6 +259,41 @@ class Store {
       console.error('Failed to split page:', err)
       this.ui.showToast(getLocale(this.ui.lang).alert.splitFailed, 'error')
     }
+  }
+
+  /** Swap the selected page's image for a freshly picked file; the old blob stays
+      recoverable through the undo snapshot and the autosave drops it once unreferenced. */
+  async replacePageImage(pageIndex: number, file: File) {
+    const pageItem = this.book.pages[pageIndex]
+    if (!pageItem || pageItem.blank || !pageItem.blobID) return
+    const blobItem = this.blobs.blobs[pageItem.blobID]
+    if (!blobItem) return
+    const oldBlobID = pageItem.blobID
+
+    const bytes = new Uint8Array(await file.arrayBuffer())
+    const mimeType = detectImageMime(bytes)
+    if (!mimeType) {
+      this.ui.showToast(getLocale(this.ui.lang).alert.replaceImageFailed, 'warning')
+      return
+    }
+
+    const newID = uuid()
+    // decode first: only mutate the page once the replacement is confirmed readable
+    const pushResult = await this.blobs.push([new File([bytes], file.name, { type: mimeType })], [newID])
+    if (pushResult.failedCount > 0) {
+      this.ui.showToast(getLocale(this.ui.lang).alert.replaceImageFailed, 'warning')
+      return
+    }
+
+    const removedBlobs: Record<string, StoreBlobs.ImageBlob> = {
+      [oldBlobID]: blobItem
+    }
+    this.saveUndoSnapshot(removedBlobs, [newID])
+
+    // point the page at the new blob first, then retire the old one by its
+    // captured id — reading pageItem.blobID here would already yield newID
+    this.book.replacePageBlobID(pageIndex, newID)
+    this.blobs.remove(oldBlobID)
   }
 
   async undo() {

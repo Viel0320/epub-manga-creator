@@ -1,11 +1,17 @@
-import React, { FormEvent, useCallback, useContext, useEffect, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { observer } from 'mobx-react';
 import { toJS } from 'mobx';
-import { StoreContext } from 'store/main';
+import { useStore } from 'store/main';
 import Icon from 'components/icon';
+import Select from 'components/ui/select';
+import Combobox from 'components/ui/combobox';
 import { useI18n } from 'i18n';
 import { normalizeDateString } from 'utils/date-normalizer';
 import { StoreBook } from 'store/book';
+
+/** Presets for the space-separated multi-entry fields; typed segments stay free-form. */
+const SUBJECT_SUGGESTIONS = ['少年', '少女', '青年', '同人誌', '漫画', '成年コミック'];
+const PUBLISHER_SUGGESTIONS = ['KADOKAWA', '講談社', '集英社', '小学館', '小学館集英社プロダクション', '少年画報社', '松文館', '日本文芸社', '白泉社', '芳文社', 'ワニマガジン社', 'FAKKU'];
 
 const KeywordPicker = function(props: { keywords: string[], onClick: (str: string) => void }) {
   const onClick = useCallback((e: FormEvent<HTMLButtonElement>) => {
@@ -30,8 +36,9 @@ const KeywordPicker = function(props: { keywords: string[], onClick: (str: strin
   );
 };
 
-const ModalBook = observer(function() {
-  const { ui: storeUI, book: storeBook } = useContext(StoreContext);
+/** Keep metadata fields, analysis keywords, and preset selection alive between work-page switches. */
+const BookEditor = observer(function BookEditor() {
+  const { ui: storeUI, book: storeBook } = useStore();
   const t = useI18n();
 
   const [fileName, setFileName] = useState('');
@@ -39,14 +46,6 @@ const ModalBook = observer(function() {
   const [selectedSetIndex, setSelectedSetIndex] = useState(-1);
 
   const keywordsLength = keywords.length;
-
-  const onClickModal = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    return;
-  }, []);
-  const onClickClose = useCallback(() => {
-    storeUI.toggleBookVisible();
-  }, [storeUI]);
 
   const onClickAnalyze = useCallback(() => {
     const reg = [
@@ -149,17 +148,15 @@ const ModalBook = observer(function() {
     newValue.splice(+index, 1, eventTarget.value);
     storeBook.updateBookPageProperty('bookAuthors', newValue);
   }, [storeBook]);
-  const onChangeBookSubject = useCallback((e: FormEvent) => {
-    const eventTarget = e.currentTarget as HTMLInputElement;
-    storeBook.updateBookPageProperty('bookSubject', eventTarget.value);
+  const onChangeBookSubject = useCallback((value: string) => {
+    storeBook.updateBookPageProperty('bookSubject', value);
   }, [storeBook]);
-  const onChangeBookPublisher = useCallback((e: FormEvent) => {
-    const eventTarget = e.currentTarget as HTMLInputElement;
-    storeBook.updateBookPageProperty('bookPublisher', eventTarget.value);
+  const onChangeBookPublisher = useCallback((value: string) => {
+    storeBook.updateBookPageProperty('bookPublisher', value);
   }, [storeBook]);
 
-  const onChangeBookLanguage = useCallback((e: FormEvent<HTMLSelectElement>) => {
-    storeBook.updateBookPageProperty('bookLanguage', e.currentTarget.value);
+  const onChangeBookLanguage = useCallback((language: string) => {
+    storeBook.updateBookPageProperty('bookLanguage', language);
   }, [storeBook]);
 
   const onChangeBookSeriesName = useCallback((e: FormEvent<HTMLInputElement>) => {
@@ -237,10 +234,6 @@ const ModalBook = observer(function() {
     storeBook.updateBookPageProperty('bookPublisher', value);
   }, [storeBook]);
 
-  const onClickModalBody = useCallback(() => {
-    setSelectedSetIndex(-1);
-  }, []);
-
   const onClickSaveSet = useCallback(() => {
     storeBook.saveBookInfoToSet();
     setSelectedSetIndex(-1);
@@ -251,8 +244,8 @@ const ModalBook = observer(function() {
     setSelectedSetIndex(-1);
   }, [selectedSetIndex, storeBook]);
 
-  const onApplySet = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    const index = +e.currentTarget.value;
+  const onApplySet = useCallback((value: string) => {
+    const index = +value;
     setSelectedSetIndex(index);
     storeBook.applySet(index);
   }, [storeBook]);
@@ -261,21 +254,21 @@ const ModalBook = observer(function() {
     setFileName(storeUI.fileName);
   }, [storeUI.fileName]);
 
+  /** Defer first-import analysis until metadata is active so hidden editors never rewrite a book. */
   useEffect(() => {
-    if (fileName && storeUI.firstImport) {
+    if (fileName && storeUI.firstImport && storeUI.workspacePage === 'book') {
       onClickAnalyze();
       storeUI.firstUploaded();
     }
-  }, [fileName, onClickAnalyze, storeUI]);
+  }, [fileName, onClickAnalyze, storeUI.firstImport, storeUI.workspacePage]);
 
   return (
-    <div className="modal-dialog modal-xl" onClick={onClickModal}>
-      <div className="modal-content">
-        <div className="modal-header">
-          <h5 className="modal-title">{t.book.modalTitle}</h5>
-          <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close" onClick={onClickClose}></button>
+    <div className="editor-form editor-book">
+      <div className="editor-content">
+        <div className="editor-header">
+          <h1>{t.book.editorTitle}</h1>
         </div>
-        <div className="modal-body" onClick={onClickModalBody}>
+        <div className="editor-body">
           {/* 1. 文件名 */}
           <div className="mb-3 row">
             <label htmlFor="input-filename" className="col-md-3 col-form-label text-md-end">{t.book.filename}</label>
@@ -285,6 +278,8 @@ const ModalBook = observer(function() {
                 <button
                   className="btn btn-outline-secondary d-flex justify-content-center align-items-center"
                   type="button"
+                  title={t.book.analyze}
+                  aria-label={t.book.analyze}
                   onClick={onClickAnalyze}
                 >
                   <Icon name="rocket"></Icon>
@@ -361,21 +356,13 @@ const ModalBook = observer(function() {
           <div className="mb-3 row">
             <label htmlFor="input-book-publisher" className="col-md-3 col-form-label text-md-end">{t.book.publisher}</label>
             <div className="col-md-3">
-              <input type="text" className="form-control" list="dl-publisher" id="input-book-publisher" value={storeBook.bookPublisher} onInput={onChangeBookPublisher}/>
-              <datalist id="dl-publisher">
-                <option value="KADOKAWA" />
-                <option value="講談社" />
-                <option value="集英社" />
-                <option value="小学館" />
-                <option value="小学館集英社プロダクション" />
-                <option value="少年画報社" />
-                <option value="松文館" />
-                <option value="日本文芸社" />
-                <option value="白泉社" />
-                <option value="芳文社" />
-                <option value="ワニマガジン社" />
-                <option value="FAKKU" />
-              </datalist>
+              <Combobox
+                id="input-book-publisher"
+                ariaLabel={t.book.publisher}
+                value={storeBook.bookPublisher}
+                onChange={onChangeBookPublisher}
+                suggestions={PUBLISHER_SUGGESTIONS}
+              />
             </div>
             <label htmlFor="input-book-date" className="col-md-3 col-form-label text-md-end">{t.book.date}</label>
             <div className="col-md-3">
@@ -391,7 +378,7 @@ const ModalBook = observer(function() {
                 <div
                   className="btn btn-outline-secondary position-relative d-flex justify-content-center align-items-center"
                   style={{ width: '42px', padding: 0 }}
-                  title="选择日期"
+                  title={t.book.chooseDate}
                 >
                   <Icon name="calendar" />
                   <input
@@ -417,37 +404,36 @@ const ModalBook = observer(function() {
           <div className="mb-3 row">
             <label htmlFor="select-book-language" className="col-md-3 col-form-label text-md-end">{t.book.language}</label>
             <div className="col-md-3">
-              <select
+              <Select
                 id="select-book-language"
-                className="form-select"
+                ariaLabel={t.book.language}
                 value={storeBook.bookLanguage || 'ja'}
                 onChange={onChangeBookLanguage}
-              >
-                <option value="ja">日本語 (ja)</option>
-                <option value="zh-CN">简体中文 (zh-CN)</option>
-                <option value="zh-TW">繁體中文 (zh-TW)</option>
-                <option value="zh-HK">繁體中文 - 香港 (zh-HK)</option>
-                <option value="en">English (en)</option>
-                <option value="ko">한국어 (ko)</option>
-                <option value="fr">Français (fr)</option>
-                <option value="de">Deutsch (de)</option>
-                <option value="es">Español (es)</option>
-                <option value="it">Italiano (it)</option>
-                <option value="ru">Русский (ru)</option>
-                <option value="pt">Português (pt)</option>
-              </select>
+                options={[
+                  { value: 'ja', label: '日本語 (ja)' },
+                  { value: 'zh-CN', label: '简体中文 (zh-CN)' },
+                  { value: 'zh-TW', label: '繁體中文 (zh-TW)' },
+                  { value: 'zh-HK', label: '繁體中文 - 香港 (zh-HK)' },
+                  { value: 'en', label: 'English (en)' },
+                  { value: 'ko', label: '한국어 (ko)' },
+                  { value: 'fr', label: 'Français (fr)' },
+                  { value: 'de', label: 'Deutsch (de)' },
+                  { value: 'es', label: 'Español (es)' },
+                  { value: 'it', label: 'Italiano (it)' },
+                  { value: 'ru', label: 'Русский (ru)' },
+                  { value: 'pt', label: 'Português (pt)' },
+                ]}
+              />
             </div>
             <label htmlFor="input-book-subject" className="col-md-3 col-form-label text-md-end">{t.book.subject}</label>
             <div className="col-md-3">
-              <input type="text" className="form-control" list="dl-subject" id="input-book-subject" value={storeBook.bookSubject} onInput={onChangeBookSubject}/>
-              <datalist id="dl-subject">
-                <option value="少年" />
-                <option value="少女" />
-                <option value="青年" />
-                <option value="同人誌" />
-                <option value="漫画" />
-                <option value="成年コミック" />
-              </datalist>
+              <Combobox
+                id="input-book-subject"
+                ariaLabel={t.book.subject}
+                value={storeBook.bookSubject}
+                onChange={onChangeBookSubject}
+                suggestions={SUBJECT_SUGGESTIONS}
+              />
             </div>
           </div>
 
@@ -470,16 +456,16 @@ const ModalBook = observer(function() {
               {
                 (storeBook.bookContributors || []).map((item, index) => (
                   <div key={index} className="input-group mb-2">
-                    <select
-                      className="form-select"
-                      style={{ maxWidth: '175px' }}
+                    <Select
+                      ariaLabel={t.book.contributor}
                       value={item.role}
-                      onChange={(e) => onChangeContributorRole(index, e.target.value as any)}
-                    >
-                      <option value="ill">{t.book.roleIll}</option>
-                      <option value="trl">{t.book.roleTrl}</option>
-                      <option value="edt">{t.book.roleEdt}</option>
-                    </select>
+                      onChange={(role) => onChangeContributorRole(index, role as 'ill' | 'trl' | 'edt')}
+                      options={[
+                        { value: 'ill', label: t.book.roleIll },
+                        { value: 'trl', label: t.book.roleTrl },
+                        { value: 'edt', label: t.book.roleEdt },
+                      ]}
+                    />
                     <input
                       type="text"
                       className="form-control"
@@ -516,16 +502,16 @@ const ModalBook = observer(function() {
             </div>
           </div>
         </div>
-        <div className="modal-footer justify-content-start">
+        <div className="editor-footer justify-content-start">
           <button type="button" className="btn btn-sm btn-outline-primary" onClick={onClickSaveSet}>{t.book.saveSet}</button>
-          <select className="form-select form-select-sm modal-set-select" value={selectedSetIndex + ''} onChange={onApplySet}>
-            <option value="-1" hidden>--</option>
-            {
-              storeBook.savedSets.map((set, index) =>
-                <option key={index} value={index}>title: {set.bookTitle}, author: {set.bookAuthors[0]}, subject: {set.bookSubject}</option>
-              )
-            }
-          </select>
+          <Select
+            className="set-select"
+            size="sm"
+            ariaLabel={t.book.saveSet}
+            value={selectedSetIndex + ''}
+            onChange={onApplySet}
+            options={[{ value: '-1', label: '--', disabled: true }, ...storeBook.savedSets.map((set, index) => ({ value: index + '', label: `title: ${set.bookTitle}, author: ${set.bookAuthors[0]}, subject: ${set.bookSubject}` }))]}
+          />
           <button type="button" disabled={selectedSetIndex === -1} className="btn btn-sm btn-outline-danger" onClick={onClickRemoveSet}>{t.book.removeSet}</button>
         </div>
       </div>
@@ -533,4 +519,4 @@ const ModalBook = observer(function() {
   );
 });
 
-export default ModalBook;
+export default BookEditor;

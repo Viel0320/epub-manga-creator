@@ -1,6 +1,8 @@
 import JSZip from 'jszip'
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import React, { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { useStore } from 'store/main'
+import type Book from 'store/book'
+import type { StoreBook } from 'store/book'
 import { useI18n } from 'i18n'
 import { detectImageMime } from 'utils/epub-parser'
 
@@ -18,51 +20,51 @@ const MultipleAttrMap: Record<ImportType, boolean> = {
   epub: false,
 }
 
+/** The inspector's per-page image replacement reuses the import picker filter. */
+export const IMAGE_ACCEPT = AcceptMap.image
+
 const blobToFile = (theBlob: Blob, fileName: string): File => {
   return new File([theBlob], fileName, { type: theBlob.type })
 }
 
-// registry so UI outside the nav (e.g. the empty-state import buttons in
-// main.tsx) can trigger the shared hidden file input without DOM queries
-let activeImportHandler: ((type: ImportType) => void) | null = null
-
-export function requestImportGlobal(type: ImportType) {
-  activeImportHandler?.(type)
-}
-
 /**
  * Owns the shared hidden <input type="file"> and the whole import pipeline
- * (images / zip / epub). Rendered once by the Header shell; both nav shells
- * trigger it through the returned `requestImport`.
+ * (images / zip / epub). The publication header owns its only import menu;
+ * changing formats schedules a picker only after an explicit user action.
  */
 export function useImportControl() {
   const storeMain = useStore()
   const t = useI18n()
   const inputRef = useRef<HTMLInputElement>(null)
+  const pickerRequested = useRef(false)
   const [inputType, setInputType] = useState<ImportType>('zip')
 
-  const requestImport = useCallback((type: ImportType) => {
+  const requestImport = useCallback(async (type: ImportType) => {
+    // EPUB import replaces the workspace, so warn before the picker opens —
+    // but only when there is something to lose.
+    if (type === 'epub' && storeMain.book.pages.length > 0
+        && !(await storeMain.ui.showConfirm(t.confirm.importEpubReplace, true))) {
+      return
+    }
     if (type === inputType) {
       inputRef.current?.click()
     } else {
+      pickerRequested.current = true
       setInputType(type)
     }
-  }, [inputType])
-
-  useEffect(() => {
-    activeImportHandler = requestImport
-    return () => {
-      if (activeImportHandler === requestImport) {
-        activeImportHandler = null
-      }
-    }
-  }, [requestImport])
+  }, [inputType, storeMain, t])
 
   const handleGetFile = useCallback(async () => {
     const input: HTMLInputElement = inputRef.current as HTMLInputElement
 
     if (inputType === 'epub' && (input?.files?.[0])) {
-      storeMain.importFromEpub(input.files[0])
+      // An EPUB carries its own metadata, so send the user to the book page like
+      // an archive import does; no filename is passed because only the first
+      // import may seed ui.fileName, and that triggers filename analysis.
+      // A failed import stays on the pages tab of the emptied workspace.
+      if (await storeMain.importFromEpub(input.files[0])) {
+        storeMain.ui.openBook()
+      }
       return
     }
 
@@ -94,7 +96,7 @@ export function useImportControl() {
 
         await storeMain.importPageFromImages(files)
         if (storeMain.ui.firstImport) {
-          storeMain.ui.toggleBookVisible(fileName)
+          storeMain.ui.openBook(fileName)
         }
       } catch (err) {
         console.error('Failed to import archive:', err)
@@ -110,8 +112,10 @@ export function useImportControl() {
     }
   }, [inputType, storeMain, t])
 
+  /** Update accept/multiple first, then open within the requesting click; mounting never opens a picker. */
   useLayoutEffect(() => {
-    if (inputType) {
+    if (pickerRequested.current) {
+      pickerRequested.current = false
       inputRef.current?.click()
     }
   }, [inputType])
@@ -144,8 +148,35 @@ export interface SpreadState {
 }
 
 /**
+ * Pure view of one page's custom-spread state, derived from the page index alone.
+ * The inspector feeds it the selected index; the grid's context menu feeds it
+ * the right-clicked index — the rules are shared, the index source is not.
+ */
+export function deriveSpreadState(book: Book, pageIndex: number | null): SpreadState {
+  const idx = pageIndex !== null && pageIndex > 0 ? pageIndex : null
+  const page = idx !== null ? book.pages[idx] ?? null : null
+  return {
+    available: page !== null,
+    isCentered: page?.customSpread === 'center',
+    isBoundPrev: page?.customSpread === 'bind-prev'
+      && (idx !== null && book.pages[idx - 1]?.customSpread === 'bind-next'),
+    isBoundNext: page?.customSpread === 'bind-next'
+      && (idx !== null && book.pages[idx + 1]?.customSpread === 'bind-prev'),
+    canBindPrev: idx !== null && idx > 1,
+    canBindNext: idx !== null && idx < book.pages.length - 1,
+  }
+}
+
+/** Guarded spread mutation shared by the inspector toggles and the context menu. */
+export function toggleSpreadAt(book: Book, pageIndex: number | null, mode: StoreBook.CustomSpreadType) {
+  if (pageIndex !== null && pageIndex > 0) {
+    book.setPageCustomSpread(pageIndex, mode)
+  }
+}
+
+/**
  * Single source of truth for every nav action & its enabled/active state.
- * Consumed by both DesktopNav and MobileNav so handlers are written once.
+ * The workspace shell and selected-page inspector share these domain handlers.
  */
 export function useNavActions() {
   const storeMain = useStore()
@@ -156,53 +187,22 @@ export function useNavActions() {
   // in standalone-cover mode the cards are numbered without the cover,
   // so prompts must translate between displayed numbers and real indices
   const coverOffset = book.coverPosition === 'alone' ? 1 : 0
-  const selectedPage = selectedPageIndex !== null ? book.pages[selectedPageIndex] : null
-  const selectedPageBlank = selectedPage?.blank ?? false
-
-  const toggleBook = useCallback(() => {
-    ui.toggleBookVisible()
-  }, [ui])
-
-  const toggleContents = useCallback(() => {
-    ui.toggleContentVisible()
-  }, [ui])
-
-  const togglePage = useCallback(() => {
-    ui.togglePageVisible()
-  }, [ui])
 
   const generate = useCallback(() => {
     storeMain.generateBook()
   }, [storeMain])
 
-  const cycleTheme = useCallback(() => {
-    ui.cycleTheme()
-  }, [ui])
-
-  const toggleContainerBg = useCallback(() => {
-    ui.toggleContainerBgFilled()
-  }, [ui])
-
-  const toggleLang = useCallback(() => {
-    ui.toggleLang()
-  }, [ui])
-
-  const reset = useCallback(() => {
-    if (typeof window !== 'undefined' && window.confirm(t.confirm.reset)) {
+  const reset = useCallback(async () => {
+    if (await storeMain.ui.showConfirm(t.confirm.reset, true)) {
       storeMain.resetWorkspace()
     }
   }, [storeMain, t])
 
-  const useImageSize = useCallback(() => {
-    if (ui.selectedPageIndex !== null) {
-      storeMain.useImageSizeToPage(ui.selectedPageIndex)
-    }
-  }, [storeMain, ui])
-
-  const movePagePrompt = useCallback(() => {
-    if (ui.selectedPageIndex === null) return
+  const movePagePrompt = useCallback(async () => {
+    const fromIndex = ui.selectedPageIndex
+    if (fromIndex === null) return
     const max = book.pages.length - coverOffset
-    const inputValue = window.prompt(t.prompt.newPageIndex(max))
+    const inputValue = await storeMain.ui.showPrompt(t.prompt.newPageIndex(max))
     let num = parseInt(inputValue || '')
 
     if (isNaN(num) || num < 1) {
@@ -211,10 +211,10 @@ export function useNavActions() {
       num = max
     }
 
-    storeMain.movePage(ui.selectedPageIndex, num - 1 + coverOffset)
+    storeMain.movePage(fromIndex, num - 1 + coverOffset)
   }, [storeMain, ui, book, t, coverOffset])
 
-  const insertBlankPage = useCallback(() => {
+  const insertBlankPage = useCallback(async () => {
     const index = ui.selectedPageIndex
     if (index !== null && index >= 0 && index < book.pages.length) {
       storeMain.insertBlankPage(index)
@@ -223,7 +223,7 @@ export function useNavActions() {
     }
 
     const max = book.pages.length - coverOffset
-    const inputValue = window.prompt(t.prompt.insertPageIndex(max))
+    const inputValue = await storeMain.ui.showPrompt(t.prompt.insertPageIndex(max))
     let num = parseInt(inputValue || '')
 
     if (isNaN(num) || num < 1) {
@@ -248,89 +248,63 @@ export function useNavActions() {
     }
   }, [storeMain, ui])
 
-  const removePage = useCallback(() => {
+  const removePage = useCallback(async () => {
     const realIndex = ui.selectedPageIndex
     if (realIndex === null) return
     const message = coverOffset && realIndex === 0
       ? t.prompt.removeCover
       : t.prompt.removePage(realIndex - coverOffset)
-    const res = window.confirm(message)
-    res && storeMain.removePage(realIndex)
+    if (await ui.showConfirm(message, true)) {
+      storeMain.removePage(realIndex)
+    }
   }, [storeMain, ui, t, coverOffset])
+
+  const replacePageImage = useCallback(async (file: File) => {
+    if (ui.selectedPageIndex !== null) {
+      await storeMain.replacePageImage(ui.selectedPageIndex, file)
+    }
+  }, [storeMain, ui])
 
   const undo = useCallback(() => {
     storeMain.undo()
   }, [storeMain])
 
-  // ---- custom spread bindings for the selected page (shares the rules of
-  // the desktop right-click context menu in main.tsx) ----
-  const spreadIdx = selectedPageIndex !== null && selectedPageIndex > 0 ? selectedPageIndex : null
-  const spreadPage = spreadIdx !== null ? book.pages[spreadIdx] : null
-
-  const spreadState: SpreadState = {
-    available: spreadPage !== null,
-    isCentered: spreadPage?.customSpread === 'center',
-    isBoundPrev: spreadPage?.customSpread === 'bind-prev'
-      && (spreadIdx !== null && book.pages[spreadIdx - 1]?.customSpread === 'bind-next'),
-    isBoundNext: spreadPage?.customSpread === 'bind-next'
-      && (spreadIdx !== null && book.pages[spreadIdx + 1]?.customSpread === 'bind-prev'),
-    canBindPrev: spreadIdx !== null && spreadIdx > 1,
-    canBindNext: spreadIdx !== null && spreadIdx < book.pages.length - 1,
-  }
+  // ---- custom spread bindings for the selected page; the grid's right-click
+  // context menu in main.tsx reuses these helpers with the clicked index ----
+  // Derived inline, not memoized: memoizing on the index alone would go stale
+  // when the spread flags change under an unchanged selection.
+  const spreadState = deriveSpreadState(book, selectedPageIndex)
 
   const toggleSpreadCenter = useCallback(() => {
-    const idx = ui.selectedPageIndex
-    if (idx !== null && idx > 0) {
-      book.setPageCustomSpread(idx, 'center')
-    }
+    toggleSpreadAt(book, ui.selectedPageIndex, 'center')
   }, [book, ui])
 
   const toggleSpreadBindPrev = useCallback(() => {
-    const idx = ui.selectedPageIndex
-    if (idx !== null && idx > 0) {
-      book.setPageCustomSpread(idx, 'bind-prev')
-    }
+    toggleSpreadAt(book, ui.selectedPageIndex, 'bind-prev')
   }, [book, ui])
 
   const toggleSpreadBindNext = useCallback(() => {
-    const idx = ui.selectedPageIndex
-    if (idx !== null && idx > 0) {
-      book.setPageCustomSpread(idx, 'bind-next')
-    }
+    toggleSpreadAt(book, ui.selectedPageIndex, 'bind-next')
   }, [book, ui])
 
   return {
     // state
-    hasPages: book.pages.length > 0,
-    selectedPageIndex,
-    selectedPageBlank,
     canUndo: undoStore.canUndo,
-    containerBgFilled: ui.containerBgFilled,
-    theme: ui.theme,
-    lang: ui.lang,
     contentsList: contents.list,
     contentsIndexMap: contents.indexMap,
     spreadState,
     // handlers
-    toggleBook,
-    toggleContents,
-    togglePage,
     generate,
-    cycleTheme,
-    toggleContainerBg,
-    toggleLang,
     reset,
-    useImageSize,
     movePagePrompt,
     insertBlankPage,
     setBookmark,
     splitPage,
     removePage,
+    replacePageImage,
     undo,
     toggleSpreadCenter,
     toggleSpreadBindPrev,
     toggleSpreadBindNext,
   }
 }
-
-export type NavActions = ReturnType<typeof useNavActions>

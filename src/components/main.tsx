@@ -1,19 +1,17 @@
 import { observer } from 'mobx-react'
+import { reaction } from 'mobx'
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useStore } from 'store/main'
 import type { StoreBlobs } from 'store/blobs'
 import Icon from './icon'
 import { useI18n } from 'i18n'
 import { db } from 'utils/db'
+import { APP_VERSION } from 'utils/version'
 import { getPageLayoutInfo, getSpreadPairs } from 'utils/page-layout'
 import { getPageEffectiveSize } from 'utils/page-size'
-import { requestImportGlobal } from 'components/nav/actions'
+import { deriveSpreadState, toggleSpreadAt } from 'components/nav/actions'
 import { usePageDrag } from 'hooks/usePageDrag'
-import ToastContainer from './toast'
-import { APP_VERSION } from 'utils/version'
-
-const THIS_YEAR = (new Date()).getFullYear()
-
+/** Keep selection and dragging while exposing reader shortcuts without a repeated zoom button on every card. */
 const PageCard = observer(function(props: {
   pageItemIndex: number | null
   realPageIndex?: number | null
@@ -28,8 +26,24 @@ const PageCard = observer(function(props: {
 
   // selection always stores the real page-array index; pageItemIndex is a
   // display-only number (shifted by 1 in "alone" cover mode)
-  const onClickImage = useCallback(() => {
+  /** Toggle the selection like a checkbox, but ignore the second click of a double
+      click: it would drop the selection the reader restores when it closes. */
+  const onClickImage = useCallback((event: React.MouseEvent) => {
+    if (event.detail > 1) return
     storeUI.selectPageIndex(props.realPageIndex ?? null)
+  }, [props.realPageIndex, storeUI])
+
+  /** Keyboard activation opens the reader, so the page must end up selected. */
+  const ensureSelected = useCallback(() => {
+    const index = props.realPageIndex ?? null
+    if (storeUI.selectedPageIndex !== index) {
+      storeUI.selectPageIndex(index)
+    }
+  }, [props.realPageIndex, storeUI])
+
+  /** The real array index keeps blank pages and standalone covers aligned with the reader. */
+  const openPreview = useCallback(() => {
+    if (props.realPageIndex !== null && props.realPageIndex !== undefined) storeUI.openPreview(props.realPageIndex)
   }, [props.realPageIndex, storeUI])
 
   const handleContextMenu = (e: React.MouseEvent) => {
@@ -79,6 +93,21 @@ const PageCard = observer(function(props: {
       data-page-index={isDropTarget ? props.realPageIndex : undefined}
       onPointerDown={onPointerDown}
       onClick={onClickImage}
+      onDoubleClick={openPreview}
+      role="button"
+      tabIndex={0}
+      aria-pressed={imageFocus}
+      aria-label={`${t.lightbox.page} ${(props.realPageIndex ?? 0) + 1}${props.blobItem ? (props.blobItem.name ? `: ${props.blobItem.name}` : '') : `: ${t.lightbox.blankPage}`}`}
+      onKeyDown={event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          event.stopPropagation()
+          // select before opening so the grid and inspector agree with the page
+          // the reader shows, exactly as a double click does
+          ensureSelected()
+          openPreview()
+        }
+      }}
       onContextMenu={handleContextMenu}
     >
       {
@@ -87,24 +116,6 @@ const PageCard = observer(function(props: {
           : null
       }
 
-      {
-        props.pageItemIndex !== null && (props.blobItem || props.blank) && (
-          <button
-            type="button"
-            className="zoom-btn"
-            title={t.main.zoomPreview}
-            onClick={(e) => {
-              e.stopPropagation()
-              const previewIdx = props.realPageIndex ?? props.pageItemIndex
-              if (previewIdx !== null && previewIdx >= 0) {
-                storeUI.openPreview(previewIdx)
-              }
-            }}
-          >
-            <Icon name="zoom" />
-          </button>
-        )
-      }
       {
         props.blobItem || (!props.blobItem && props.blank) ? (
           <svg
@@ -134,7 +145,11 @@ const PageCard = observer(function(props: {
       {
         props.pageItemIndex === null && !(props.realPageIndex === 0 && storeBook.coverPosition === 'alone')
           ? null
-          : <div className="page-num">{props.realPageIndex === 0 && storeBook.coverPosition === 'alone' ? t.page.cover : props.pageItemIndex! + 1}</div>
+          : <div className="page-num">
+              {props.realPageIndex === 0
+                ? (storeBook.coverPosition === 'alone' ? t.page.coverPage : `${props.pageItemIndex! + 1} · ${t.page.coverPage}`)
+                : props.pageItemIndex! + 1}
+            </div>
       }
     </div>
   )
@@ -147,26 +162,27 @@ const DoublePageCard = observer(function(props: {
   const { book: storeBook, blobs, ui } = useStore()
   const t = useI18n()
 
-  const leftSidePageIndex = storeBook.pageDirection === 'right' ? props.pages[1] : props.pages[0]
-  const rightSidePageIndex = storeBook.pageDirection === 'right' ? props.pages[0] : props.pages[1]
-  const leftSidePage = leftSidePageIndex === null ? null : storeBook.pages[leftSidePageIndex]
-  const rightSidePage = rightSidePageIndex === null ? null : storeBook.pages[rightSidePageIndex]
+  const isRTL = storeBook.pageDirection === 'right'
+  const p0Index = props.pages[0]
+  const p1Index = props.pages[1]
+  const p0Page = p0Index === null ? null : storeBook.pages[p0Index]
+  const p1Page = p1Index === null ? null : storeBook.pages[p1Index]
   const coverPosition = storeBook.coverPosition === 'alone' ? 1 : 0
 
-  const isLeftSpreadCenter = leftSidePage?.customSpread === 'center'
-  const isRightSpreadCenter = rightSidePage?.customSpread === 'center'
-  const isSpreadCenter = (leftSidePageIndex === null && rightSidePageIndex !== null) ||
-                         (leftSidePageIndex !== null && rightSidePageIndex === null) ||
-                         isLeftSpreadCenter || isRightSpreadCenter
+  const isP0Center = p0Page?.customSpread === 'center'
+  const isP1Center = p1Page?.customSpread === 'center'
+  const isSpreadCenter = (p0Index === null && p1Index !== null) ||
+                         (p0Index !== null && p1Index === null) ||
+                         isP0Center || isP1Center
 
   if (isSpreadCenter) {
     let singleIndex: number
-    if (isLeftSpreadCenter) {
-      singleIndex = leftSidePageIndex as number
-    } else if (isRightSpreadCenter) {
-      singleIndex = rightSidePageIndex as number
+    if (isP0Center) {
+      singleIndex = p0Index as number
+    } else if (isP1Center) {
+      singleIndex = p1Index as number
     } else {
-      singleIndex = (leftSidePageIndex !== null ? leftSidePageIndex : rightSidePageIndex) as number
+      singleIndex = (p0Index !== null ? p0Index : p1Index) as number
     }
 
     const page = storeBook.pages[singleIndex]
@@ -189,45 +205,43 @@ const DoublePageCard = observer(function(props: {
     )
   }
 
-  const isRightJP = storeBook.pageDirection === 'right'
-
-  const leftLayout = leftSidePageIndex !== null ? getPageLayoutInfo({
-    pageIndex: leftSidePageIndex,
+  const p0Layout = p0Index !== null ? getPageLayoutInfo({
+    pageIndex: p0Index,
     coverPosition: storeBook.coverPosition,
     pageDirection: storeBook.pageDirection,
     pageFitSetting: storeBook.pageFit,
-    customSpread: leftSidePage?.customSpread,
-    isFirstInPair: isRightJP ? false : true
+    customSpread: p0Page?.customSpread,
+    isFirstInPair: true
   }) : null
 
-  const rightLayout = rightSidePageIndex !== null ? getPageLayoutInfo({
-    pageIndex: rightSidePageIndex,
+  const p1Layout = p1Index !== null ? getPageLayoutInfo({
+    pageIndex: p1Index,
     coverPosition: storeBook.coverPosition,
     pageDirection: storeBook.pageDirection,
     pageFitSetting: storeBook.pageFit,
-    customSpread: rightSidePage?.customSpread,
-    isFirstInPair: isRightJP ? true : false
+    customSpread: p1Page?.customSpread,
+    isFirstInPair: false
   }) : null
 
-  const isExplicitBound = (leftSidePage?.customSpread === 'bind-next' && rightSidePage?.customSpread === 'bind-prev') ||
-                          (leftSidePage?.customSpread === 'bind-prev' && rightSidePage?.customSpread === 'bind-next')
+  const isExplicitBound = (p0Page?.customSpread === 'bind-next' && p1Page?.customSpread === 'bind-prev') ||
+                          (p0Page?.customSpread === 'bind-prev' && p1Page?.customSpread === 'bind-next')
 
   return (
-    <div className={`card-group ${ui.containerBgFilled ? 'has-bg-filled' : ''}`}>
+    <div className={`card-group ${isRTL ? 'flex-row-reverse' : ''} ${ui.containerBgFilled ? 'has-bg-filled' : ''}`}>
       <PageCard
-        pageItemIndex={leftSidePageIndex === null ? null : (leftSidePageIndex - coverPosition)}
-        realPageIndex={leftSidePageIndex}
-        blobItem={leftSidePage ? blobs.blobs[leftSidePage.blobID] : null}
-        spread={leftLayout ? leftLayout.spread : 'center'}
-        blank={leftSidePage?.blank || false}
+        pageItemIndex={p0Index === null ? null : (p0Index - coverPosition)}
+        realPageIndex={p0Index}
+        blobItem={p0Page ? blobs.blobs[p0Page.blobID] : null}
+        spread={p0Layout ? p0Layout.spread : 'center'}
+        blank={p0Page?.blank || false}
         onContextMenu={props.onContextMenu}
       />
       <PageCard
-        pageItemIndex={rightSidePageIndex === null ? null : (rightSidePageIndex - coverPosition)}
-        realPageIndex={rightSidePageIndex}
-        blobItem={rightSidePage ? blobs.blobs[rightSidePage.blobID] : null}
-        spread={rightLayout ? rightLayout.spread : 'center'}
-        blank={rightSidePage?.blank || false}
+        pageItemIndex={p1Index === null ? null : (p1Index - coverPosition)}
+        realPageIndex={p1Index}
+        blobItem={p1Page ? blobs.blobs[p1Page.blobID] : null}
+        spread={p1Layout ? p1Layout.spread : 'center'}
+        blank={p1Page?.blank || false}
         onContextMenu={props.onContextMenu}
       />
       {isExplicitBound && (
@@ -296,7 +310,8 @@ function readCardMetrics(): { width: number; margin: number } {
   return { width: 280, margin: 7 };
 }
 
-const RestoreBanner = observer(function() {
+/** Landing-page restore strip: one full-width action resumes the interrupted local project. */
+const RestorePrompt = observer(function() {
   const { setAutoSaveActive, restoreWorkspace, isAutoSaveActive } = useStore()
   const t = useI18n()
   const [hasBackup, setHasBackup] = useState(false)
@@ -327,30 +342,14 @@ const RestoreBanner = observer(function() {
       })
   }, [restoreWorkspace, setAutoSaveActive])
 
-  const onDismiss = useCallback(() => {
-    db.clearAll().then(() => {
-      setHasBackup(false)
-      setAutoSaveActive(true)
-    }).catch(err => {
-      console.error('Failed to clear backup:', err)
-      setHasBackup(false)
-      setAutoSaveActive(true)
-    })
-  }, [setAutoSaveActive])
-
   if (!hasBackup || isAutoSaveActive) return null
 
   return (
-    <div className="alert alert-info restore-alert-banner d-flex justify-content-between align-items-center" role="alert">
-      <span>{t.main.restoreDetected}</span>
-      <div className="d-flex gap-2 ms-3">
-        <button className="btn btn-sm btn-primary" onClick={onRestore}>
-          {t.main.restore}
-        </button>
-        <button className="btn btn-sm btn-outline-secondary" onClick={onDismiss}>
-          {t.main.dismiss}
-        </button>
-      </div>
+    <div role="alert" className="workspace-restore-bar-wrap">
+      <button type="button" className="workspace-restore-bar" onClick={onRestore}>
+        <Icon name="undo" />
+        <span>{t.main.restoreDetected}</span>
+      </button>
     </div>
   )
 })
@@ -405,30 +404,25 @@ const PageContextMenu = observer(function(props: {
   const page = storeBook.pages[pageIdx]
   if (!page) return null
 
-  const isCentered = page.customSpread === 'center'
-  const isBoundPrev = page.customSpread === 'bind-prev' && storeBook.pages[pageIdx - 1]?.customSpread === 'bind-next'
-  const isBoundNext = page.customSpread === 'bind-next' && storeBook.pages[pageIdx + 1]?.customSpread === 'bind-prev'
+  const spread = deriveSpreadState(storeBook, pageIdx)
 
   const onToggleCenter = (e: React.MouseEvent) => {
     e.stopPropagation()
-    storeBook.setPageCustomSpread(pageIdx, 'center')
+    toggleSpreadAt(storeBook, pageIdx, 'center')
     props.onClose()
   }
 
   const onToggleBindPrev = (e: React.MouseEvent) => {
     e.stopPropagation()
-    storeBook.setPageCustomSpread(pageIdx, 'bind-prev')
+    toggleSpreadAt(storeBook, pageIdx, 'bind-prev')
     props.onClose()
   }
 
   const onToggleBindNext = (e: React.MouseEvent) => {
     e.stopPropagation()
-    storeBook.setPageCustomSpread(pageIdx, 'bind-next')
+    toggleSpreadAt(storeBook, pageIdx, 'bind-next')
     props.onClose()
   }
-
-  const canBindPrev = pageIdx > 1
-  const canBindNext = pageIdx < storeBook.pages.length - 1
 
   return (
     <div
@@ -438,24 +432,25 @@ const PageContextMenu = observer(function(props: {
       onClick={(e) => e.stopPropagation()}
     >
       <button type="button" className="context-menu-item" onClick={onToggleCenter}>
-        <span>{isCentered ? (t.option.removeSingle || '取消单页 (恢复自动)') : (t.option.setSingle || '设为单页')}</span>
+        <span>{spread.isCentered ? (t.option.removeSingle || '取消单页 (恢复自动)') : (t.option.setSingle || '设为单页')}</span>
       </button>
 
-      {canBindPrev && (
+      {spread.canBindPrev && (
         <button type="button" className="context-menu-item" onClick={onToggleBindPrev}>
-          <span>{isBoundPrev ? (t.option.removeBindPrev || '取消跨页绑定') : (t.option.bindPrev || '绑定跨页（前一张）')}</span>
+          <span>{spread.isBoundPrev ? (t.option.removeBindPrev || '取消跨页绑定') : (t.option.bindPrev || '绑定跨页（前一张）')}</span>
         </button>
       )}
 
-      {canBindNext && (
+      {spread.canBindNext && (
         <button type="button" className="context-menu-item" onClick={onToggleBindNext}>
-          <span>{isBoundNext ? (t.option.removeBindNext || '取消跨页绑定') : (t.option.bindNext || '绑定跨页（后一张）')}</span>
+          <span>{spread.isBoundNext ? (t.option.removeBindNext || '取消跨页绑定') : (t.option.bindNext || '绑定跨页（后一张）')}</span>
         </button>
       )}
     </div>
   )
 })
 
+/** Retain the existing page/spread renderer and recovery lifecycle inside the publication canvas. */
 const Main = function() {
   const mainRef = useRef<HTMLElement>(null)
   const { book: storeBook, ui, modePageSize } = useStore()
@@ -548,41 +543,44 @@ const Main = function() {
     }
   }, [storeBook.coverPosition, storeBook.pages.length, storeBook.pageShow, pagesVersionKey, modePageSize])
 
-  const onClickImportType = useCallback((type: 'image' | 'zip' | 'epub') => {
-    requestImportGlobal(type)
-  }, [])
-
+  /** Rebuild visible rows when the publication layout or page sequence changes. */
   useEffect(() => {
     pageResizeCallback()
   }, [storeBook.pageShow, pagesVersionKey, pageResizeCallback])
 
+  /** Reflow when either the viewport or a neighboring workspace pane changes the canvas width. */
   useEffect(() => {
-    // rAF-throttled resize handler, cleaned up on unmount
-    let scheduled = false
+    let frame: number | null = null
     const onResize = () => {
-      if (scheduled) {
-        return
-      }
-      scheduled = true
-      requestAnimationFrame(() => {
-        scheduled = false
+      if (frame !== null) return
+      frame = requestAnimationFrame(() => {
+        frame = null
         pageResizeCallback()
       })
     }
 
     window.addEventListener('resize', onResize)
+    const observer = new ResizeObserver(onResize)
+    if (mainRef.current) observer.observe(mainRef.current)
     window.addEventListener('click', closeContextMenu)
     window.addEventListener('scroll', closeContextMenu, true)
 
     return () => {
       window.removeEventListener('resize', onResize)
+      observer.disconnect()
+      if (frame !== null) cancelAnimationFrame(frame)
       window.removeEventListener('click', closeContextMenu)
       window.removeEventListener('scroll', closeContextMenu, true)
     }
   }, [pageResizeCallback, closeContextMenu])
 
+  /** Do not treat form input or toolbar activation as a global reader shortcut. */
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as Element | null
+      if (target?.closest('input, textarea, select, [contenteditable="true"]')) return
+      if (!ui.isPreviewOpen && target?.closest('button, summary, a, [role="button"]')) return
+      if (!ui.isPreviewOpen && ui.workspacePage !== 'pages') return
       if (ui.isPreviewOpen) {
         if (e.code === 'ArrowLeft') {
           e.preventDefault()
@@ -619,24 +617,34 @@ const Main = function() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [storeBook.pages.length])
+  }, [])
+
+  /** Returning from the reader scrolls the grid to the page reading stopped on. */
+  useEffect(() => reaction(
+    () => ui.isPreviewOpen,
+    open => {
+      if (open) return
+      requestAnimationFrame(() => {
+        mainRef.current?.querySelector('.card[aria-pressed="true"]')
+          ?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+      })
+    }
+  ), [])
 
   return (
     <main id="main" className="pt-4 pb-4" ref={mainRef}>
-      <RestoreBanner />
       {
         showPages.length === 0 ? (
-          <div className="main-empty-container">
-            <div className="main-app-header">
-              <h1 className="main-app-title">{t.main.appTitle}</h1>
-              <p className="main-app-subtitle">{t.main.appSubtitle}</p>
-              <div className="main-app-maintainer-row">
+          <div className="workspace-landing">
+            <div className="workspace-landing-header">
+              <h1>{t.main.appTitle}</h1>
+              <p>{t.main.appSubtitle}</p>
+              <div className="workspace-landing-meta">
                 <span>{t.main.appMaintainer}</span>
                 <a
                   href="https://github.com/Viel0320/epub-manga-creator"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="main-app-github-link"
                   title="GitHub Repository"
                 >
                   <Icon name="github" />
@@ -645,35 +653,7 @@ const Main = function() {
                 <span>{APP_VERSION}</span>
               </div>
             </div>
-            <div className="main-input-card">
-              <div className="main-input-title">{t.main.import}</div>
-              <div className="main-input-actions">
-                <button
-                  type="button"
-                  className="btn btn-primary main-input-btn"
-                  onClick={() => onClickImportType('image')}
-                >
-                  <Icon name="upload" />
-                  <span>{t.nav.importImage}</span>
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary main-input-btn"
-                  onClick={() => onClickImportType('zip')}
-                >
-                  <Icon name="save" />
-                  <span>{t.nav.importZip}</span>
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary main-input-btn"
-                  onClick={() => onClickImportType('epub')}
-                >
-                  <Icon name="book" />
-                  <span>{t.nav.importEpub}</span>
-                </button>
-              </div>
-            </div>
+            <RestorePrompt />
           </div>
         ) : (
           showPages.map((row, i) => (
@@ -698,7 +678,6 @@ const Main = function() {
         )
       }
       <PageContextMenu state={contextMenu} onClose={closeContextMenu} />
-      <ToastContainer />
     </main>
   )
 }
