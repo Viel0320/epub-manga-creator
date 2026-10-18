@@ -37,34 +37,36 @@ The built files will be located in the **`dist/`** directory at the root of the 
 
 ## 2. Configuration: Base Path (配置静态资源基准路径)
 
-Depending on where you host the application, you may need to adjust the `base` path configuration in [vite.config.ts](file:///d:/github/epub-manga-creator/vite.config.ts).
+The project builds with a **relative** base path in [vite.config.ts](vite.config.ts):
 
 ```typescript
 // vite.config.ts
 export default defineConfig({
-  base: '/epub-manga-creator/', // <--- Edit this base path
+  base: './', // <--- Relative base: works on GitHub Pages, root domains, and local file previews
   // ...
 });
 ```
 
-- **Subfolder Hosting** (Default): If your app is hosted at `https://example.com/epub-manga-creator/` (like GitHub Pages), keep the base path as `/epub-manga-creator/`.
-- **Domain Root Hosting**: If your app is hosted at the root of a domain (e.g., `https://example.com/` or on Vercel/Netlify), change the base path to `'/'`.
-- **Relative Hosting**: If you want the app to be runnable locally by double-clicking the `index.html` file or want relative paths, set it to `'./'`.
+- **Relative Hosting (Default)**: With `base: './'`, assets resolve relative to `index.html`, so the same build works on GitHub Pages (`https://<user>.github.io/epub-manga-creator/`), root domains (Vercel / Netlify / Cloudflare Pages), and even opening `dist/index.html` directly from disk — no changes needed.
+- **Domain Root Hosting**: If your app is hosted at the root of a domain and you prefer an absolute base, change it to `'/'`.
+- **Absolute Subfolder Hosting**: If your hosting requires an absolute base path, set it to your subfolder, e.g. `'/epub-manga-creator/'`.
 
 ---
 
 ## 3. Deployment Options (部署方案)
 
 ### Option A: GitHub Pages (Recommended / Default)
-The project is configured out-of-the-box for GitHub Pages deployment.
+The repository ships a GitHub Actions workflow (`.github/workflows/deploy.yml`) that builds and deploys the app automatically on every push to `main` / `master` (or via manual `workflow_dispatch`). It installs dependencies with `pnpm install --frozen-lockfile` on Node 26, runs `pnpm build`, uploads `./dist` as a Pages artifact, and deploys it with `actions/deploy-pages`. No `base` change or extra script is needed — the default relative `base: './'` already resolves correctly under the GitHub Pages subfolder.
 
-#### Manual Deploy:
-1. Make sure `base` in `vite.config.ts` is set to `'/epub-manga-creator/'` (or your repository name).
-2. Install the `gh-pages` helper package (if not already installed):
+To enable it once per repository: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+
+#### Manual Deploy (fallback for environments without Actions):
+1. No `base` change is needed — the default relative `base: './'` already resolves correctly under the GitHub Pages subfolder.
+2. Install the `gh-pages` helper package:
    ```bash
    pnpm add -D gh-pages
    ```
-3. Add a deploy script to `package.json`:
+3. Add deploy scripts to `package.json`:
    ```json
    "scripts": {
      "predeploy": "pnpm build",
@@ -85,10 +87,10 @@ Configure the build settings in their dashboards as follows:
 - **Build Command**: `pnpm build`
 - **Output Directory**: `dist`
 - **Root Directory**: `./` (or project root)
-- **Node.js Version**: `24.x` (or `>= 20.x`)
+- **Node.js Version**: `24.x` or newer (repo CI builds on 24; the Pages deploy workflow uses 26)
 
 > [!NOTE]
-> Make sure to set the `base` path in `vite.config.ts` to `'/'` when deploying to these root-domain services.
+> No `base` change is required for these root-domain services either — the relative base resolves automatically.
 
 ---
 
@@ -129,8 +131,8 @@ Create a `Dockerfile` at the project root:
 # Stage 1: Build the React application
 FROM node:24-alpine AS builder
 WORKDIR /app
-RUN npm install -g pnpm
-COPY package.json pnpm-lock.yaml ./
+RUN npm install -g pnpm@11.18.0
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY . .
 # Update base configuration if needed (e.g. using environment variables)
@@ -191,4 +193,4 @@ It is highly recommended to run and test the production bundle locally before pu
 pnpm preview
 ```
 
-This starts a server at `http://localhost:4173/epub-manga-creator/` using the exact files in your `dist/` directory, allowing you to double-check that routing, language settings, and core functionalities operate properly under production conditions.
+This starts a server at `http://localhost:4173/` using the exact files in your `dist/` directory, allowing you to double-check that static asset loading, language settings, and core functionalities operate properly under production conditions.

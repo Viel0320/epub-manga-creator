@@ -16,23 +16,31 @@ The generated EPUB structure conforms to the specifications of the [Digital Comi
 
 ![Lightbox Preview](Screenshots/preview2.webp)
 
+![Mobile Layout](Screenshots/mobile.webp)
+
 ---
 
 ## Features
 
-- **Modern Build Stack**: Powered by **Vite 8**, **React 19**, and **MobX 6** for blazing-fast development startup, instant Hot Module Replacement (HMR), and optimized production builds.
+- **Modern Build Stack**: Powered by **Vite 8**, **React 19**, **TypeScript 7**, and **MobX 6** for blazing-fast development startup, instant Hot Module Replacement (HMR), and optimized production builds.
 - **PNPM Package Manager**: Dependency management powered by **pnpm** for faster installs and efficient disk usage.
-- **Auto Workspace Persistence**: Client-side IndexedDB persistence engine automatically saves working state, page Blobs, and configuration in real time, enabling seamless session restoration upon restart.
+- **Flexible Import Pipeline**: Import images (PNG / JPEG / WebP / AVIF / GIF), **ZIP / CBZ archives** (natural-sorted, MIME-detected by magic bytes), or existing EPUB files — everything is processed locally in the browser.
+- **Auto Workspace Persistence**: Client-side IndexedDB persistence engine automatically saves working state, page Blobs, and configuration in real time; on relaunch, a one-click restore prompt resumes the interrupted session.
 - **Dual EPUB 2 & EPUB 3 Parser & Re-import**: Full-featured EPUB importer capable of parsing existing EPUB files. Fully compatible with both EPUB 3 (`<nav epub:type="toc">`, `properties="cover-image"`) and EPUB 2 (`toc.ncx`, `<guide>`, `<meta name="cover">`) standards.
 - **Standardized Page Fit Modes**: Flexible layout fitting supporting `contain` (fit), `cover` (crop), and `fill` (stretch) with dynamic SVG `preserveAspectRatio` and CSS `object-fit` alignment.
-- **Interactive Lightbox Reader**: Fullscreen interactive preview reader component for inspecting single-page and double-page spread layouts.
+- **Interactive Lightbox Reader**: Fullscreen interactive preview reader with swipe navigation for inspecting single-page and double-page spread layouts.
+- **Automatic TOC Generation**: Generate a table of contents with locale-aware titles, aligned with the displayed page numbering.
+- **Rich Page Tooling**: Pointer-based drag & drop reordering (mouse + touch), in-place image replacement, blank-page insertion, page splitting / spread merging, and a single-level undo for page operations.
+- **Responsive & Mobile-Ready**: Adaptive workspace shell with a floating bottom-bar navigation capsule, a slide-in page inspector drawer, and touch gestures on narrow viewports.
+- **Light / Dark / Auto Theming**: Theme cycling that follows the system color scheme by default.
 - **Localisation (L10n)**: Built-in support for **English** and **Chinese**.
   - Automatically detects browser language settings upon first load.
-  - Seamless, state-managed language switching inside the navigation panel.
+  - Seamless, state-managed language switching from the workspace header.
   - Persists preference locally (`localStorage`).
+- **Installable PWA**: Web app manifest and app icons for installation on supported platforms.
 - **Domain-specific Features**:
   - Image pagination, split-page support, reading direction configuration (Japanese RTL or LTR).
-  - Pre-defined datalists for subjects and Japanese publishers.
+  - Pre-defined suggestion lists for subjects and Japanese publishers.
   - "Saved Sets" for reuse of metadata presets.
 
 ---
@@ -58,7 +66,7 @@ This project focuses on producing a **single, unified EPUB file** that delivers 
 
 ### Prerequisites
 
-- **Node.js**: v24.x recommended
+- **Node.js**: v24.x or newer
 - **Package Manager**: [PNPM](https://pnpm.io/)
 
 ### Getting Started

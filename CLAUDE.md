@@ -29,7 +29,7 @@ There is no test runner configured.
 
 ### EPUB 3.0 Output Compliance
 - **Specification**: EPUB 3.0 Fixed-Layout (Japanese manga standard).
-- **Metadata**: Embedded `fixed-layout-jp:viewport`, `rendition:viewport`, and `RegionMagnification` tags (`opf-builder.ts`).
+- **Metadata**: Embedded `fixed-layout-jp:viewport`, `rendition:viewport`, and `RegionMagnification` tags (`template/standard.opf.ts`, width/height filled by `opf-builder.ts`).
 - **ZIP OCF Compliance**: Strictly uncompressed `mimetype` as the very first ZIP entry to pass standard EPUB validators.
 - **Rendering Modes**:
   - SVG Image Tag: `<svg><image/></svg>` (default)
@@ -40,7 +40,8 @@ There is no test runner configured.
 
 ### Dependencies
 - **UI & State**: React 19, MobX 6, MobX React 9, lucide-react (icons).
-- **Build & Utility**: Vite 8, TypeScript 7, JSZip (zip creation/extract), Native IndexedDB (`src/utils/db.ts`).
+- **Build & Utility**: Vite 8, TypeScript 7, JSZip (zip creation/extract), Native IndexedDB (`src/utils/db.ts`), PostCSS + Autoprefixer (`postcss.config.js`).
+- `pnpm-workspace.yaml` carries `allowBuilds: esbuild: true`; keep it when copying install inputs (e.g. Docker builds).
 
 ### Directory Structure & Responsibilities
 
